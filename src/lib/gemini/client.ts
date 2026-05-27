@@ -15,7 +15,8 @@ function getClient() {
  */
 export async function generateJSON<T>(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  options?: { temperature?: number }
 ): Promise<T> {
   const ai = getClient()
 
@@ -26,7 +27,7 @@ export async function generateJSON<T>(
       systemInstruction: systemPrompt,
       thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: 'application/json',
-      temperature: 0.7,
+      temperature: options?.temperature ?? 0.7,
     },
   })
 

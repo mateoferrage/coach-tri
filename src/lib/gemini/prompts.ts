@@ -245,3 +245,97 @@ Contraintes :
 - session_date doit être l'une des dates disponibles ci-dessus
 `.trim()
 }
+
+// ─── Chat coach ────────────────────────────────────────────────────────────────
+
+export const COACH_CHAT_SYSTEM = `
+Tu es Coach Tri, un coach triathlon IA personnel, bienveillant et expert.
+Tu connais le programme d'entraînement de l'athlète et tu peux proposer des ajustements si nécessaire.
+
+RÈGLES IMPORTANTES :
+1. Tu réponds TOUJOURS en JSON valide : { "message": "...", "proposedAction": null }
+2. Tu parles en français, style direct et motivant, tutoiement
+3. Tu NE MODIFIES JAMAIS le programme sans proposer l'action dans "proposedAction" — l'athlète confirme toujours
+4. Si l'athlète mentionne un empêchement, une fatigue ou demande un ajustement → propose une action précise
+5. Pour les échanges simples (conseils, questions) → "proposedAction": null
+
+ACTIONS DISPONIBLES (dans proposedAction) :
+- cancel_session  : annuler une séance (la marquer comme passée)
+- move_session    : déplacer une séance à une autre date
+- adjust_session  : modifier durée/intensité d'une séance
+- regenerate_week : régénérer toutes les séances restantes de la semaine
+
+FORMAT proposedAction :
+{
+  "type": "cancel_session",
+  "description": "Annuler la séance de vélo du mercredi (empêchement)",
+  "params": {
+    // cancel_session  → { "session_id": "uuid" }
+    // move_session    → { "session_id": "uuid", "new_date": "YYYY-MM-DD" }
+    // adjust_session  → { "session_id": "uuid", "duration_min": 45, "session_type": "recovery", "coaching_note": "..." }
+    // regenerate_week → { "plan_id": "uuid", "week_num": 3, "available_days": [1,3,5,6] }
+  }
+}
+
+Réponds uniquement en JSON. Pas de texte en dehors du JSON.
+`.trim()
+
+interface ChatSession {
+  id: string
+  discipline: string
+  session_type: string
+  title: string | null
+  duration_min: number
+  session_date: string
+  status: string
+  expected_rpe: number | null
+}
+
+interface ChatContext {
+  profile: { first_name: string | null; level: string | null; weekly_hours_avg: number | null } | null
+  plan: { id: string; name: string | null; goal: { race_name: string; race_date: string } | null } | null
+  currentWeekNum: number
+  currentPhase: string | null
+  weekSessions: ChatSession[]
+  history: Array<{ role: string; content: string }>
+  today: string
+}
+
+const DISCIPLINE_FR: Record<string, string> = {
+  swim: 'Natation', bike: 'Vélo', run: 'Course', brick: 'Enchaînement', strength: 'Renforcement', rest: 'Récupération',
+}
+const STATUS_FR: Record<string, string> = {
+  planned: 'PLANIFIÉE', done: 'TERMINÉE', skipped: 'ANNULÉE', modified: 'MODIFIÉE',
+}
+
+export function buildChatContext(ctx: ChatContext): string {
+  const planLabel = ctx.plan?.goal?.race_name ?? ctx.plan?.name ?? 'Programme d\'entraînement'
+  const levelLabels: Record<string, string> = {
+    beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé', elite: 'Élite',
+  }
+
+  const sessionsBlock = ctx.weekSessions.length
+    ? ctx.weekSessions.map(s => {
+        const date = new Date(s.session_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+        return `  * ${date} [${s.id}] : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${s.duration_min}min — ${STATUS_FR[s.status] ?? s.status}`
+      }).join('\n')
+    : '  (aucune séance cette semaine)'
+
+  const historyBlock = ctx.history.length
+    ? ctx.history.map(m => `[${m.role === 'user' ? 'Athlète' : 'Coach'}]: ${m.content}`).join('\n')
+    : '(début de conversation)'
+
+  return `
+CONTEXTE ATHLÈTE (${ctx.today}) :
+- Prénom : ${ctx.profile?.first_name ?? 'Athlète'}
+- Niveau : ${levelLabels[ctx.profile?.level ?? ''] ?? ctx.profile?.level ?? 'Non précisé'}
+- Programme : "${planLabel}"${ctx.plan ? ` (Sem. ${ctx.currentWeekNum}, Phase ${ctx.currentPhase ?? '—'})` : ''}
+${ctx.plan ? `- Plan ID : ${ctx.plan.id}` : ''}
+
+SÉANCES DE LA SEMAINE EN COURS :
+${sessionsBlock}
+
+HISTORIQUE RÉCENT DU CHAT :
+${historyBlock}
+`.trim()
+}

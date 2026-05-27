@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { differenceInWeeks, parseISO } from "date-fns";
+import CoachChat from "@/components/coach/CoachChat";
 
 export const metadata = { title: "Tableau de bord — Coach Tri" };
 
@@ -244,6 +245,14 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
+
+      {/* Coach IA */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Ton coach
+        </h2>
+        <CoachChat planId={(plan as Record<string, unknown> | null)?.id as string | null} />
+      </section>
 
     </div>
   );
