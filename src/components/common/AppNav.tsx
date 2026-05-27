@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 
 interface AppNavProps {
@@ -11,10 +10,11 @@ interface AppNavProps {
 }
 
 const navLinks = [
-  { href: "/dashboard", label: "Tableau de bord" },
-  { href: "/program", label: "Programme" },
-  { href: "/history", label: "Historique" },
-  { href: "/profile", label: "Profil" },
+  { href: "/dashboard",  label: "Tableau de bord" },
+  { href: "/activities", label: "Activités" },
+  { href: "/program",    label: "Programme" },
+  { href: "/calendar",   label: "Calendrier" },
+  { href: "/profile",    label: "Profil" },
 ];
 
 export function AppNav({ user }: AppNavProps) {
@@ -29,32 +29,71 @@ export function AppNav({ user }: AppNavProps) {
   }
 
   return (
-    <header className="border-b bg-white sticky top-0 z-10">
+    <header className="sticky top-0 z-40 border-b border-sidebar-border" style={{ backgroundColor: "oklch(0.116 0.022 155)" }}>
       <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="text-lg font-bold tracking-tight">
-            Coach Tri
+
+        {/* Logo */}
+        <div className="flex items-center gap-10">
+          <Link href="/dashboard" className="flex items-center gap-0.5">
+            <span className="text-lg font-black uppercase tracking-widest text-white">
+              Coach
+            </span>
+            <span className="text-lg font-black uppercase tracking-widest" style={{ color: "oklch(0.843 0.165 157)" }}>
+              &nbsp;Tri
+            </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`text-sm font-medium transition-colors hover:text-zinc-900 ${
-                  pathname === href ? "text-zinc-900" : "text-zinc-500"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
+
+          {/* Nav links — desktop */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map(({ href, label }) => {
+              const active = pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                    active
+                      ? "text-sidebar-primary bg-sidebar-primary/15"
+                      : "text-white/50 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
+
+        {/* Right side */}
         <div className="flex items-center gap-3">
-          <span className="hidden sm:block text-sm text-zinc-500">{user.email}</span>
-          <Button variant="outline" size="sm" onClick={handleSignOut}>
+          <span className="hidden lg:block text-xs text-white/30 font-medium truncate max-w-[180px]">
+            {user.email}
+          </span>
+          <button
+            onClick={handleSignOut}
+            className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border transition-all text-white/50 hover:text-white border-white/10 hover:border-white/30"
+          >
             Déconnexion
-          </Button>
+          </button>
         </div>
+      </div>
+
+      {/* Mobile bottom bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-sidebar-border" style={{ backgroundColor: "oklch(0.116 0.022 155)" }}>
+        {navLinks.map(({ href, label }) => {
+          const active = pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                active ? "text-sidebar-primary" : "text-white/40"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </div>
     </header>
   );

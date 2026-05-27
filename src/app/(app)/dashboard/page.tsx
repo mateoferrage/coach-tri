@@ -1,89 +1,250 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { differenceInWeeks, parseISO } from "date-fns";
 
 export const metadata = { title: "Tableau de bord — Coach Tri" };
+
+const MINT  = "oklch(0.843 0.165 157)";
+const DARK  = "oklch(0.116 0.022 155)";
+const DIV   = "oklch(1 0 0 / 8%)";
+
+const DISCIPLINE_EMOJI: Record<string, string> = {
+  swim: "🏊", bike: "🚴", run: "🏃", brick: "⚡", strength: "💪", rest: "😴",
+};
+const DISCIPLINE_LABEL: Record<string, string> = {
+  swim: "Natation", bike: "Vélo", run: "Course à pied",
+  brick: "Enchaînement", strength: "Renforcement", rest: "Récupération",
+};
+const SESSION_TYPE_LABEL: Record<string, string> = {
+  easy: "Endurance facile", tempo: "Tempo", threshold: "Seuil",
+  vo2: "VO2max", race_pace: "Allure course", technique: "Technique",
+  long: "Sortie longue", recovery: "Récupération active", test: "Test",
+};
+const PHASE_LABELS: Record<string, string> = {
+  prep: "Préparation", base: "Base", build: "Construction",
+  peak: "Pic", taper: "Affûtage", race: "Course", maintenance: "Maintien",
+};
+
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = await (supabase as any)
-    .from("profiles")
-    .select("first_name, level")
-    .eq("id", user!.id)
-    .single() as { data: { first_name: string | null; level: string | null } | null };
+  const today = new Date().toISOString().split("T")[0];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: wellness } = await (supabase as any)
-    .from("garmin_wellness")
-    .select("hrv_rmssd, body_battery_start, resting_hr, date")
-    .eq("user_id", user!.id)
-    .order("date", { ascending: false })
-    .limit(1)
-    .single() as { data: { hrv_rmssd: number | null; body_battery_start: number | null; resting_hr: number | null; date: string } | null };
+  const [profileRes, planRes, todaySessionRes, nextSessionRes] = await Promise.all([
+    (supabase as any).from("profiles")
+      .select("first_name, level")
+      .eq("id", user!.id)
+      .single(),
+
+    (supabase as any).from("plans")
+      .select("id, name, start_date, end_date, status, goal:goals(race_name, race_date), plan_phases(*), plan_weeks(id, week_num, phase)")
+      .eq("user_id", user!.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+
+    (supabase as any).from("sessions")
+      .select("id, title, discipline, session_type, duration_min, planned_tss, expected_rpe, status, coaching_note")
+      .eq("user_id", user!.id)
+      .eq("session_date", today)
+      .neq("status", "done")
+      .order("day_part", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+
+    (supabase as any).from("sessions")
+      .select("id, title, discipline, session_type, duration_min, session_date, status")
+      .eq("user_id", user!.id)
+      .eq("status", "planned")
+      .gt("session_date", today)
+      .order("session_date", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const profile  = profileRes.data as { first_name: string | null; level: string | null } | null;
+  const plan     = planRes.data as Record<string, unknown> | null;
+  const todaySession = todaySessionRes.data as Record<string, unknown> | null;
+  const nextSession  = nextSessionRes.data as Record<string, unknown> | null;
 
   const firstName = profile?.first_name ?? "Athlète";
 
+  // Current week calculation
+  let currentWeekNum = 0;
+  let currentPhaseLabel = "—";
+  let totalWeeks = 0;
+
+  if (plan) {
+    const startDate = parseISO(plan.start_date as string);
+    const weeks = (plan.plan_weeks as Record<string, unknown>[]) ?? [];
+    const phases = (plan.plan_phases as Record<string, unknown>[]) ?? [];
+    totalWeeks = weeks.length;
+    currentWeekNum = Math.min(Math.max(0, differenceInWeeks(new Date(), startDate)) + 1, totalWeeks);
+
+    const currentPhase = phases.find(p =>
+      (p.start_week_num as number) <= currentWeekNum &&
+      (p.end_week_num as number) >= currentWeekNum
+    );
+    currentPhaseLabel = PHASE_LABELS[currentPhase?.phase as string] ?? "—";
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Bonjour, {firstName}</h1>
-        <p className="text-zinc-500 mt-1">Voici votre tableau de bord d&apos;entraînement</p>
+    <div className="space-y-10">
+
+      {/* Greeting */}
+      <div className="space-y-1">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Tableau de bord
+        </p>
+        <h1 className="text-3xl font-black uppercase tracking-tight">
+          Bonjour,{" "}
+          <span style={{ color: MINT }}>{firstName}</span>
+        </h1>
+        <p className="text-sm text-muted-foreground">Voici votre synthèse d&apos;entraînement</p>
       </div>
 
-      {/* Métriques Garmin */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Métriques récentes</h2>
-          <form action="/api/garmin/sync" method="POST">
-            <Button type="submit" variant="outline" size="sm">
-              Synchroniser Garmin
-            </Button>
-          </form>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>HRV (RMSSD)</CardDescription>
-              <CardTitle className="text-3xl">
-                {wellness?.hrv_rmssd ? `${Math.round(wellness.hrv_rmssd)} ms` : "—"}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Body Battery</CardDescription>
-              <CardTitle className="text-3xl">
-                {wellness?.body_battery_start ?? "—"}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>FC repos</CardDescription>
-              <CardTitle className="text-3xl">
-                {wellness?.resting_hr ? `${wellness.resting_hr} bpm` : "—"}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
+      {/* Séance du jour */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Aujourd&apos;hui
+        </h2>
+
+        {todaySession ? (
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+          >
+            {/* Top */}
+            <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                  style={{ backgroundColor: `${MINT}18`, border: `1px solid ${MINT}30` }}
+                >
+                  {DISCIPLINE_EMOJI[todaySession.discipline as string] ?? "⚡"}
+                </div>
+                <div>
+                  <p className="font-black uppercase tracking-widest text-sm leading-tight" style={{ color: MINT }}>
+                    {DISCIPLINE_LABEL[todaySession.discipline as string]}
+                    {todaySession.session_type ? ` · ${SESSION_TYPE_LABEL[todaySession.session_type as string]}` : ""}
+                  </p>
+                  <p className="text-base font-black mt-0.5" style={{ color: "oklch(0.97 0 0)" }}>
+                    {(todaySession.title as string | null) ?? "Séance du jour"}
+                  </p>
+                </div>
+              </div>
+              <div
+                className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                style={{ color: MINT, border: `1px solid ${MINT}` }}
+              >
+                {todaySession.duration_min as number} min
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              className="px-5 py-3 flex items-center justify-between gap-3"
+              style={{ borderTop: `1px solid ${DIV}`, backgroundColor: "oklch(0.09 0.018 155)" }}
+            >
+              <div className="flex gap-4">
+                {(todaySession.planned_tss as number | null) != null && (
+                  <span className="text-xs" style={{ color: "oklch(1 0 0 / 45%)" }}>
+                    <span className="font-black" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.planned_tss as number}</span> TSS
+                  </span>
+                )}
+                {(todaySession.expected_rpe as number | null) != null && (
+                  <span className="text-xs" style={{ color: "oklch(1 0 0 / 45%)" }}>
+                    RPE <span className="font-black" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.expected_rpe as number}/10</span>
+                  </span>
+                )}
+              </div>
+              <Link
+                href={`/session/${todaySession.id as string}`}
+                className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-opacity hover:opacity-80"
+                style={{ backgroundColor: MINT, color: DARK }}
+              >
+                Voir la séance →
+              </Link>
+            </div>
+          </div>
+        ) : plan && nextSession ? (
+          <div
+            className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+          >
+            <div>
+              <p className="font-bold text-sm" style={{ color: "oklch(0.97 0 0)" }}>Pas de séance prévue aujourd&apos;hui</p>
+              <p className="text-xs mt-0.5" style={{ color: "oklch(1 0 0 / 40%)" }}>
+                Prochaine : {DISCIPLINE_EMOJI[nextSession.discipline as string]}{" "}
+                {DISCIPLINE_LABEL[nextSession.discipline as string]} — {new Date(nextSession.session_date as string).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}
+              </p>
+            </div>
+            <Link
+              href="/program"
+              className="text-xs font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
+              style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+            >
+              Voir le programme
+            </Link>
+          </div>
+        ) : plan ? (
+          <div
+            className="rounded-2xl px-5 py-8 text-center"
+            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+          >
+            <p className="text-sm font-bold" style={{ color: "oklch(0.97 0 0)" }}>Programme terminé 🎉</p>
+            <p className="text-xs mt-1" style={{ color: "oklch(1 0 0 / 40%)" }}>Toutes les séances sont complétées.</p>
+          </div>
+        ) : (
+          <div
+            className="rounded-2xl py-12 text-center space-y-4"
+            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+          >
+            <p className="text-sm" style={{ color: "oklch(1 0 0 / 50%)" }}>Aucun programme actif.</p>
+            <Link
+              href="/program/new"
+              className="inline-flex items-center justify-center rounded-xl font-black uppercase tracking-widest text-sm px-6 py-3 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: MINT, color: DARK }}
+            >
+              ✨ Créer mon programme
+            </Link>
+          </div>
+        )}
       </section>
 
-      {/* Séance du jour */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Aujourd&apos;hui</h2>
-        <Card>
-          <CardContent className="py-12 text-center text-zinc-500">
-            <p className="mb-4">Aucun programme actif.</p>
-            <Link href="/program/new" className="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary text-primary-foreground text-sm font-medium px-4 py-2 transition-all hover:bg-primary/80">
-              Créer un programme
+      {/* Programme actif */}
+      {plan && (
+        <section className="space-y-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Programme actif
+          </h2>
+          <div
+            className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+          >
+            <div>
+              <p className="font-black uppercase tracking-widest text-sm" style={{ color: MINT }}>
+                {((plan.goal as Record<string, unknown> | null)?.race_name as string | null) ?? (plan.name as string | null) ?? "Programme d'entraînement"}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "oklch(1 0 0 / 40%)" }}>
+                Sem. {currentWeekNum}/{totalWeeks} · {currentPhaseLabel}
+              </p>
+            </div>
+            <Link
+              href="/program"
+              className="text-xs font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
+              style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+            >
+              Voir →
             </Link>
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }

@@ -2,88 +2,26 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/errors";
 import { decryptCredential } from "@/lib/utils/crypto";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { GarminConnect } = require("garmin-connect");
 
-interface GarminCreds {
-  email_enc: string;
-  password_enc: string;
-  session_data: Record<string, unknown> | null;
-  last_sync_at: string | null;
-}
+const MAX_DAYS = 14;
 
-interface SyncResult {
-  activities_count: number;
-  wellness_count: number;
-  session_data: Record<string, unknown>;
-}
-
-export async function POST() {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) return apiError("Non authentifié", 401);
-
-  const admin = createAdminClient();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: creds, error: credsError } = await (admin as any)
-    .from("garmin_credentials")
-    .select("email_enc, password_enc, session_data, last_sync_at")
-    .eq("user_id", user.id)
-    .single() as { data: GarminCreds | null; error: { message: string } | null };
-
-  if (credsError || !creds) {
-    return apiError("Aucun compte Garmin connecté", 400);
-  }
-
-  try {
-    const email = decryptCredential(creds.email_enc);
-    const password = decryptCredential(creds.password_enc);
-
-    const since = creds.last_sync_at
-      ? new Date(creds.last_sync_at).toISOString().split("T")[0]
-      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-    const syncResult = await callGarminSync({ email, password, since, userId: user.id, sessionData: creds.session_data });
-
-    // Upsert activities
-    if (syncResult.activities.length > 0) {
-      const activityRows = syncResult.activities.map(a => ({ ...a, user_id: user.id }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (admin as any)
-        .from("garmin_activities")
-        .upsert(activityRows, { onConflict: "user_id,garmin_activity_id", ignoreDuplicates: false });
-    }
-
-    // Upsert wellness
-    if (syncResult.wellness.length > 0) {
-      const wellnessRows = syncResult.wellness.map(w => ({ ...w, user_id: user.id }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (admin as any)
-        .from("garmin_wellness")
-        .upsert(wellnessRows, { onConflict: "user_id,date", ignoreDuplicates: false });
-    }
-
-    // Update credentials: persist session + last_sync timestamp
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any)
-      .from("garmin_credentials")
-      .update({ last_sync_at: new Date().toISOString(), session_data: syncResult.session_data })
-      .eq("user_id", user.id);
-
-    return apiSuccess({
-      success: true,
-      activities_synced: syncResult.activities_count,
-      wellness_synced: syncResult.wellness_count,
-    });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur de synchronisation";
-    return apiError(message);
-  }
+/* ── Types ──────────────────────────────────────────────────────────────── */
+interface StoredTokens {
+  oauth1: { token: string; token_secret: string };
+  oauth2: {
+    scope: string; jti: string; token_type: string;
+    access_token: string; refresh_token: string;
+    expires_in: number; expires_at: number;
+    refresh_token_expires_in: number; refresh_token_expires_at: number;
+  };
 }
 
 interface GarminActivity {
   garmin_activity_id: number;
   activity_type: string;
+  name: string | null;
   started_at: string;
   duration_s: number | null;
   distance_m: number | null;
@@ -94,7 +32,7 @@ interface GarminActivity {
   training_effect: number | null;
   aerobic_te: number | null;
   anaerobic_te: number | null;
-  raw_data: Record<string, unknown>;
+  raw_data: unknown;
 }
 
 interface GarminWellness {
@@ -110,40 +48,353 @@ interface GarminWellness {
   total_calories: number | null;
 }
 
-async function callGarminSync(params: {
-  email: string;
-  password: string;
-  since: string;
-  userId: string;
-  sessionData: unknown;
-}): Promise<SyncResult & { activities: GarminActivity[]; wellness: GarminWellness[] }> {
-  // Calls the Vercel Python serverless function at /api/garmin_sync
-  // The function uses the garminconnect Python library
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+interface GarminStats {
+  display_name: string | null;
+  garmin_username: string | null;
+  profile_image_url: string | null;
+  vo2max_run: number | null;
+  vo2max_bike: number | null;
+  fitness_age: number | null;
+  training_readiness: number | null;
+  training_load_7d: number | null;
+  training_load_28d: number | null;
+  personal_records: unknown;
+  raw_profile: unknown;
+  raw_fitness: unknown;
+}
 
-  const secret = process.env.INTERNAL_SECRET;
-  if (!secret) throw new Error("INTERNAL_SECRET env var not set");
+/* ── Helpers ────────────────────────────────────────────────────────────── */
+function delay(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+function toDateStr(d: Date): string { return d.toISOString().split("T")[0]; }
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
 
-  const res = await fetch(`${baseUrl}/api/garmin_sync`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Internal-Secret": secret,
-    },
-    body: JSON.stringify({
-      email: params.email,
-      password: params.password,
-      since: params.since,
-      session_data: params.sessionData ?? null,
-    }),
-  });
+function mapActivityType(typeKey: string): string {
+  const MAP: Record<string, string> = {
+    swimming: "swim", pool_swimming: "swim", lap_swimming: "swim",
+    open_water_swimming: "swim", indoor_swimming: "swim",
+    cycling: "bike", road_biking: "bike", mountain_biking: "bike",
+    indoor_cycling: "bike", virtual_ride: "bike", gravel_cycling: "bike",
+    e_bike_fitness: "bike", bmx: "bike",
+    running: "run", trail_running: "run", treadmill_running: "run",
+    track_running: "run", indoor_running: "run", ultra_run: "run",
+    triathlon: "triathlon", open_water_triathlon: "triathlon",
+    indoor_triathlon: "triathlon", multisport: "triathlon",
+    strength_training: "strength", fitness_equipment: "strength",
+    weight_training: "strength", yoga: "strength", pilates: "strength",
+    crossfit: "strength",
+  };
+  return MAP[typeKey] ?? "other";
+}
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error: string }).error ?? "Garmin sync failed");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapActivity(a: any): GarminActivity | null {
+  if (!a?.activityId) return null;
+  return {
+    garmin_activity_id: Number(a.activityId),
+    activity_type: mapActivityType(a.activityType?.typeKey ?? ""),
+    name: a.activityName ?? null,
+    started_at: a.startTimeLocal ?? a.startTimeGMT,
+    duration_s: a.duration != null ? Math.round(Number(a.duration)) : null,
+    distance_m: a.distance ?? null,
+    avg_hr: a.averageHR ?? null,
+    max_hr: a.maxHR ?? null,
+    avg_speed_ms: a.averageSpeed ?? null,
+    elevation_gain_m: a.elevationGain ?? null,
+    training_effect: a.aerobicTrainingEffect ?? null,
+    aerobic_te: a.aerobicTrainingEffect ?? null,
+    anaerobic_te: a.anaerobicTrainingEffect ?? null,
+    raw_data: a,
+  };
+}
+
+/* ── Auth ───────────────────────────────────────────────────────────────── */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function authenticate(gc: any, sessionData: unknown) {
+  if (sessionData && typeof sessionData === "object") {
+    const t = sessionData as Partial<StoredTokens>;
+    if (t.oauth1 && t.oauth2) {
+      try {
+        gc.loadToken(t.oauth1, t.oauth2);
+        await gc.getUserProfile();
+        return;
+      } catch { /* expired — fall through */ }
+    }
+  }
+  await gc.login();
+}
+
+/* ── Encoding fix (Garmin lib returns latin-1 as UTF-8 sometimes) ────────── */
+function fixEncoding(s: string | null | undefined): string | null {
+  if (!s) return null;
+  try { return Buffer.from(s, "latin1").toString("utf8"); } catch { return s; }
+}
+
+/* ── Fetch Garmin Stats (non-fatal, best-effort) ────────────────────────── */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchGarminStats(gc: any): Promise<GarminStats> {
+  const stats: GarminStats = {
+    display_name: null, garmin_username: null, profile_image_url: null,
+    vo2max_run: null, vo2max_bike: null, fitness_age: null,
+    training_readiness: null, training_load_7d: null, training_load_28d: null,
+    personal_records: null, raw_profile: null, raw_fitness: null,
+  };
+
+  let userProfileId: number | null = null;
+  let garminDisplayName: string | null = null; // UUID used for PR endpoint
+  const today = toDateStr(new Date());
+  const weekAgo = toDateStr(new Date(Date.now() - 7 * 86_400_000));
+
+  // ── 1. User profile ──────────────────────────────────────────────────────
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profile: any = await gc.getUserProfile();
+    // fullName is the real name; displayName is an opaque UUID in some accounts
+    stats.display_name    = fixEncoding(profile?.fullName ?? profile?.userProfileFullName ?? null);
+    stats.garmin_username = profile?.userName ?? null;
+    stats.profile_image_url =
+      profile?.profileImageUrlMedium ??
+      profile?.profileImageUrlLarge ??
+      profile?.profileImage ?? null;
+    userProfileId        = profile?.id ?? profile?.userId ?? profile?.userProfileId ?? null;
+    garminDisplayName    = profile?.displayName ?? null; // UUID — works for API paths
+    stats.raw_profile    = profile;
+  } catch { /* non-fatal */ }
+
+  // ── 2. VO2 Max + Fitness Age via maxmet range ────────────────────────────
+  // The daily/today endpoint returns 404; the range format works and returns
+  // an array of items with nested `generic` (run) and `cycling` sub-objects.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const maxmet: any[] = await gc.get(
+      `https://connectapi.garmin.com/metrics-service/metrics/maxmet/daily/${weekAgo}/${today}`
+    );
+    const arr = Array.isArray(maxmet) ? maxmet : [];
+    for (const item of arr) {
+      // generic = running / multisport VO2Max
+      if (item.generic?.vo2MaxPreciseValue != null) {
+        stats.vo2max_run  = item.generic.vo2MaxPreciseValue;
+        if (item.generic.fitnessAge != null) stats.fitness_age = item.generic.fitnessAge;
+      }
+      // cycling VO2Max
+      if (item.cycling?.vo2MaxPreciseValue != null) {
+        stats.vo2max_bike = item.cycling.vo2MaxPreciseValue;
+        if (stats.fitness_age == null && item.cycling.fitnessAge != null) {
+          stats.fitness_age = item.cycling.fitnessAge;
+        }
+      }
+    }
+    stats.raw_fitness = arr.length > 0 ? arr[arr.length - 1] : null;
+  } catch { /* non-fatal */ }
+
+  // ── 3. Training Readiness (non-fatal — 404 on many accounts) ─────────────
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readiness: any = await gc.get(
+      `https://connectapi.garmin.com/metrics-service/metrics/training-readiness/${weekAgo}/${today}`
+    );
+    const r = Array.isArray(readiness) ? readiness[readiness.length - 1] : readiness;
+    stats.training_readiness = r?.score ?? r?.value ?? r?.trainingReadiness ?? null;
+  } catch { /* non-fatal */ }
+
+  // ── 4. Training Load (non-fatal — 404 on many accounts) ──────────────────
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const load: any = await gc.get(
+      `https://connectapi.garmin.com/metrics-service/metrics/training-load/${weekAgo}/${today}`
+    );
+    const l = Array.isArray(load) ? load[0] : load;
+    stats.training_load_7d  = l?.sevenDayLoad ?? l?.weekLoad ?? null;
+    stats.training_load_28d = l?.fourWeekLoad ?? l?.monthLoad ?? null;
+  } catch { /* non-fatal */ }
+
+  // ── 6. Personal Records — use displayName UUID (not email) ───────────────
+  const prKey = garminDisplayName ?? stats.garmin_username;
+  if (prKey) {
+    try {
+      const prs = await gc.get(
+        `https://connectapi.garmin.com/personalrecord-service/personalrecord/prs/${prKey}`
+      );
+      stats.personal_records = prs;
+    } catch { /* non-fatal */ }
   }
 
-  return res.json();
+  return stats;
+}
+
+/* ── Activities + Wellness sync ─────────────────────────────────────────── */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runSync(gc: any, lastSyncAt: string | null) {
+  const sinceCapped = new Date(
+    Math.max(
+      lastSyncAt ? new Date(lastSyncAt).getTime() : 0,
+      Date.now() - MAX_DAYS * 86_400_000,
+    )
+  );
+  const since    = toDateStr(sinceCapped);
+  const todayStr = toDateStr(new Date());
+
+  /* Activities */
+  const activities: GarminActivity[] = [];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw: any[] = await gc.get(
+      "https://connectapi.garmin.com/activitylist-service/activities/search/activities",
+      { startDate: since, endDate: todayStr, limit: 100, start: 0 },
+    );
+    for (const a of Array.isArray(raw) ? raw : []) {
+      const mapped = mapActivity(a);
+      if (mapped) activities.push(mapped);
+    }
+  } catch { /* non-fatal */ }
+
+  /* Wellness — day by day */
+  const wellness: GarminWellness[] = [];
+  let cursor = new Date(since + "T12:00:00");
+  const end  = new Date(todayStr + "T12:00:00");
+
+  while (cursor <= end) {
+    const dateStr = toDateStr(cursor);
+    const dateObj = new Date(cursor);
+
+    let sleepDurationS: number | null = null;
+    let sleepScore: number | null     = null;
+    let hrvRmssd: number | null       = null;
+    let bodyBatteryStart: number | null = null;
+    let restingHr: number | null      = null;
+    let steps: number | null          = null;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const s: any = await gc.getSleepData(dateObj);
+      sleepDurationS = s?.dailySleepDTO?.sleepTimeSeconds ?? null;
+      const sc = s?.dailySleepDTO?.sleepScores;
+      if (sc?.overall?.value != null) sleepScore = sc.overall.value;
+    } catch { }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hr: any = await gc.getHeartRate(dateObj);
+      restingHr = hr?.restingHeartRate ?? null;
+    } catch { }
+
+    try {
+      const s = await gc.getSteps(dateObj);
+      steps = typeof s === "number" ? s : null;
+    } catch { }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hrv: any = await gc.get(`https://connectapi.garmin.com/hrv-service/hrv/${dateStr}`);
+      hrvRmssd = hrv?.hrvSummary?.lastNight ?? null;
+    } catch { }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bb: any[] = await gc.get(
+        `https://connectapi.garmin.com/wellness-service/wellness/bodyBattery/readingList/${dateStr}/${dateStr}`
+      );
+      if (Array.isArray(bb) && bb.length > 0) {
+        bodyBatteryStart = bb[0]?.bodyBatteryLevel ?? null;
+      }
+    } catch { }
+
+    wellness.push({
+      date: dateStr, sleep_duration_s: sleepDurationS, sleep_score: sleepScore,
+      hrv_rmssd: hrvRmssd, body_battery_start: bodyBatteryStart, body_battery_end: null,
+      stress_avg: null, resting_hr: restingHr, steps, total_calories: null,
+    });
+
+    await delay(350);
+    cursor = addDays(cursor, 1);
+  }
+
+  return { activities, wellness };
+}
+
+/* ── Route Handler ───────────────────────────────────────────────────────── */
+export async function POST() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return apiError("Non authentifié", 401);
+
+  const admin = createAdminClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: creds } = await (admin as any)
+    .from("garmin_credentials")
+    .select("email_enc, password_enc, session_data, last_sync_at")
+    .eq("user_id", user.id)
+    .single() as {
+      data: {
+        email_enc: string; password_enc: string;
+        session_data: unknown; last_sync_at: string | null;
+      } | null;
+    };
+
+  if (!creds) return apiError("Aucun compte Garmin connecté. Connecte ton compte dans Profil.", 400);
+
+  const email    = decryptCredential(creds.email_enc);
+  const password = decryptCredential(creds.password_enc);
+
+  try {
+    // Single gc instance — authenticate once, reuse for all calls
+    const gc = new GarminConnect({ username: email, password });
+    await authenticate(gc, creds.session_data);
+
+    // Run in parallel: activities+wellness AND profile stats
+    const [{ activities, wellness }, garminStats] = await Promise.all([
+      runSync(gc, creds.last_sync_at),
+      fetchGarminStats(gc),
+    ]);
+
+    // Upsert activities
+    if (activities.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin as any).from("garmin_activities").upsert(
+        activities.map(a => ({ ...a, user_id: user.id })),
+        { onConflict: "user_id,garmin_activity_id" },
+      );
+    }
+
+    // Upsert wellness
+    if (wellness.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin as any).from("garmin_wellness").upsert(
+        wellness.map(w => ({ ...w, user_id: user.id })),
+        { onConflict: "user_id,date" },
+      );
+    }
+
+    // Upsert garmin_stats (one row per user)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from("garmin_stats").upsert(
+      { ...garminStats, user_id: user.id, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
+
+    // Update credentials
+    const tokens = gc.exportToken() as StoredTokens;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from("garmin_credentials")
+      .update({ last_sync_at: new Date().toISOString(), session_data: tokens })
+      .eq("user_id", user.id);
+
+    return apiSuccess({
+      success: true,
+      activities_synced: activities.length,
+      wellness_synced: wellness.length,
+      stats_synced: true,
+    });
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erreur de synchronisation Garmin";
+    if (message.toLowerCase().includes("unauthorized") || message.includes("401")) {
+      return apiError("Identifiants Garmin incorrects. Reconnecte ton compte dans Profil.", 401);
+    }
+    return apiError(message, 500);
+  }
 }

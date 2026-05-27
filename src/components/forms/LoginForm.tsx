@@ -57,26 +57,47 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="vous@exemple.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-white/60">
+          Email
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="vous@exemple.com"
+          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
+          {...register("email")}
+        />
+        {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Mot de passe</Label>
-        <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+      <div className="space-y-1.5">
+        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-white/60">
+          Mot de passe
+        </Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
+          {...register("password")}
+        />
+        {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
       </div>
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Chargement..." : isSignUp ? "Créer un compte" : "Se connecter"}
-      </Button>
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all disabled:opacity-60"
+        style={{ backgroundColor: "oklch(0.843 0.165 157)", color: "oklch(0.116 0.022 155)" }}
+      >
+        {loading ? "Chargement…" : isSignUp ? "Créer un compte" : "Se connecter"}
+      </button>
 
       <button
         type="button"
-        className="w-full text-sm text-zinc-500 hover:text-zinc-800 transition-colors"
+        className="w-full text-xs text-white/30 hover:text-white/60 transition-colors font-medium tracking-wide"
         onClick={() => setIsSignUp(!isSignUp)}
       >
         {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}

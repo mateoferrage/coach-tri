@@ -1,0 +1,247 @@
+// ─── System prompt ─────────────────────────────────────────────────────────────
+
+export const TRIATHLON_COACH_SYSTEM = `
+Tu es un coach triathlon expert certifié, spécialisé dans la préparation des athlètes de tous niveaux (débutant à élite).
+
+## Principes de périodisation triathlon
+
+**Cycle de progression** : 3 semaines de charge progressive + 1 semaine de récupération (volume réduit de 30-40%).
+
+**Phases et objectifs** :
+- PREP (optionnel, si > 20 semaines) : adaptation progressive, travail technique, volume faible
+- BASE : développement aérobie, 75-85% vol. en Z1-Z2, renforcement foncier
+- BUILD : introduction intensité, 60-70% endurance + 20-30% intensité seuil/VO2
+- PEAK : haute intensité, séances spécifiques course, volume légèrement réduit
+- TAPER : réduction volume 40-60%, maintien intensité, préparer la fraîcheur
+
+**Équilibre disciplinaire** (ajustable selon profil) :
+- Natation : 25-30% du volume total
+- Vélo : 35-40% du volume total
+- Course à pied : 30-35% du volume total
+
+**Règles de récupération** :
+- Ne jamais augmenter la charge de plus de 10% par semaine
+- Au moins 1 jour de repos complet par semaine
+- Ne pas planifier 2 séances longues consécutives
+- Respecter 48h de récupération après une séance d'intervalles
+
+**Structure d'une séance qualitative** :
+1. Échauffement progressif (15-25 min selon la durée totale)
+2. Bloc principal avec objectif précis et mesurable
+3. Retour au calme (10-15 min)
+
+**Types de séances par discipline** :
+- Natation : technique, endurance, éducatifs, vitesse, CSS, seuil
+- Vélo : SFR, endurance, tempo, FTP, VO2max, sprint, sortie longue
+- Course : foulée, endurance, progression, allure seuil, VMA, fractionné
+
+Réponds toujours en JSON valide et uniquement en JSON. Pas de texte en dehors du JSON.
+`.trim()
+
+// ─── Macro generation ──────────────────────────────────────────────────────────
+
+interface MacroContext {
+  profile: {
+    first_name: string | null
+    level: string | null
+    weekly_hours_avg: number | null
+    available_disciplines: string[] | null
+    birth_date: string | null
+    weight_kg: number | null
+  }
+  mode: 'race' | 'maintenance'
+  methodology: string
+  start_date: string
+  total_weeks: number
+  goal?: {
+    race_name: string
+    race_type: string
+    race_date: string
+    swim_distance_m: number | null
+    bike_distance_m: number | null
+    run_distance_m: number | null
+    terrain: string | null
+  }
+  recent_activity_summary?: string
+  recent_wellness_summary?: string
+}
+
+export function buildMacroPrompt(ctx: MacroContext): string {
+  const disciplineLabels: Record<string, string> = { swim: 'natation', bike: 'vélo', run: 'course à pied' }
+  const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
+    .map(d => disciplineLabels[d] ?? d).join(', ')
+
+  const levelLabels: Record<string, string> = {
+    beginner: 'Débutant', intermediate: 'Intermédiaire',
+    advanced: 'Avancé', elite: 'Élite',
+  }
+
+  const methodologyLabels: Record<string, string> = {
+    polarized: 'Polarisé (80% basse intensité / 20% haute intensité)',
+    pyramidal: 'Pyramidal (70% Z1-Z2 / 20% Z3 / 10% Z4-Z5)',
+    threshold: 'Seuil (focus sur la Zone 3-4)',
+  }
+
+  const goalSection = ctx.mode === 'race' && ctx.goal
+    ? `
+OBJECTIF DE COURSE :
+- Nom : ${ctx.goal.race_name}
+- Type : ${ctx.goal.race_type}
+- Date : ${ctx.goal.race_date}
+- Distances : ${ctx.goal.swim_distance_m ?? '?'}m nage / ${ctx.goal.bike_distance_m ?? '?'}m vélo / ${ctx.goal.run_distance_m ?? '?'}m course
+- Terrain : ${ctx.goal.terrain ?? 'non précisé'}
+`.trim()
+    : 'MODE : Maintien de forme (programme continu sans objectif de course)'
+
+  return `
+PROFIL ATHLÈTE :
+- Prénom : ${ctx.profile.first_name ?? 'Athlète'}
+- Niveau : ${levelLabels[ctx.profile.level ?? ''] ?? ctx.profile.level ?? 'Non précisé'}
+- Disponibilité : ${ctx.profile.weekly_hours_avg ?? 8}h/semaine
+- Disciplines : ${disciplines}
+- Poids : ${ctx.profile.weight_kg ? ctx.profile.weight_kg + ' kg' : 'non précisé'}
+
+${goalSection}
+
+PROGRAMME :
+- Méthodologie : ${methodologyLabels[ctx.methodology] ?? ctx.methodology}
+- Début : ${ctx.start_date}
+- Durée totale : ${ctx.total_weeks} semaines
+
+${ctx.recent_activity_summary ? `HISTORIQUE RÉCENT :\n${ctx.recent_activity_summary}` : ''}
+${ctx.recent_wellness_summary ? `\nDONNÉES BIEN-ÊTRE :\n${ctx.recent_wellness_summary}` : ''}
+
+Génère la structure complète du programme en JSON avec ce format EXACT :
+
+{
+  "phases": [
+    {
+      "phase": "base",
+      "start_week_num": 1,
+      "end_week_num": 6,
+      "focus": "Développement de la base aérobie et de l'endurance fondamentale"
+    }
+  ],
+  "weeks": [
+    {
+      "week_num": 1,
+      "phase": "base",
+      "is_recovery_week": false,
+      "planned_volume_hours": 7.5,
+      "planned_tss": 280,
+      "distribution": {"z1z2": 0.80, "z3": 0.10, "z4z5": 0.10},
+      "notes": "Semaine d'introduction : priorité à l'endurance fondamentale"
+    }
+  ]
+}
+
+Règles :
+- Inclure toutes les ${ctx.total_weeks} semaines (week_num de 1 à ${ctx.total_weeks})
+- Semaines de récupération toutes les 4 semaines (is_recovery_week: true, volume réduit de 35%)
+- Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)
+- La dernière semaine (taper final) doit avoir un volume de 40-50% du pic
+- planned_tss cohérent avec le volume et l'intensité (1h Z2 vélo ≈ 50 TSS, 1h run Z2 ≈ 60 TSS)
+`.trim()
+}
+
+// ─── Micro generation (sessions detail) ────────────────────────────────────────
+
+interface MicroContext {
+  week: {
+    week_num: number
+    phase: string
+    is_recovery_week: boolean
+    planned_volume_hours: number
+    planned_tss: number
+    distribution: Record<string, number>
+    notes: string
+  }
+  profile: {
+    level: string | null
+    weekly_hours_avg: number | null
+    available_disciplines: string[] | null
+  }
+  available_days: number[] // 0=dim, 1=lun … 6=sam
+  week_start_date: string // YYYY-MM-DD (lundi)
+  previous_sessions_summary?: string
+  recent_wellness_summary?: string
+  schedule_constraints?: string // occupied slots from schedule_events
+}
+
+const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+
+export function buildMicroPrompt(ctx: MicroContext): string {
+  const phaseLabels: Record<string, string> = {
+    prep: 'Préparation', base: 'Base', build: 'Construction',
+    peak: 'Pic', taper: 'Affûtage', race: 'Course',
+  }
+
+  const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
+  const daysList = ctx.available_days.map(d => DAY_NAMES[d]).join(', ')
+
+  const dist = ctx.week.distribution
+  const intensityDesc = `${Math.round((dist.z1z2 ?? 0) * 100)}% Z1-Z2, ${Math.round((dist.z3 ?? 0) * 100)}% Z3, ${Math.round((dist.z4z5 ?? 0) * 100)}% Z4-Z5`
+
+  // Map available_days to actual dates (week_start = Monday)
+  const weekStartMs = new Date(ctx.week_start_date).getTime()
+  const dayDateMap: Record<number, string> = {}
+  ctx.available_days.forEach(dayOfWeek => {
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // lundi=0 dans notre semaine
+    const date = new Date(weekStartMs + offset * 86400000)
+    dayDateMap[dayOfWeek] = date.toISOString().split('T')[0]
+  })
+
+  const sessionsPerDay = ctx.available_days.map(d => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`).join('\n')
+
+  return `
+SEMAINE ${ctx.week.week_num} — Phase : ${phaseLabels[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
+
+Contexte de la semaine :
+- Volume cible : ${ctx.week.planned_volume_hours}h
+- TSS cible : ${ctx.week.planned_tss}
+- Répartition intensité : ${intensityDesc}
+- Note du coach : ${ctx.week.notes}
+
+Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine
+
+Jours d'entraînement disponibles :
+${sessionsPerDay}
+
+Disciplines disponibles : ${disciplines.join(', ')}
+
+${ctx.previous_sessions_summary ? `Séances semaine précédente :\n${ctx.previous_sessions_summary}` : ''}
+${ctx.recent_wellness_summary ? `\nBien-être récent :\n${ctx.recent_wellness_summary}` : ''}
+${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}` : ''}
+
+Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
+
+{
+  "sessions": [
+    {
+      "session_date": "YYYY-MM-DD",
+      "discipline": "swim|bike|run|brick|strength|rest",
+      "session_type": "easy|tempo|threshold|vo2|race_pace|technique|long|recovery|test",
+      "title": "Vélo — Endurance fondamentale",
+      "duration_min": 90,
+      "planned_tss": 75,
+      "structure": {
+        "warmup": "15 min échauffement progressif en Z1, puis 5 min en Z2",
+        "main": "60 min en Z2 régulier, cadence 85-90 rpm, focus sur l'économie de pédalage",
+        "cooldown": "10 min retour au calme en Z1, étirements dynamiques"
+      },
+      "target_values": {"watts": [180, 210], "hr": [130, 145]},
+      "target_zone": "Z2",
+      "expected_rpe": 5,
+      "coaching_note": "Sortie de base : garder une conversation possible tout au long. Ne pas dépasser Z2."
+    }
+  ]
+}
+
+Contraintes :
+- Une séance par jour disponible (pas plus de 2 si brick)
+- Volume total des séances ≈ ${ctx.week.planned_volume_hours}h (±10%)
+- Respecter la répartition d'intensité : ${intensityDesc}
+- ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : 'Progresser par rapport à la semaine précédente'}
+- session_date doit être l'une des dates disponibles ci-dessus
+`.trim()
+}
