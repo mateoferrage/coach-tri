@@ -44,14 +44,44 @@ const LEVELS = [
   { value: "elite", label: "Elite" },
 ];
 
-export function OnboardingFlow() {
+interface InitialData {
+  first_name: string | null
+  birth_date: string | null
+  sex: string | null
+  weight_kg: number | null
+  height_cm: number | null
+  level: string | null
+  weekly_hours_avg: number | null
+  available_disciplines: string[] | null
+}
+
+export function OnboardingFlow({
+  initialData,
+  isEditing = false,
+}: {
+  initialData?: InitialData | null
+  isEditing?: boolean
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
-  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(["swim", "bike", "run"]);
+  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(
+    initialData?.available_disciplines ?? ["swim", "bike", "run"]
+  );
   const [loading, setLoading] = useState(false);
 
-  const form1 = useForm<Step1Data>({ resolver: zodResolver(Step1Schema) });
+  const form1 = useForm<Step1Data>({
+    resolver: zodResolver(Step1Schema),
+    defaultValues: {
+      first_name: initialData?.first_name ?? '',
+      birth_date: initialData?.birth_date ?? '',
+      sex: (initialData?.sex as "M" | "F" | "X") ?? 'M',
+      weight_kg: initialData?.weight_kg ?? undefined,
+      height_cm: initialData?.height_cm ?? undefined,
+      level: (initialData?.level as Step1Data["level"]) ?? 'beginner',
+      weekly_hours_avg: initialData?.weekly_hours_avg ?? undefined,
+    },
+  });
   const form3 = useForm<Step3Data>({ resolver: zodResolver(Step3Schema) });
 
   function toggleDiscipline(id: string) {
@@ -99,8 +129,8 @@ export function OnboardingFlow() {
         }
       }
 
-      toast.success("Profil configuré !");
-      router.push("/dashboard");
+      toast.success(isEditing ? "Profil mis à jour !" : "Profil configuré !");
+      router.push(isEditing ? "/profile" : "/dashboard");
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Une erreur est survenue";
@@ -210,7 +240,7 @@ export function OnboardingFlow() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">Suivant</Button>
+              <Button type="submit" className="w-full">{isEditing ? 'Suivant' : 'Suivant'}</Button>
             </form>
           </CardContent>
         </Card>
@@ -254,39 +284,46 @@ export function OnboardingFlow() {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle>Connexion Garmin</CardTitle>
+            <CardTitle>{isEditing ? "Finaliser" : "Connexion Garmin"}</CardTitle>
             <CardDescription>
-              Optionnel — connectez votre compte Garmin pour synchroniser vos activités.
-              Vos identifiants sont chiffrés AES-256.
+              {isEditing
+                ? "Enregistre tes modifications."
+                : "Optionnel — connectez votre compte Garmin pour synchroniser vos activités. Vos identifiants sont chiffrés AES-256."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={form3.handleSubmit(onStep3)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="garmin_email">Email Garmin Connect</Label>
-                <Input id="garmin_email" type="email" {...form3.register("garmin_email")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="garmin_password">Mot de passe Garmin Connect</Label>
-                <Input id="garmin_password" type="password" {...form3.register("garmin_password")} />
-              </div>
+              {!isEditing && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="garmin_email">Email Garmin Connect</Label>
+                    <Input id="garmin_email" type="email" {...form3.register("garmin_email")} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="garmin_password">Mot de passe Garmin Connect</Label>
+                    <Input id="garmin_password" type="password" {...form3.register("garmin_password")} />
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3">
                 <Button type="button" variant="outline" onClick={() => setStep(2)} className="flex-1">
                   Retour
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? "Sauvegarde..." : "Terminer"}
+                  {loading ? "Sauvegarde..." : isEditing ? "Enregistrer" : "Terminer"}
                 </Button>
               </div>
-              <button
-                type="button"
-                className="w-full text-sm text-zinc-400 hover:text-zinc-600"
-                onClick={() => submitProfile()}
-                disabled={loading}
-              >
-                Passer cette étape
-              </button>
+              {!isEditing && (
+                <button
+                  type="button"
+                  className="w-full text-sm text-zinc-400 hover:text-zinc-600"
+                  onClick={() => submitProfile()}
+                  disabled={loading}
+                >
+                  Passer cette étape
+                </button>
+              )}
             </form>
           </CardContent>
         </Card>

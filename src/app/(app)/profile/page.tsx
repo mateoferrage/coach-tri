@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { GarminConnectCard } from "@/components/garmin/GarminConnectCard";
+import { PhysiologySection } from "@/components/profile/PhysiologySection";
 
 export const metadata = { title: "Profil — Coach Tri" };
 
@@ -155,7 +156,7 @@ export default async function ProfilePage() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [profileRes, garminCredsRes, garminStatsRes, wellnessRes, activitiesRes] = await Promise.all([
+  const [profileRes, garminCredsRes, garminStatsRes, wellnessRes, activitiesRes, physiologyRes] = await Promise.all([
     (supabase as any).from("profiles")
       .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date")
       .eq("id", user!.id).single(),
@@ -177,6 +178,10 @@ export default async function ProfilePage() {
       .eq("user_id", user!.id)
       .gte("started_at", thirtyDaysAgo.toISOString())
       .order("started_at", { ascending: false }),
+
+    (supabase as any).from("physiology_current")
+      .select("vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date")
+      .eq("user_id", user!.id).maybeSingle(),
   ]);
 
   const profile     = profileRes.data as {
@@ -187,6 +192,13 @@ export default async function ProfilePage() {
   const gStats      = garminStatsRes.data as Record<string, unknown> | null;
   const wellness    = (wellnessRes.data ?? []) as WellnessRow[];
   const activities  = (activitiesRes.data ?? []) as ActivityRow[];
+  const physiology  = physiologyRes.data as {
+    vma_kmh: number | null; run_threshold_pace_sec_per_km: number | null;
+    hr_max_run: number | null; hr_threshold_run: number | null;
+    ftp_watts: number | null; hr_max: number | null;
+    hr_threshold_bike: number | null; css_pace_sec_per_100m: number | null;
+    test_date: string | null;
+  } | null;
 
   // Volume 30j
   const volumes = computeVolumes(activities);
@@ -405,6 +417,12 @@ export default async function ProfilePage() {
             />
           </div>
         </div>
+      </section>
+
+      {/* ── Données physiologiques ── */}
+      <section>
+        <SectionTitle>Données physiologiques</SectionTitle>
+        <PhysiologySection initial={physiology} />
       </section>
 
       {/* ── Garmin Connect ── */}
