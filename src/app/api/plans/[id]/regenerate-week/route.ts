@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt } from '@/lib/gemini/prompts'
+import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, type PriorWeek, type PlanWeekOverview } from '@/lib/gemini/prompts'
+import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
 import { addDays, format, parseISO } from 'date-fns'
@@ -39,65 +40,139 @@ export async function POST(
 
   if (!plan) return apiError('Plan introuvable', 404)
 
-  // Fetch the specific week
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: week } = await (admin as any)
-    .from('plan_weeks')
-    .select('*')
-    .eq('plan_id', plan_id)
-    .eq('week_num', week_num)
-    .single() as { data: Record<string, unknown> | null }
+  // Fetch ALL plan_weeks (for macro overview + prior weeks context) in parallel with other data
+  const [
+    weekResult,
+    profileResult,
+    allPlanWeeksResult,
+    wellnessResult,
+    physiologyResult,
+    garminStatsResult,
+  ] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
+      .from('plan_weeks')
+      .select('*')
+      .eq('plan_id', plan_id)
+      .eq('week_num', week_num)
+      .single() as Promise<{ data: Record<string, unknown> | null }>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('profiles')
+      .select('level, weekly_hours_avg, available_disciplines')
+      .eq('id', user.id)
+      .single() as Promise<{ data: Record<string, unknown> | null }>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
+      .from('plan_weeks')
+      .select('id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date')
+      .eq('plan_id', plan_id)
+      .order('week_num', { ascending: true }) as Promise<{ data: Array<Record<string, unknown>> | null }>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
+      .from('garmin_wellness')
+      .select('date, hrv_rmssd, body_battery_start, resting_hr')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false })
+      .limit(7) as Promise<{ data: Array<Record<string, unknown>> | null }>,
+    // Physiology — use the view that returns the most recent measure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
+      .from('physiology_current')
+      .select('vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m')
+      .eq('user_id', user.id)
+      .maybeSingle() as Promise<{ data: Record<string, unknown> | null }>,
+    // Garmin stats for VO2max fallback when no physiology data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (admin as any)
+      .from('garmin_stats')
+      .select('vo2max_run')
+      .eq('user_id', user.id)
+      .maybeSingle() as Promise<{ data: Record<string, unknown> | null }>,
+  ])
 
+  const week = weekResult.data
   if (!week) return apiError(`Semaine ${week_num} introuvable`, 404)
 
-  // Fetch profile
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('level, weekly_hours_avg, available_disciplines')
-    .eq('id', user.id)
-    .single() as { data: Record<string, unknown> | null }
+  const profile = profileResult.data
+  const allPlanWeeks = allPlanWeeksResult.data ?? []
+  const wellness = wellnessResult.data ?? []
+  const physiology = physiologyResult.data
+  const garminStats = garminStatsResult.data
 
-  // Fetch previous week sessions for context
-  let prevSummary = ''
-  if (week_num > 1) {
+  // ── Athlete training zones ─────────────────────────────────────────────────
+  const zones = calculateZones({
+    vma_kmh: physiology?.vma_kmh as number | null,
+    run_threshold_pace_sec_per_km: physiology?.run_threshold_pace_sec_per_km as number | null,
+    hr_max_run: physiology?.hr_max_run as number | null,
+    hr_threshold_run: physiology?.hr_threshold_run as number | null,
+    ftp_watts: physiology?.ftp_watts as number | null,
+    hr_max: physiology?.hr_max as number | null,
+    hr_threshold_bike: physiology?.hr_threshold_bike as number | null,
+    css_pace_sec_per_100m: physiology?.css_pace_sec_per_100m as number | null,
+    // VO2max fallback for VMA estimation when no physiology data
+    vo2max_run: (!physiology?.vma_kmh && !physiology?.run_threshold_pace_sec_per_km)
+      ? garminStats?.vo2max_run as number | null
+      : null,
+  })
+  const athleteZones = zones ? formatZonesForPrompt(zones) : undefined
+
+  // ── Plan overview (all weeks, macro) ────────────────────────────────────────
+  const planOverview: PlanWeekOverview[] = allPlanWeeks.map(w => ({
+    week_num: w.week_num as number,
+    phase: w.phase as string,
+    is_recovery_week: w.is_recovery_week as boolean,
+    planned_volume_hours: w.planned_volume_hours as number,
+    planned_tss: w.planned_tss as number,
+  }))
+
+  // ── Prior weeks with their generated sessions ────────────────────────────────
+  const priorWeekRows = allPlanWeeks.filter(w => (w.week_num as number) < week_num)
+  let priorWeeks: PriorWeek[] = []
+
+  if (priorWeekRows.length > 0) {
+    const priorWeekIds = priorWeekRows.map(w => w.id as string)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: prevWeek } = await (admin as any)
-      .from('plan_weeks')
-      .select('id')
-      .eq('plan_id', plan_id)
-      .eq('week_num', week_num - 1)
-      .single() as { data: { id: string } | null }
+    const { data: priorSessions } = await (admin as any)
+      .from('sessions')
+      .select('plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min')
+      .in('plan_week_id', priorWeekIds)
+      .order('session_date', { ascending: true }) as { data: Array<Record<string, unknown>> | null }
 
-    if (prevWeek) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: prevSessions } = await (admin as any)
-        .from('sessions')
-        .select('discipline, duration_min, status, actual_rpe, actual_notes')
-        .eq('plan_week_id', prevWeek.id) as { data: Array<Record<string, unknown>> | null }
-
-      if (prevSessions?.length) {
-        prevSummary = prevSessions.map(s =>
-          `${s.discipline} ${s.duration_min}min — ${s.status}${s.actual_rpe ? ` RPE${s.actual_rpe}` : ''}${s.actual_notes ? ` | "${s.actual_notes}"` : ''}`
-        ).join('\n')
-      }
+    const sessionsByWeekId = new Map<string, Array<Record<string, unknown>>>()
+    for (const s of priorSessions ?? []) {
+      const wid = s.plan_week_id as string
+      if (!sessionsByWeekId.has(wid)) sessionsByWeekId.set(wid, [])
+      sessionsByWeekId.get(wid)!.push(s)
     }
+
+    priorWeeks = priorWeekRows.map(w => ({
+      week_num: w.week_num as number,
+      phase: w.phase as string,
+      is_recovery_week: w.is_recovery_week as boolean,
+      planned_volume_hours: w.planned_volume_hours as number,
+      planned_tss: w.planned_tss as number,
+      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map(s => ({
+        session_date: s.session_date as string,
+        discipline: s.discipline as string,
+        session_type: s.session_type as string,
+        title: s.title as string | null,
+        duration_min: s.duration_min as number,
+        planned_tss: s.planned_tss as number | null,
+        target_zone: s.target_zone as string | null,
+        status: s.status as string,
+        actual_rpe: s.actual_rpe as number | null,
+        actual_duration_min: s.actual_duration_min as number | null,
+      })),
+    }))
   }
 
-  // Fetch recent wellness
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: wellness } = await (admin as any)
-    .from('garmin_wellness')
-    .select('date, hrv_rmssd, body_battery_start, resting_hr')
-    .eq('user_id', user.id)
-    .order('date', { ascending: false })
-    .limit(7) as { data: Array<Record<string, unknown>> | null }
-
-  const wellnessSummary = wellness?.length
+  // ── Wellness summary ─────────────────────────────────────────────────────────
+  const wellnessSummary = wellness.length
     ? `HRV derniers 7j : ${wellness.filter(w => w.hrv_rmssd).map(w => w.hrv_rmssd).join(', ')} ms`
     : ''
 
-  // Fetch schedule events for this week to pass as AI constraints
+  // ── Schedule constraints for this week ───────────────────────────────────────
   const weekStartDate = week.start_date as string
   const weekEndDate = format(addDays(parseISO(weekStartDate), 6), 'yyyy-MM-dd')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +191,7 @@ export async function POST(
     const lines: string[] = []
     for (const ev of rawScheduleEvents) {
       if (!ev.is_recurring) {
-        const jsDay = parseISO(ev.event_date as string).getDay() // 0=Sun
+        const jsDay = parseISO(ev.event_date as string).getDay()
         const isoDay = jsDay === 0 ? 7 : jsDay
         lines.push(`${ISO_DAY_NAMES[isoDay]} ${ev.event_date} : "${ev.title}" de ${ev.start_time} à ${ev.end_time}`)
       } else {
@@ -144,7 +219,9 @@ export async function POST(
     },
     available_days,
     week_start_date: week.start_date as string,
-    previous_sessions_summary: prevSummary || undefined,
+    prior_weeks: priorWeeks.length ? priorWeeks : undefined,
+    plan_overview: planOverview.length ? planOverview : undefined,
+    athlete_zones: athleteZones,
     recent_wellness_summary: wellnessSummary || undefined,
     schedule_constraints: scheduleConstraints || undefined,
   })
@@ -158,6 +235,26 @@ export async function POST(
   }
 
   if (!microPlan.sessions?.length) return apiError('Gemini n\'a retourné aucune séance', 500)
+
+  const VALID_SESSION_TYPES = new Set([
+    'easy', 'tempo', 'threshold', 'vo2', 'race_pace', 'technique', 'long', 'recovery', 'test',
+  ])
+  const SESSION_TYPE_MAP: Record<string, string> = {
+    endurance: 'easy', interval: 'vo2', intervals: 'vo2', ftp: 'threshold',
+    sprint: 'vo2', speed: 'vo2', strength: 'easy', brick: 'easy',
+    'race pace': 'race_pace', moderate: 'tempo', z2: 'easy', base: 'easy',
+  }
+  function normalizeSessionType(raw: string): string {
+    const lower = (raw ?? '').toLowerCase().trim()
+    if (VALID_SESSION_TYPES.has(lower)) return lower
+    return SESSION_TYPE_MAP[lower] ?? 'easy'
+  }
+
+  const VALID_DISCIPLINES = new Set(['swim', 'bike', 'run', 'brick', 'strength', 'rest'])
+  function normalizeDiscipline(raw: string): string {
+    const lower = (raw ?? '').toLowerCase().trim()
+    return VALID_DISCIPLINES.has(lower) ? lower : 'run'
+  }
 
   // Delete existing planned sessions for this week (keep done/skipped)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,6 +270,8 @@ export async function POST(
     plan_week_id: week.id,
     user_id: user.id,
     ...s,
+    discipline: normalizeDiscipline(s.discipline),
+    session_type: normalizeSessionType(s.session_type),
     status: 'planned',
   }))
 

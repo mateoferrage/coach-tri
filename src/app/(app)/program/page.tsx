@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PhaseBar } from '@/components/plan/PhaseBar'
 import { WeekView } from '@/components/plan/WeekView'
+import { StopProgramButton } from '@/components/plan/StopProgramButton'
 import { differenceInWeeks, parseISO, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -134,6 +135,11 @@ export default async function ProgramPage() {
             isCurrentWeek={(week.week_num as number) === currentWeekNum}
           />
         ))}
+      </div>
+
+      {/* Danger zone */}
+      <div className="flex justify-center pt-4 pb-8">
+        <StopProgramButton planId={plan.id as string} />
       </div>
     </div>
   )

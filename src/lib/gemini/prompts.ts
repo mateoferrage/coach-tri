@@ -146,6 +146,36 @@ Règles :
 
 // ─── Micro generation (sessions detail) ────────────────────────────────────────
 
+export interface PriorWeekSession {
+  session_date: string
+  discipline: string
+  session_type: string
+  title: string | null
+  duration_min: number
+  planned_tss: number | null
+  target_zone: string | null
+  status: string
+  actual_rpe: number | null
+  actual_duration_min: number | null
+}
+
+export interface PriorWeek {
+  week_num: number
+  phase: string
+  is_recovery_week: boolean
+  planned_volume_hours: number
+  planned_tss: number
+  sessions: PriorWeekSession[]
+}
+
+export interface PlanWeekOverview {
+  week_num: number
+  phase: string
+  is_recovery_week: boolean
+  planned_volume_hours: number
+  planned_tss: number
+}
+
 interface MicroContext {
   week: {
     week_num: number
@@ -163,22 +193,24 @@ interface MicroContext {
   }
   available_days: number[] // 0=dim, 1=lun … 6=sam
   week_start_date: string // YYYY-MM-DD (lundi)
-  previous_sessions_summary?: string
+  prior_weeks?: PriorWeek[]
+  plan_overview?: PlanWeekOverview[]
+  athlete_zones?: string            // pre-formatted zone table from calculateZones()
   recent_wellness_summary?: string
-  schedule_constraints?: string // occupied slots from schedule_events
+  schedule_constraints?: string
 }
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+const PHASE_LABELS: Record<string, string> = {
+  prep: 'Préparation', base: 'Base', build: 'Construction',
+  peak: 'Pic', taper: 'Affûtage', race: 'Course', maintenance: 'Maintien',
+}
+const DISCIPLINE_FR: Record<string, string> = {
+  swim: 'Natation', bike: 'Vélo', run: 'Course', brick: 'Enchaînement',
+  strength: 'Renforcement', rest: 'Repos',
+}
 
 export function buildMicroPrompt(ctx: MicroContext): string {
-  const phaseLabels: Record<string, string> = {
-    prep: 'Préparation', base: 'Base', build: 'Construction',
-    peak: 'Pic', taper: 'Affûtage', race: 'Course',
-  }
-
-  const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
-  const daysList = ctx.available_days.map(d => DAY_NAMES[d]).join(', ')
-
   const dist = ctx.week.distribution
   const intensityDesc = `${Math.round((dist.z1z2 ?? 0) * 100)}% Z1-Z2, ${Math.round((dist.z3 ?? 0) * 100)}% Z3, ${Math.round((dist.z4z5 ?? 0) * 100)}% Z4-Z5`
 
@@ -186,33 +218,73 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   const weekStartMs = new Date(ctx.week_start_date).getTime()
   const dayDateMap: Record<number, string> = {}
   ctx.available_days.forEach(dayOfWeek => {
-    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // lundi=0 dans notre semaine
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const date = new Date(weekStartMs + offset * 86400000)
     dayDateMap[dayOfWeek] = date.toISOString().split('T')[0]
   })
 
   const sessionsPerDay = ctx.available_days.map(d => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`).join('\n')
+  const disciplines = ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
+
+  // ── Plan overview block ──────────────────────────────────────────────────────
+  let planOverviewBlock = ''
+  if (ctx.plan_overview?.length) {
+    const lines = ctx.plan_overview.map(w => {
+      const marker = w.week_num < ctx.week.week_num
+        ? ' ✓ déjà générée'
+        : w.week_num === ctx.week.week_num
+          ? ' ← SEMAINE EN COURS'
+          : ''
+      const label = `${w.is_recovery_week ? '[RÉCUP] ' : ''}${PHASE_LABELS[w.phase] ?? w.phase}`
+      return `  Sem ${w.week_num} (${label}) : ${w.planned_volume_hours}h / ${w.planned_tss} TSS${marker}`
+    })
+    planOverviewBlock = `PLAN GLOBAL (${ctx.plan_overview.length} semaines) :\n${lines.join('\n')}`
+  }
+
+  // ── Prior weeks detail block ─────────────────────────────────────────────────
+  let priorWeeksBlock = ''
+  if (ctx.prior_weeks?.length) {
+    const weekBlocks = ctx.prior_weeks.map(pw => {
+      const actualVolMin = pw.sessions.reduce((acc, s) => acc + (s.actual_duration_min ?? s.duration_min), 0)
+      const actualTSS = pw.sessions.reduce((acc, s) => acc + (s.planned_tss ?? 0), 0)
+      const header = `=== SEMAINE ${pw.week_num} — ${PHASE_LABELS[pw.phase] ?? pw.phase}${pw.is_recovery_week ? ' (RÉCUP)' : ''} | Cible ${pw.planned_volume_hours}h / ${pw.planned_tss} TSS ===`
+      const sessionLines = pw.sessions
+        .sort((a, b) => a.session_date.localeCompare(b.session_date))
+        .map(s => {
+          const dur = s.actual_duration_min ?? s.duration_min
+          const rpe = s.actual_rpe ? ` | RPE réel: ${s.actual_rpe}` : ''
+          const zone = s.target_zone ? ` | ${s.target_zone}` : ''
+          const tss = s.planned_tss ? ` | TSS: ${s.planned_tss}` : ''
+          const status = s.status === 'done' ? '✓' : s.status === 'skipped' ? '✗' : '○'
+          return `  ${status} ${s.session_date} : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${dur}min — ${s.session_type}${zone}${tss}${rpe}`
+        })
+        .join('\n')
+      const summary = `  → Volume réel : ${(actualVolMin / 60).toFixed(1)}h | TSS total : ${actualTSS}`
+      return `${header}\n${sessionLines}\n${summary}`
+    })
+    priorWeeksBlock = `SEMAINES PRÉCÉDEMMENT GÉNÉRÉES (contexte de progression) :\n\n${weekBlocks.join('\n\n')}`
+  }
+
+  const zonesBlock = ctx.athlete_zones
+    ? `ZONES D'ENTRAÎNEMENT PERSONNALISÉES (utilise ces valeurs pour target_values) :\n${ctx.athlete_zones}`
+    : ''
 
   return `
-SEMAINE ${ctx.week.week_num} — Phase : ${phaseLabels[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
+${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorWeeksBlock + '\n\n' : ''}${zonesBlock ? zonesBlock + '\n\n' : ''}GÉNÉRATION — SEMAINE ${ctx.week.week_num} — Phase : ${PHASE_LABELS[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
 
-Contexte de la semaine :
-- Volume cible : ${ctx.week.planned_volume_hours}h
-- TSS cible : ${ctx.week.planned_tss}
+Cibles de la semaine :
+- Volume : ${ctx.week.planned_volume_hours}h
+- TSS : ${ctx.week.planned_tss}
 - Répartition intensité : ${intensityDesc}
 - Note du coach : ${ctx.week.notes}
 
-Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine
+Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine disponibles
+Disciplines pratiquées : ${disciplines.join(', ')}
 
 Jours d'entraînement disponibles :
 ${sessionsPerDay}
 
-Disciplines disponibles : ${disciplines.join(', ')}
-
-${ctx.previous_sessions_summary ? `Séances semaine précédente :\n${ctx.previous_sessions_summary}` : ''}
-${ctx.recent_wellness_summary ? `\nBien-être récent :\n${ctx.recent_wellness_summary}` : ''}
-${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}` : ''}
-
+${ctx.recent_wellness_summary ? `Bien-être récent :\n${ctx.recent_wellness_summary}\n` : ''}${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}\n` : ''}
 Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
 
 {
@@ -229,7 +301,12 @@ Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
         "main": "60 min en Z2 régulier, cadence 85-90 rpm, focus sur l'économie de pédalage",
         "cooldown": "10 min retour au calme en Z1, étirements dynamiques"
       },
-      "target_values": {"watts": [180, 210], "hr": [130, 145]},
+      "target_values": {
+        "watts": [180, 210],
+        "hr": [130, 145],
+        "pace_per_km": "5:10-5:45",
+        "pace_per_100m": "2:00-2:10"
+      },
       "target_zone": "Z2",
       "expected_rpe": 5,
       "coaching_note": "Sortie de base : garder une conversation possible tout au long. Ne pas dépasser Z2."
@@ -237,12 +314,15 @@ Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
   ]
 }
 
-Contraintes :
-- Une séance par jour disponible (pas plus de 2 si brick)
+Contraintes STRICTES :
+- Une séance par jour disponible (max 2 si brick)
 - Volume total des séances ≈ ${ctx.week.planned_volume_hours}h (±10%)
 - Respecter la répartition d'intensité : ${intensityDesc}
-- ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : 'Progresser par rapport à la semaine précédente'}
-- session_date doit être l'une des dates disponibles ci-dessus
+- ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : ctx.prior_weeks?.length ? 'Assurer une progression cohérente par rapport aux semaines précédentes (types de séances, durées, intensités)' : 'Commencer progressivement (semaine 1 = ~70% du volume cible)'}
+- session_date doit être exactement l'une des dates listées ci-dessus
+- discipline DOIT être exactement l'une de : swim, bike, run, brick, strength, rest
+- session_type DOIT être exactement l'une de : easy, tempo, threshold, vo2, race_pace, technique, long, recovery, test
+${ctx.athlete_zones ? `- target_values DOIT utiliser les zones personnalisées fournies ci-dessus (watts pour vélo, pace_per_km pour course, pace_per_100m pour natation, hr pour toutes les disciplines)` : `- target_values : inclure "hr" quand possible, "watts" pour vélo, "pace_per_km" pour course, "pace_per_100m" pour natation`}
 `.trim()
 }
 
@@ -301,9 +381,6 @@ interface ChatContext {
   today: string
 }
 
-const DISCIPLINE_FR: Record<string, string> = {
-  swim: 'Natation', bike: 'Vélo', run: 'Course', brick: 'Enchaînement', strength: 'Renforcement', rest: 'Récupération',
-}
 const STATUS_FR: Record<string, string> = {
   planned: 'PLANIFIÉE', done: 'TERMINÉE', skipped: 'ANNULÉE', modified: 'MODIFIÉE',
 }
