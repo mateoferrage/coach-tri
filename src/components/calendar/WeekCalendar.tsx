@@ -12,7 +12,7 @@ const CARD   = "oklch(0.14 0.022 155)";
 const BORDER = "oklch(1 0 0 / 8%)";
 const MUTED  = "oklch(1 0 0 / 40%)";
 
-const HOUR_PX    = 56;
+const HOUR_PX    = 44;
 const START_HOUR = 6;
 const END_HOUR   = 22;
 
@@ -78,6 +78,7 @@ export function WeekCalendar() {
   const [todayIdx, setTodayIdx]     = useState<number | null>(null);
   // Drag & drop
   const draggingId  = useRef<string | null>(null);
+  const gridRef     = useRef<HTMLDivElement>(null);
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null);
 
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
@@ -113,6 +114,13 @@ export function WeekCalendar() {
     }
     load();
   }, [weekStartStr, weekStart]);
+
+  // Auto-scroll: position the grid at current hour (−1h buffer) on week change
+  useEffect(() => {
+    if (!gridRef.current) return;
+    const h = Math.max(new Date().getHours() - 1, START_HOUR);
+    gridRef.current.scrollTo({ top: (h - START_HOUR) * HOUR_PX, behavior: "instant" });
+  }, [weekStartStr]);
 
   async function refreshEvents() {
     const res = await fetch(`/api/schedule?week_start=${weekStartStr}`);
@@ -247,7 +255,7 @@ export function WeekCalendar() {
       </div>
 
       {/* ── Grid ── */}
-      <div className="overflow-y-auto rounded-xl" style={{ flex: 1, minHeight: 0, border: `1px solid ${BORDER}`, backgroundColor: "#0d1710" }}>
+      <div ref={gridRef} className="overflow-y-auto rounded-xl" style={{ flex: 1, minHeight: 0, border: `1px solid ${BORDER}`, backgroundColor: "#0d1710" }}>
         <div style={{ minWidth: 640, backgroundColor: "#0d1710" }}>
 
           {/* Day headers — sticky */}
