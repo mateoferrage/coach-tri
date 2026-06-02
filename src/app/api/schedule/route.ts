@@ -19,6 +19,7 @@ function expandEvents(rows: ScheduleEventRow[], weekStart: Date): CalendarEvent[
         end_time: row.end_time,
         is_recurring: false,
         source_id: row.id,
+        event_date: row.event_date,
       })
       continue
     }
@@ -44,6 +45,9 @@ function expandEvents(rows: ScheduleEventRow[], weekStart: Date): CalendarEvent[
         end_time: row.end_time,
         is_recurring: true,
         source_id: row.id,
+        event_date: row.event_date,
+        recurrence_day: row.recurrence_day ?? undefined,
+        recurrence_end_date: row.recurrence_end_date ?? undefined,
       })
     }
   }

@@ -71,8 +71,9 @@ export function WeekCalendar() {
   const [calEvents, setCalEvents]   = useState<CalendarEvent[]>([]);
   const [sessions, setSessions]     = useState<TrainingSession[]>([]);
   const [loading, setLoading]       = useState(false);
-  const [showModal, setShowModal]   = useState(false);
+  const [showModal, setShowModal]     = useState(false);
   const [clickedDate, setClickedDate] = useState<string | undefined>();
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [nowFrac, setNowFrac]       = useState<number | null>(null);
   const [todayIdx, setTodayIdx]     = useState<number | null>(null);
   // Drag & drop
@@ -131,8 +132,23 @@ export function WeekCalendar() {
     await refreshEvents();
   }
 
+  async function handleUpdate(data: ScheduleEventInput) {
+    if (!editingEvent) return;
+    const res = await fetch(`/api/schedule/${editingEvent.source_id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error ?? "Erreur serveur");
+    }
+    await refreshEvents();
+  }
+
   async function handleDelete(sourceId: string) {
     await fetch(`/api/schedule/${sourceId}`, { method: "DELETE" });
+    setEditingEvent(null);
     await refreshEvents();
   }
 
@@ -358,8 +374,8 @@ export function WeekCalendar() {
                     return (
                       <div
                         key={ev.id}
-                        title={`${ev.title} — cliquer pour supprimer`}
-                        onClick={() => { if (confirm(`Supprimer "${ev.title}" ?`)) handleDelete(ev.source_id); }}
+                        title={`${ev.title} — cliquer pour modifier`}
+                        onClick={(e) => { e.stopPropagation(); setEditingEvent(ev); }}
                         style={{
                           position: "absolute", left: 3, right: 3,
                           top: topPx(s), height: heightPx(s, e),
@@ -451,6 +467,15 @@ export function WeekCalendar() {
           initialDate={clickedDate}
           onSave={handleSave}
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {editingEvent && (
+        <EventModal
+          initialEvent={editingEvent}
+          onSave={handleUpdate}
+          onDelete={() => handleDelete(editingEvent.source_id)}
+          onClose={() => setEditingEvent(null)}
         />
       )}
     </div>

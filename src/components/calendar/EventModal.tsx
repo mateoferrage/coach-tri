@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { getISODay } from "date-fns";
-import type { ScheduleEventInput } from "@/lib/schemas/schedule";
+import type { ScheduleEventInput, CalendarEvent } from "@/lib/schemas/schedule";
 
-const MINT = "oklch(0.843 0.165 157)";
-const DARK = "oklch(0.116 0.022 155)";
-const CARD = "oklch(0.14 0.022 155)";
+const MINT   = "oklch(0.843 0.165 157)";
+const DARK   = "oklch(0.116 0.022 155)";
+const CARD   = "oklch(0.14 0.022 155)";
 const BORDER = "oklch(1 0 0 / 8%)";
-const MUTED = "oklch(1 0 0 / 40%)";
+const MUTED  = "oklch(1 0 0 / 40%)";
 
 const EVENT_TYPES = [
   { value: "cours", label: "📚 Cours" },
@@ -20,25 +20,30 @@ const EVENT_TYPES = [
 const ISO_DAYS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
 interface EventModalProps {
-  initialDate?: string;      // YYYY-MM-DD
+  initialDate?: string;       // YYYY-MM-DD — used in create mode
+  initialEvent?: CalendarEvent; // if set → edit mode
   onSave: (data: ScheduleEventInput) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onClose: () => void;
 }
 
-export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
-  const today = initialDate ?? new Date().toISOString().split("T")[0];
-  const defaultDay = getISODay(new Date(today + "T00:00:00"));
+export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClose }: EventModalProps) {
+  const isEdit = !!initialEvent;
 
-  const [title, setTitle] = useState("");
-  const [eventType, setEventType] = useState<ScheduleEventInput["event_type"]>("cours");
-  const [eventDate, setEventDate] = useState(today);
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("12:00");
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceDay, setRecurrenceDay] = useState(defaultDay);
-  const [recurrenceEnd, setRecurrenceEnd] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const today   = initialEvent?.event_date ?? initialDate ?? new Date().toISOString().split("T")[0];
+  const initDay = getISODay(new Date(today + "T00:00:00"));
+
+  const [title,         setTitle]         = useState(initialEvent?.title ?? "");
+  const [eventType,     setEventType]     = useState<ScheduleEventInput["event_type"]>(initialEvent?.event_type ?? "cours");
+  const [eventDate,     setEventDate]     = useState(today);
+  const [startTime,     setStartTime]     = useState(initialEvent?.start_time ?? "08:00");
+  const [endTime,       setEndTime]       = useState(initialEvent?.end_time   ?? "12:00");
+  const [isRecurring,   setIsRecurring]   = useState(initialEvent?.is_recurring ?? false);
+  const [recurrenceDay, setRecurrenceDay] = useState(initialEvent?.recurrence_day ?? initDay);
+  const [recurrenceEnd, setRecurrenceEnd] = useState(initialEvent?.recurrence_end_date ?? "");
+  const [saving,        setSaving]        = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+  const [error,         setError]         = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +73,26 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
     }
   }
 
+  async function handleDelete() {
+    if (!onDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete();
+      onClose();
+    } catch {
+      setError("Erreur lors de la suppression");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const inputStyle = {
+    backgroundColor: DARK,
+    border: `1px solid ${BORDER}`,
+    color: "oklch(0.97 0 0)",
+    colorScheme: "dark" as const,
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -83,7 +108,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black uppercase tracking-widest" style={{ color: MINT }}>
-            Nouvel événement
+            {isEdit ? "Modifier l'événement" : "Nouvel événement"}
           </h2>
           <button
             type="button"
@@ -94,6 +119,15 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
             ✕
           </button>
         </div>
+
+        {isEdit && initialEvent?.is_recurring && (
+          <div
+            className="rounded-xl px-3 py-2 text-xs"
+            style={{ backgroundColor: "oklch(0.78 0.18 55 / 10%)", border: "1px solid oklch(0.78 0.18 55 / 25%)", color: "oklch(0.78 0.18 55)" }}
+          >
+            ↻ Événement récurrent — les modifications s&apos;appliquent à toutes les occurrences.
+          </div>
+        )}
 
         {/* Title */}
         <div className="space-y-1.5">
@@ -106,8 +140,8 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="ex. Cours de droit, Stage entreprise…"
             className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-            style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)" }}
-            autoFocus
+            style={inputStyle}
+            autoFocus={!isEdit}
           />
         </div>
 
@@ -135,7 +169,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
           </div>
         </div>
 
-        {/* Date + time */}
+        {/* Date + jour */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>Date</label>
@@ -147,19 +181,19 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
                 if (e.target.value) setRecurrenceDay(getISODay(new Date(e.target.value + "T00:00:00")));
               }}
               className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)", colorScheme: "dark" }}
+              style={inputStyle}
             />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-              {isRecurring ? "Jour de répétition" : "Jour"}
+              {isRecurring ? "Jour répété" : "Jour"}
             </label>
             {isRecurring ? (
               <select
                 value={recurrenceDay}
                 onChange={(e) => setRecurrenceDay(Number(e.target.value))}
                 className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)", colorScheme: "dark" }}
+                style={inputStyle}
               >
                 {ISO_DAYS.slice(1).map((name, i) => (
                   <option key={i + 1} value={i + 1}>{name}</option>
@@ -176,6 +210,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
           </div>
         </div>
 
+        {/* Horaires */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>Début</label>
@@ -184,7 +219,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)", colorScheme: "dark" }}
+              style={inputStyle}
             />
           </div>
           <div className="space-y-1.5">
@@ -194,12 +229,12 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)", colorScheme: "dark" }}
+              style={inputStyle}
             />
           </div>
         </div>
 
-        {/* Recurrence */}
+        {/* Récurrence */}
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <button
@@ -228,7 +263,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
                 value={recurrenceEnd}
                 onChange={(e) => setRecurrenceEnd(e.target.value)}
                 className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none"
-                style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: "oklch(0.97 0 0)", colorScheme: "dark" }}
+                style={inputStyle}
               />
             </div>
           )}
@@ -248,6 +283,17 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
+          {isEdit && onDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 rounded-xl py-2.5 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-70 disabled:opacity-40"
+              style={{ backgroundColor: "oklch(0.65 0.20 25 / 15%)", border: "1px solid oklch(0.65 0.20 25 / 40%)", color: "oklch(0.75 0.18 25)" }}
+            >
+              {deleting ? "…" : "Supprimer"}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -262,7 +308,7 @@ export function EventModal({ initialDate, onSave, onClose }: EventModalProps) {
             className="flex-[2] rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: MINT, color: DARK }}
           >
-            {saving ? "Enregistrement…" : "Enregistrer"}
+            {saving ? "Enregistrement…" : isEdit ? "Enregistrer" : "Ajouter"}
           </button>
         </div>
       </form>

@@ -30,4 +30,8 @@ export interface CalendarEvent {
   end_time: string    // HH:MM
   is_recurring: boolean
   source_id: string   // original schedule_events.id
+  // Full fields needed for the edit modal
+  event_date: string            // original first date of the event / series
+  recurrence_day?: number       // ISO day 1=lun…7=dim
+  recurrence_end_date?: string  // YYYY-MM-DD
 }
