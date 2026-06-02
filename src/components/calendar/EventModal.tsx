@@ -217,7 +217,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
             <input
               type="time"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => setStartTime(e.target.value.slice(0, 5))}
               className="w-full rounded-lg px-3 py-2 text-sm outline-none"
               style={inputStyle}
             />
@@ -227,7 +227,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
             <input
               type="time"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              onChange={(e) => setEndTime(e.target.value.slice(0, 5))}
               className="w-full rounded-lg px-3 py-2 text-sm outline-none"
               style={inputStyle}
             />
