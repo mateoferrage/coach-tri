@@ -265,15 +265,21 @@ export async function POST(
     .eq('status', 'planned')
 
   // Insert new sessions
-  const sessionRows = microPlan.sessions.map(s => ({
-    plan_id,
-    plan_week_id: week.id,
-    user_id: user.id,
-    ...s,
-    discipline: normalizeDiscipline(s.discipline),
-    session_type: normalizeSessionType(s.session_type),
-    status: 'planned',
-  }))
+  const sessionRows = microPlan.sessions.map(s => {
+    const jsDay = new Date(s.session_date + 'T00:00:00').getDay() // 0=dim, 6=sam
+    // Weekdays → evening (18h), Saturday → morning (7h), Sunday → midday (12h)
+    const day_part = (jsDay === 0) ? 'midday' : (jsDay === 6) ? 'morning' : 'evening'
+    return {
+      plan_id,
+      plan_week_id: week.id,
+      user_id: user.id,
+      ...s,
+      discipline: normalizeDiscipline(s.discipline),
+      session_type: normalizeSessionType(s.session_type),
+      day_part,
+      status: 'planned',
+    }
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: insertedSessions, error: insertError } = await (admin as any)

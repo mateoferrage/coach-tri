@@ -370,11 +370,13 @@ export async function POST() {
     }
 
     // Upsert garmin_stats (one row per user)
+    // Only include non-null values so a failed fetch doesn't overwrite previously stored data
+    const statsPayload: Record<string, unknown> = { user_id: user.id, updated_at: new Date().toISOString() };
+    for (const [key, value] of Object.entries(garminStats)) {
+      if (value !== null) statsPayload[key] = value;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any).from("garmin_stats").upsert(
-      { ...garminStats, user_id: user.id, updated_at: new Date().toISOString() },
-      { onConflict: "user_id" },
-    );
+    await (admin as any).from("garmin_stats").upsert(statsPayload, { onConflict: "user_id" });
 
     // Update credentials
     const tokens = gc.exportToken() as StoredTokens;

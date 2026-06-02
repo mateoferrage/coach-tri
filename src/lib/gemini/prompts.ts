@@ -341,7 +341,8 @@ RÈGLES IMPORTANTES :
 
 ACTIONS DISPONIBLES (dans proposedAction) :
 - cancel_session  : annuler une séance (la marquer comme passée)
-- move_session    : déplacer une séance à une autre date
+- move_session    : déplacer UNE séance à une autre date (sans conflit)
+- swap_sessions   : échanger les dates de DEUX séances entre elles
 - adjust_session  : modifier durée/intensité d'une séance
 - regenerate_week : régénérer toutes les séances restantes de la semaine
 
@@ -352,10 +353,13 @@ FORMAT proposedAction :
   "params": {
     // cancel_session  → { "session_id": "uuid" }
     // move_session    → { "session_id": "uuid", "new_date": "YYYY-MM-DD" }
+    // swap_sessions   → { "session_id_a": "uuid", "session_id_b": "uuid" }
     // adjust_session  → { "session_id": "uuid", "duration_min": 45, "session_type": "recovery", "coaching_note": "..." }
     // regenerate_week → { "plan_id": "uuid", "week_num": 3, "available_days": [1,3,5,6] }
   }
 }
+
+RÈGLE SWAP : quand l'athlète veut ÉCHANGER deux séances entre elles, utilise TOUJOURS swap_sessions (pas deux move_session).
 
 Réponds uniquement en JSON. Pas de texte en dehors du JSON.
 `.trim()

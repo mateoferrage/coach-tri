@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { GarminSyncButton } from "@/components/garmin/GarminSyncButton";
+import { AddActivityModal } from "@/components/activities/AddActivityModal";
 
 export const metadata = { title: "Activités — Coach Tri" };
 
 type Activity = {
   id: string;
+  garmin_activity_id: number;
   activity_type: string;
   name: string | null;
   started_at: string;
@@ -129,8 +131,20 @@ function StatPill({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ManualBadge() {
+  return (
+    <span
+      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+      style={{ color: "oklch(0.78 0.18 55)", border: "1px solid oklch(0.78 0.18 55)" }}
+    >
+      Manuel
+    </span>
+  );
+}
+
 function ActivityCard({ activity }: { activity: Activity }) {
   const sport = getSport(activity.activity_type);
+  const isManual = activity.garmin_activity_id < 0;
 
   // Hero metric — distance first, fallback to duration
   const hero = (!sport.isStrength && activity.distance_m)
@@ -187,7 +201,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
               </p>
             </div>
           </div>
-          <TEBadge value={activity.aerobic_te} />
+          {isManual ? <ManualBadge /> : <TEBadge value={activity.aerobic_te} />}
         </div>
 
         {/* Hero metric */}
@@ -233,10 +247,10 @@ export default async function ActivitiesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: activities } = await (supabase as any)
     .from("garmin_activities")
-    .select("id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te")
+    .select("id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te")
     .eq("user_id", user!.id)
     .order("started_at", { ascending: false })
-    .limit(30) as { data: Activity[] | null };
+    .limit(50) as { data: Activity[] | null };
 
   const list = activities ?? [];
 
@@ -259,13 +273,16 @@ export default async function ActivitiesPage() {
       <div className="flex items-end justify-between">
         <div className="space-y-1">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Garmin Connect
+            Historique
           </p>
           <h1 className="text-3xl font-black uppercase tracking-tight">
             Activités
           </h1>
         </div>
-        <GarminSyncButton />
+        <div className="flex items-center gap-2">
+          <AddActivityModal />
+          <GarminSyncButton />
+        </div>
       </div>
 
       {/* Content */}

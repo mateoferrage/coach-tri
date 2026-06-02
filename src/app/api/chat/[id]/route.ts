@@ -8,7 +8,7 @@ const PatchSchema = z.object({
 })
 
 interface ProposedAction {
-  type: 'cancel_session' | 'move_session' | 'adjust_session' | 'regenerate_week'
+  type: 'cancel_session' | 'move_session' | 'swap_sessions' | 'adjust_session' | 'regenerate_week'
   description: string
   params: Record<string, unknown>
 }
@@ -81,6 +81,41 @@ export async function PATCH(
       .eq('user_id', user.id)
     if (error) return apiError(error.message)
     return apiSuccess({ action_status: 'confirmed', type: 'move_session' })
+  }
+
+  if (action.type === 'swap_sessions') {
+    const sessionIdA = p.session_id_a as string
+    const sessionIdB = p.session_id_b as string
+
+    // Fetch both sessions to get their current dates
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sessions, error: fetchError } = await (admin as any)
+      .from('sessions')
+      .select('id, session_date')
+      .in('id', [sessionIdA, sessionIdB])
+      .eq('user_id', user.id)
+
+    if (fetchError || !sessions || sessions.length !== 2) {
+      return apiError('Séances introuvables pour l\'échange', 404)
+    }
+
+    const [sesA, sesB] = sessions[0].id === sessionIdA
+      ? [sessions[0], sessions[1]]
+      : [sessions[1], sessions[0]]
+
+    const dateA = sesA.session_date
+    const dateB = sesB.session_date
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [resA, resB] = await Promise.all([
+      (admin as any).from('sessions').update({ session_date: dateB }).eq('id', sessionIdA).eq('user_id', user.id),
+      (admin as any).from('sessions').update({ session_date: dateA }).eq('id', sessionIdB).eq('user_id', user.id),
+    ])
+
+    if (resA.error) return apiError(resA.error.message)
+    if (resB.error) return apiError(resB.error.message)
+
+    return apiSuccess({ action_status: 'confirmed', type: 'swap_sessions' })
   }
 
   if (action.type === 'adjust_session') {
