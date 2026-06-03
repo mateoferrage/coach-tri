@@ -9,6 +9,37 @@ interface PhysiologyInput {
   css_pace_sec_per_100m?: number | null
   // Fallback from garmin_stats when no physiology row
   vo2max_run?: number | null
+  // For Karvonen zone calculation (added via migration 0018)
+  resting_hr?: number | null
+}
+
+// Karvonen bounds per zone (% of heart rate reserve)
+const KARVONEN_BOUNDS = [
+  { lo: 0.50, hi: 0.60 }, // Z1
+  { lo: 0.60, hi: 0.70 }, // Z2
+  { lo: 0.70, hi: 0.80 }, // Z3
+  { lo: 0.80, hi: 0.90 }, // Z4
+  { lo: 0.90, hi: 1.00 }, // Z5
+]
+
+/**
+ * Classify an athlete's aerobic level from VO2max and sex.
+ * Uses standard normative tables (ACSM / Cooper norms).
+ */
+export function computeFitnessLevel(vo2max: number, sex: 'M' | 'F' | 'X'): string {
+  if (sex === 'F') {
+    if (vo2max < 30) return 'débutant (faible capacité aérobie)'
+    if (vo2max < 38) return 'intermédiaire'
+    if (vo2max < 46) return 'avancé'
+    if (vo2max < 54) return 'bon niveau'
+    return 'excellent / compétiteur'
+  }
+  // Male or non-binary (use male norms as default)
+  if (vo2max < 35) return 'débutant (faible capacité aérobie)'
+  if (vo2max < 44) return 'intermédiaire'
+  if (vo2max < 53) return 'avancé'
+  if (vo2max < 62) return 'bon niveau'
+  return 'excellent / compétiteur'
 }
 
 function secToMinSec(totalSec: number): string {
@@ -66,8 +97,21 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
       { label: 'Z4 Seuil',    slowMult: 1.07, fastMult: 0.98 },
       { label: 'Z5 VO2max',   slowMult: 0.98, fastMult: null },
     ]
-    // HR boundaries as % of LTHR (or derived from HRmax)
-    const lthr = p.hr_threshold_run ?? (p.hr_max_run ? Math.round(p.hr_max_run * 0.92) : null)
+
+    // HR zone method priority:
+    // 1. Test-measured LTHR (hr_threshold_run)
+    // 2. Karvonen when FCmax + resting_hr are both known
+    // 3. Estimated LTHR = FCmax × 0.92 (fallback)
+    const lthr      = p.hr_threshold_run ?? null
+    const hrFcMax   = p.hr_max_run ?? null
+    const hrResting = p.resting_hr ?? null
+
+    type HrMethod = 'lthr' | 'karvonen' | 'pct_fcmax' | null
+    let hrMethod: HrMethod = null
+    if (lthr)                        hrMethod = 'lthr'
+    else if (hrFcMax && hrResting)   hrMethod = 'karvonen'
+    else if (hrFcMax)                hrMethod = 'pct_fcmax'
+
     const HR_ZONES = [
       { loMult: 0.00, hiMult: 0.82 },
       { loMult: 0.82, hiMult: 0.89 },
@@ -80,16 +124,26 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
       const row: ZoneRow = { label: z.label }
       if (z.fastMult) row.pace_min = secToMinSec(threshPace! * z.fastMult)
       if (z.slowMult) row.pace_max = secToMinSec(threshPace! * z.slowMult)
-      if (lthr) {
+
+      if (hrMethod === 'lthr' && lthr) {
         row.hr_min = Math.round(lthr * HR_ZONES[i].loMult)
         row.hr_max = Math.round(lthr * HR_ZONES[i].hiMult)
+      } else if (hrMethod === 'karvonen' && hrFcMax && hrResting) {
+        const reserve = hrFcMax - hrResting
+        row.hr_min = Math.round(hrResting + KARVONEN_BOUNDS[i].lo * reserve)
+        row.hr_max = Math.round(hrResting + KARVONEN_BOUNDS[i].hi * reserve)
+      } else if (hrMethod === 'pct_fcmax' && hrFcMax) {
+        const estLthr = Math.round(hrFcMax * 0.92)
+        row.hr_min = Math.round(estLthr * HR_ZONES[i].loMult)
+        row.hr_max = Math.round(estLthr * HR_ZONES[i].hiMult)
       }
       return row
     })
 
     const headerParts = [`VMA: ${vma.toFixed(1)} km/h`, `Seuil: ${secToMinSec(threshPace)}/km`]
-    if (p.hr_max_run) headerParts.push(`FCmax: ${p.hr_max_run} bpm`)
-    if (p.hr_threshold_run) headerParts.push(`FC seuil: ${p.hr_threshold_run} bpm`)
+    if (hrMethod === 'lthr' && lthr)           headerParts.push(`FC seuil: ${lthr} bpm`)
+    else if (hrMethod === 'karvonen')          headerParts.push(`FC zones Karvonen (repos: ${hrResting} bpm)`)
+    else if (hrMethod === 'pct_fcmax' && hrFcMax) headerParts.push(`FCmax: ${hrFcMax} bpm`)
 
     result.run = { header: `Course à pied (${headerParts.join(' | ')})`, zones }
   }
@@ -104,7 +158,16 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
       { label: 'Z4 Seuil',    loFtp: 0.90, hiFtp: 1.05 },
       { label: 'Z5 VO2max',   loFtp: 1.05, hiFtp: 1.20 },
     ]
-    const lthrBike = p.hr_threshold_bike ?? (p.hr_max ? Math.round(p.hr_max * 0.92) : null)
+    const lthrBike     = p.hr_threshold_bike ?? null
+    const bikeHrFcMax  = p.hr_max ?? null
+    const bikeHrResting = p.resting_hr ?? null
+
+    type BikHrMethod = 'lthr' | 'karvonen' | 'pct_fcmax' | null
+    let bikeHrMethod: BikHrMethod = null
+    if (lthrBike)                              bikeHrMethod = 'lthr'
+    else if (bikeHrFcMax && bikeHrResting)     bikeHrMethod = 'karvonen'
+    else if (bikeHrFcMax)                      bikeHrMethod = 'pct_fcmax'
+
     const HR_ZONES = [
       { loMult: 0.00, hiMult: 0.82 },
       { loMult: 0.82, hiMult: 0.89 },
@@ -119,16 +182,25 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
         watts_min: Math.round(ftp * z.loFtp),
         watts_max: Math.round(ftp * z.hiFtp),
       }
-      if (lthrBike) {
+      if (bikeHrMethod === 'lthr' && lthrBike) {
         row.hr_min = Math.round(lthrBike * HR_ZONES[i].loMult)
         row.hr_max = Math.round(lthrBike * HR_ZONES[i].hiMult)
+      } else if (bikeHrMethod === 'karvonen' && bikeHrFcMax && bikeHrResting) {
+        const reserve = bikeHrFcMax - bikeHrResting
+        row.hr_min = Math.round(bikeHrResting + KARVONEN_BOUNDS[i].lo * reserve)
+        row.hr_max = Math.round(bikeHrResting + KARVONEN_BOUNDS[i].hi * reserve)
+      } else if (bikeHrMethod === 'pct_fcmax' && bikeHrFcMax) {
+        const estLthr = Math.round(bikeHrFcMax * 0.92)
+        row.hr_min = Math.round(estLthr * HR_ZONES[i].loMult)
+        row.hr_max = Math.round(estLthr * HR_ZONES[i].hiMult)
       }
       return row
     })
 
     const headerParts = [`FTP: ${ftp}W`]
-    if (p.hr_threshold_bike) headerParts.push(`FC seuil: ${p.hr_threshold_bike} bpm`)
-    else if (p.hr_max) headerParts.push(`FCmax: ${p.hr_max} bpm`)
+    if (bikeHrMethod === 'lthr' && lthrBike)              headerParts.push(`FC seuil: ${lthrBike} bpm`)
+    else if (bikeHrMethod === 'karvonen')                 headerParts.push(`FC zones Karvonen (repos: ${bikeHrResting} bpm)`)
+    else if (bikeHrMethod === 'pct_fcmax' && bikeHrFcMax) headerParts.push(`FCmax: ${bikeHrFcMax} bpm`)
 
     result.bike = { header: `Vélo (${headerParts.join(' | ')})`, zones }
   }

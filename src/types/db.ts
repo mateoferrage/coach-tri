@@ -37,6 +37,7 @@ export interface Database {
           run_threshold_pace_sec_per_km: number | null
           hr_max_run: number | null
           hr_threshold_run: number | null
+          resting_hr: number | null
           css_pace_sec_per_100m: number | null
           source: string | null
           created_at: string
@@ -110,6 +111,7 @@ export interface Database {
           actual_rpe: number | null
           actual_notes: string | null
           completed_at: string | null
+          garmin_activity_id: string | null
           created_at: string
           updated_at: string
         }
@@ -172,6 +174,26 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['garmin_wellness']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['garmin_wellness']['Insert']>
+      }
+      garmin_stats: {
+        Row: {
+          user_id: string
+          display_name: string | null
+          garmin_username: string | null
+          profile_image_url: string | null
+          vo2max_run: number | null
+          vo2max_bike: number | null
+          fitness_age: number | null
+          training_readiness: number | null
+          training_load_7d: number | null
+          training_load_28d: number | null
+          personal_records: Json | null
+          raw_profile: Json | null
+          raw_fitness: Json | null
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['garmin_stats']['Row'], 'updated_at'> & { updated_at?: string }
+        Update: Partial<Database['public']['Tables']['garmin_stats']['Insert']>
       }
       availability_blocks: {
         Row: {

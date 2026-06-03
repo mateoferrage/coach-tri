@@ -119,6 +119,7 @@ export interface PhysiologyData {
   run_threshold_pace_sec_per_km: number | null
   hr_max_run: number | null
   hr_threshold_run: number | null
+  resting_hr: number | null
   ftp_watts: number | null
   hr_max: number | null
   hr_threshold_bike: number | null
@@ -139,6 +140,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
   const [runPace, setRunPace] = useState(secToMinSec(initial?.run_threshold_pace_sec_per_km ?? null))
   const [hrMaxRun, setHrMaxRun] = useState(initial?.hr_max_run?.toString() ?? '')
   const [hrThreshRun, setHrThreshRun] = useState(initial?.hr_threshold_run?.toString() ?? '')
+  const [restingHr, setRestingHr] = useState(initial?.resting_hr?.toString() ?? '')
   const [ftp, setFtp] = useState(initial?.ftp_watts?.toString() ?? '')
   const [hrMax, setHrMax] = useState(initial?.hr_max?.toString() ?? '')
   const [hrThreshBike, setHrThreshBike] = useState(initial?.hr_threshold_bike?.toString() ?? '')
@@ -155,6 +157,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
         run_threshold_pace_sec_per_km: minSecToSec(runPace),
         hr_max_run: numOrNull(hrMaxRun),
         hr_threshold_run: numOrNull(hrThreshRun),
+        resting_hr: numOrNull(restingHr),
         ftp_watts: numOrNull(ftp),
         hr_max: numOrNull(hrMax),
         hr_threshold_bike: numOrNull(hrThreshBike),
@@ -223,6 +226,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
             <ValueRow label="Allure seuil" value={initial?.run_threshold_pace_sec_per_km != null ? secToMinSec(initial.run_threshold_pace_sec_per_km) : null} unit="/km" />
             <ValueRow label="FC max" value={initial?.hr_max_run?.toString() ?? null} unit="bpm" />
             <ValueRow label="FC seuil" value={initial?.hr_threshold_run?.toString() ?? null} unit="bpm" />
+            <ValueRow label="FC repos" value={initial?.resting_hr?.toString() ?? null} unit="bpm" />
           </div>
           {/* Cycling */}
           <div className="py-3">
@@ -309,6 +313,21 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 <TestHint>
                   Lis la FC moyenne sur tes 20–30 dernières minutes lors d'un test à allure seuil.
                   Ou estime : FC seuil ≈ 88–92% de ta FC max.
+                </TestHint>
+              )}
+            />
+
+            <Field
+              label="FC de repos"
+              unit="bpm"
+              value={restingHr}
+              onChange={setRestingHr}
+              placeholder="ex : 48"
+              hint={!restingHr && (
+                <TestHint>
+                  Mesure le matin au réveil, avant de te lever, après 5 min allongé.
+                  Utiliser la valeur moyenne sur 3–5 jours consécutifs.
+                  Utilisée pour le calcul des zones FC par la méthode Karvonen.
                 </TestHint>
               )}
             />

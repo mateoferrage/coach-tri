@@ -2,21 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { apiError, apiSuccess } from "@/lib/utils/errors";
 import { decryptCredential } from "@/lib/utils/crypto";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { GarminConnect } = require("garmin-connect");
+import { buildGarminClient, type StoredTokens } from "@/lib/garmin/client";
 
 const MAX_DAYS = 14;
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
-interface StoredTokens {
-  oauth1: { token: string; token_secret: string };
-  oauth2: {
-    scope: string; jti: string; token_type: string;
-    access_token: string; refresh_token: string;
-    expires_in: number; expires_at: number;
-    refresh_token_expires_in: number; refresh_token_expires_at: number;
-  };
-}
 
 interface GarminActivity {
   garmin_activity_id: number;
@@ -111,21 +101,6 @@ function mapActivity(a: any): GarminActivity | null {
   };
 }
 
-/* ── Auth ───────────────────────────────────────────────────────────────── */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function authenticate(gc: any, sessionData: unknown) {
-  if (sessionData && typeof sessionData === "object") {
-    const t = sessionData as Partial<StoredTokens>;
-    if (t.oauth1 && t.oauth2) {
-      try {
-        gc.loadToken(t.oauth1, t.oauth2);
-        await gc.getUserProfile();
-        return;
-      } catch { /* expired — fall through */ }
-    }
-  }
-  await gc.login();
-}
 
 /* ── Encoding fix (Garmin lib returns latin-1 as UTF-8 sometimes) ────────── */
 function fixEncoding(s: string | null | undefined): string | null {
@@ -341,9 +316,8 @@ export async function POST() {
   const password = decryptCredential(creds.password_enc);
 
   try {
-    // Single gc instance — authenticate once, reuse for all calls
-    const gc = new GarminConnect({ username: email, password });
-    await authenticate(gc, creds.session_data);
+    // Authenticate once (restores tokens from DB if valid, falls back to full login)
+    const { gc } = await buildGarminClient(email, password, creds.session_data);
 
     // Run in parallel: activities+wellness AND profile stats
     const [{ activities, wellness }, garminStats] = await Promise.all([
@@ -378,7 +352,7 @@ export async function POST() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (admin as any).from("garmin_stats").upsert(statsPayload, { onConflict: "user_id" });
 
-    // Update credentials
+    // Persist refreshed tokens
     const tokens = gc.exportToken() as StoredTokens;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (admin as any).from("garmin_credentials")

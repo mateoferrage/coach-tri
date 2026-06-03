@@ -1,3 +1,5 @@
+import { KNOWLEDGE_BASE_CORE, KNOWLEDGE_BASE_MICRO, KNOWLEDGE_BASE_CHAT } from '@/lib/coach/knowledge'
+
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
 export const TRIATHLON_COACH_SYSTEM = `
@@ -36,6 +38,12 @@ Tu es un coach triathlon expert certifié, spécialisé dans la préparation des
 - Course : foulée, endurance, progression, allure seuil, VMA, fractionné
 
 Réponds toujours en JSON valide et uniquement en JSON. Pas de texte en dehors du JSON.
+
+---
+
+## BASE DE CONNAISSANCES SCIENTIFIQUE
+
+${KNOWLEDGE_BASE_CORE}
 `.trim()
 
 // ─── Macro generation ──────────────────────────────────────────────────────────
@@ -94,6 +102,11 @@ OBJECTIF DE COURSE :
     : 'MODE : Maintien de forme (programme continu sans objectif de course)'
 
   return `
+BASE DE CONNAISSANCES (méthodologies + zones de référence) :
+${KNOWLEDGE_BASE_CORE}
+
+---
+
 PROFIL ATHLÈTE :
 - Prénom : ${ctx.profile.first_name ?? 'Athlète'}
 - Niveau : ${levelLabels[ctx.profile.level ?? ''] ?? ctx.profile.level ?? 'Non précisé'}
@@ -269,8 +282,10 @@ export function buildMicroPrompt(ctx: MicroContext): string {
     ? `ZONES D'ENTRAÎNEMENT PERSONNALISÉES (utilise ces valeurs pour target_values) :\n${ctx.athlete_zones}`
     : ''
 
+  const knowledgeMicroBlock = `BASE DE CONNAISSANCES (zones + bibliothèque de séances) :\n${KNOWLEDGE_BASE_MICRO}`
+
   return `
-${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorWeeksBlock + '\n\n' : ''}${zonesBlock ? zonesBlock + '\n\n' : ''}GÉNÉRATION — SEMAINE ${ctx.week.week_num} — Phase : ${PHASE_LABELS[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
+${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorWeeksBlock + '\n\n' : ''}${knowledgeMicroBlock}\n\n${zonesBlock ? zonesBlock + '\n\n' : ''}GÉNÉRATION — SEMAINE ${ctx.week.week_num} — Phase : ${PHASE_LABELS[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
 
 Cibles de la semaine :
 - Volume : ${ctx.week.planned_volume_hours}h
@@ -330,6 +345,12 @@ ${ctx.athlete_zones ? `- target_values DOIT utiliser les zones personnalisées f
 
 export const COACH_CHAT_SYSTEM = `
 Tu es Coach Tri, un coach triathlon IA personnel, bienveillant et expert.
+
+BASE DE CONNAISSANCES :
+${KNOWLEDGE_BASE_CHAT}
+
+---
+
 Tu connais le programme d'entraînement de l'athlète et tu peux proposer des ajustements si nécessaire.
 
 RÈGLES IMPORTANTES :

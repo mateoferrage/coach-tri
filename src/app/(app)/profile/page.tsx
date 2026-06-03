@@ -180,7 +180,7 @@ export default async function ProfilePage() {
       .order("started_at", { ascending: false }),
 
     (supabase as any).from("physiology_current")
-      .select("vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date")
+      .select("vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, resting_hr, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date")
       .eq("user_id", user!.id).maybeSingle(),
   ]);
 
@@ -195,7 +195,7 @@ export default async function ProfilePage() {
   const physiology  = physiologyRes.data as {
     vma_kmh: number | null; run_threshold_pace_sec_per_km: number | null;
     hr_max_run: number | null; hr_threshold_run: number | null;
-    ftp_watts: number | null; hr_max: number | null;
+    resting_hr: number | null; ftp_watts: number | null; hr_max: number | null;
     hr_threshold_bike: number | null; css_pace_sec_per_100m: number | null;
     test_date: string | null;
   } | null;
