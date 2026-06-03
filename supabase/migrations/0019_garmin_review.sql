@@ -1,0 +1,1 @@
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS garmin_review JSONB;

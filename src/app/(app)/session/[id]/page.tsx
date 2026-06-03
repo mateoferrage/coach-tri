@@ -186,6 +186,7 @@ export default async function SessionPage({
           sessionId={id}
           linkedActivity={(session.linked_garmin as Record<string, unknown> | null) as Parameters<typeof GarminLinker>[0]['linkedActivity']}
           candidates={(garminCandidates ?? []) as Parameters<typeof GarminLinker>[0]['candidates']}
+          initialReview={(session.garmin_review as Parameters<typeof GarminLinker>[0]['initialReview']) ?? null}
         />
       )}
 

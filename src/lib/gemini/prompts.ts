@@ -441,3 +441,153 @@ HISTORIQUE RÉCENT DU CHAT :
 ${historyBlock}
 `.trim()
 }
+
+// ─── Session review after Garmin link ─────────────────────────────────────────
+
+export const COACH_SESSION_REVIEW_SYSTEM = `
+Tu es coach triathlon pour des athlètes amateurs — des gens qui s'entraînent avant ou après le boulot, le week-end, entre les contraintes de la vie réelle. Pas des élites. Des passionnés.
+
+Tu connais la physiologie de l'exercice sur le bout des doigts, mais tu ne la récites jamais. Tu t'en sers pour interpréter les données et donner des conseils qui font sens — pas pour impressionner.
+
+## Comment tu parles
+
+Tu t'adresses directement à la personne, avec "tu". Ton ton est celui d'un expert qui parle à un ami : direct, humain, sans condescendance. Tu pars toujours du ressenti ou de l'effort avant de regarder les données. Tu ne noies pas sous les informations — une observation clé, un conseil actionnable, c'est souvent suffisant.
+
+Ce que tu évites :
+- Les cours de physiologie ("cette séance a stimulé les adaptations mitochondriales...")
+- Les listes exhaustives quand 2 phrases suffisent
+- Les félicitations génériques et vides ("Super séance !")
+- Le jargon pour le jargon — préfère "allure confortable" à "Z2"
+- "Pourquoi tu n'as pas tenu l'allure ?" après une mauvaise séance — on regarde toujours devant
+- Commenter une donnée isolée sans contexte
+
+## Quelques règles spécifiques aux amateurs
+
+**Sur les sorties faciles** : la plupart des amateurs courent leurs sorties faciles trop vite. Quand tu vois une endurance bien gérée, dis-le. Donner la permission de ralentir est souvent le conseil le plus utile que tu puisses donner.
+
+**Sur les données** : traduis les chiffres en sens humain. Citer un chiffre précis quand il ancre concrètement un message est bien. Ce qu'il faut éviter : les listes de métriques brutes sans interprétation.
+
+## Zones et récupération
+
+- Body battery : <40 = vidé, 40–60 = récup partielle, >70 = prêt
+- FC repos : +5 bpm au-dessus de la référence = fatigue accumulée
+- Effet d'entraînement aérobie (Garmin) : 1–2 = maintien, 3 = amélioration, 4–5 = surcharge ou progression majeure
+
+## Ton et humour
+
+Ta manière de t'exprimer s'inspire librement de deux registres, à doser selon l'humeur de l'échange :
+- **OSS 117** : pompeux assumé, légèrement condescendant mais bienveillant, formules ampoulées, confiance en soi décalée. L'agent qui énonce une évidence comme si c'était une vérité d'État.
+- **Le roi Arthur (Kaamelott)** : autorité exaspérée mais lucide, frustration contenue face à l'évidence qui échappe à tout le monde, phrases qui tombent à plat puis qui font mouche.
+
+Quelques mots suffisent à installer le ton sans forcer. L'humour vient de la situation.
+
+## Format de réponse STRICT
+
+Réponds UNIQUEMENT en JSON valide, rien d'autre :
+{
+  "verdict": "excellent | good | average | poor",
+  "message": "Ton retour en français, 2-4 phrases max. Direct, humain, actionnable."
+}
+
+Définition des verdicts :
+- "excellent" : séance exécutée avec précision et au-delà des attentes
+- "good" : séance bien réalisée, objectifs globalement atteints
+- "average" : séance correcte mais des écarts significatifs par rapport aux objectifs
+- "poor" : séance très éloignée des objectifs ou mal exécutée
+
+Pour les allures : min'sec"/km. Pour les plages FC : en bpm. Réponds en français.
+`.trim()
+
+export interface SessionReviewContext {
+  session: {
+    title: string
+    discipline: string
+    session_type: string
+    duration_min: number
+    target_zone: string | null
+    target_values: Record<string, unknown> | null
+    expected_rpe: number | null
+    structure: { warmup?: string; main?: string; cooldown?: string } | null
+    coaching_note: string | null
+    actual_rpe: number | null
+  }
+  activity: {
+    activity_type: string
+    name: string | null
+    duration_s: number | null
+    distance_m: number | null
+    avg_hr: number | null
+    max_hr: number | null
+    avg_speed_ms: number | null
+    elevation_gain_m: number | null
+    aerobic_te: number | null
+    anaerobic_te: number | null
+  }
+}
+
+function formatPace(discipline: string, avg_speed_ms: number | null): string | null {
+  if (!avg_speed_ms || avg_speed_ms <= 0) return null
+  if (discipline === 'bike') {
+    return `${(avg_speed_ms * 3.6).toFixed(1)} km/h`
+  }
+  const totalSec = discipline === 'swim' ? Math.round(100 / avg_speed_ms) : Math.round(1000 / avg_speed_ms)
+  const min = Math.floor(totalSec / 60)
+  const sec = totalSec % 60
+  const unit = discipline === 'swim' ? '/100m' : '/km'
+  return `${min}'${String(sec).padStart(2, '0')}"${unit}`
+}
+
+export function buildSessionReviewPrompt(ctx: SessionReviewContext): string {
+  const { session, activity } = ctx
+  const actualDurationMin = activity.duration_s ? Math.round(activity.duration_s / 60) : null
+  const actualDistanceKm = activity.distance_m
+    ? session.discipline === 'swim'
+      ? `${Math.round(activity.distance_m)} m`
+      : `${(activity.distance_m / 1000).toFixed(2)} km`
+    : null
+  const pace = formatPace(session.discipline, activity.avg_speed_ms)
+
+  const DISCIPLINE_FR: Record<string, string> = {
+    swim: 'Natation', bike: 'Vélo', run: 'Course à pied',
+    brick: 'Enchaînement', strength: 'Renforcement', rest: 'Repos',
+  }
+  const SESSION_TYPE_FR: Record<string, string> = {
+    easy: 'Endurance facile', tempo: 'Tempo', threshold: 'Seuil',
+    vo2: 'VO2max', race_pace: 'Allure course', technique: 'Technique',
+    long: 'Sortie longue', recovery: 'Récupération active', test: 'Test',
+  }
+
+  const targetHr = session.target_values?.hr as number[] | undefined
+  const targetWatts = session.target_values?.watts as number[] | undefined
+  const targetPace = session.target_values?.pace_per_km as string | undefined
+    ?? session.target_values?.pace_per_100m as string | undefined
+
+  return `
+SÉANCE PLANIFIÉE :
+- Titre : ${session.title}
+- Discipline : ${DISCIPLINE_FR[session.discipline] ?? session.discipline}
+- Type : ${SESSION_TYPE_FR[session.session_type] ?? session.session_type}
+- Durée prévue : ${session.duration_min} min
+- Zone cible : ${session.target_zone ?? 'non précisée'}
+${targetHr ? `- FC cible : ${targetHr[0]}–${targetHr[1]} bpm` : ''}
+${targetWatts ? `- Puissance cible : ${targetWatts[0]}–${targetWatts[1]} W` : ''}
+${targetPace ? `- Allure cible : ${targetPace}` : ''}
+${session.expected_rpe ? `- RPE prévu : ${session.expected_rpe}/10` : ''}
+${session.structure?.main ? `- Bloc principal : ${session.structure.main}` : ''}
+${session.coaching_note ? `- Note du coach avant séance : ${session.coaching_note}` : ''}
+
+RÉALISATION (données Garmin) :
+- Activité : ${activity.name ?? DISCIPLINE_FR[activity.activity_type] ?? activity.activity_type}
+${actualDurationMin ? `- Durée réelle : ${actualDurationMin} min (prévu : ${session.duration_min} min)` : ''}
+${actualDistanceKm ? `- Distance : ${actualDistanceKm}` : ''}
+${pace ? `- Allure / vitesse moyenne : ${pace}` : ''}
+${activity.avg_hr ? `- FC moyenne : ${activity.avg_hr} bpm` : ''}
+${activity.max_hr ? `- FC max : ${activity.max_hr} bpm` : ''}
+${activity.elevation_gain_m ? `- Dénivelé positif : ${Math.round(activity.elevation_gain_m)} m` : ''}
+${activity.aerobic_te !== null && activity.aerobic_te !== undefined ? `- Effet d'entraînement aérobie : ${activity.aerobic_te.toFixed(1)}/5` : ''}
+${activity.anaerobic_te !== null && activity.anaerobic_te !== undefined && activity.anaerobic_te > 0 ? `- Effet d'entraînement anaérobie : ${activity.anaerobic_te.toFixed(1)}/5` : ''}
+${session.actual_rpe ? `- RPE ressenti par l'athlète : ${session.actual_rpe}/10` : ''}
+
+Donne ton retour de coach sur l'exécution de cette séance. Compare le prévu et le réel, identifie le point clé (positif ou à travailler), et donne un conseil actionnable si pertinent.
+`.trim()
+}
