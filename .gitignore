@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — commit only .env.example
+# env files
 .env
+.env*
 .env.local
 .env.*.local
 
