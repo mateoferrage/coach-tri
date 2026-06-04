@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const UpdateSchema = z.object({
@@ -68,5 +69,6 @@ export async function PATCH(
     .single() as { data: Record<string, unknown> | null; error: { message: string } | null }
 
   if (error) return apiError(error.message)
+  revalidatePath('/program')
   return apiSuccess(data)
 }

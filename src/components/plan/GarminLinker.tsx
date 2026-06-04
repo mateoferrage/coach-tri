@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const MINT    = "oklch(0.843 0.165 157)";
 const DARK    = "oklch(0.116 0.022 155)";
@@ -62,6 +63,7 @@ function formatDateTime(iso: string): string {
 }
 
 export function GarminLinker({ sessionId, linkedActivity, candidates, initialReview }: Props) {
+  const router = useRouter();
   const [linked, setLinked]               = useState<GarminActivity | null>(linkedActivity);
   const [pending, setPending]             = useState(false);
   const [open, setOpen]                   = useState(false);
@@ -87,20 +89,30 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
   async function handleLink(garminId: string | null) {
     setPending(true);
     try {
-      await fetch(`/api/sessions/${sessionId}/link-garmin`, {
+      const linkRes = await fetch(`/api/sessions/${sessionId}/link-garmin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ garmin_activity_id: garminId }),
       });
+      if (!linkRes.ok) {
+        const json = await linkRes.json() as { error?: string };
+        setReviewError(json.error ?? "Erreur lors du lien Garmin");
+        return;
+      }
+
+      const newStatus = garminId ? "done" : "planned";
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
       const found = garminId ? (candidates.find(c => c.id === garminId) ?? null) : null;
       setLinked(found);
       setOpen(false);
-      if (garminId) {
-        setReview(null);
-        fetchReview();
-      } else {
-        setReview(null);
-      }
+      setReview(null);
+      router.refresh();
+      if (garminId) fetchReview();
     } finally {
       setPending(false);
     }
@@ -200,6 +212,16 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
       {/* ── Retour du coach ── */}
       {linked && (
         <div className="space-y-2">
+          {!review && !reviewLoading && !reviewError && (
+            <button
+              onClick={fetchReview}
+              className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
+              style={{ backgroundColor: DARK, border: `1px dashed ${MINT}40`, color: MINT }}
+            >
+              Demander le retour du coach
+            </button>
+          )}
+
           {reviewLoading && (
             <div
               className="rounded-xl px-4 py-4 flex items-center gap-3"
