@@ -233,26 +233,26 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           {review && !reviewLoading && verdictCfg && (
             <div
               className="rounded-xl px-4 py-4 space-y-2"
-              style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${verdictCfg.color}30` }}
+              style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${verdictCfg.color}40` }}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "oklch(0.45 0.02 155)" }}>
                   Retour du coach
                 </p>
                 <span
                   className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${verdictCfg.color}20`, color: verdictCfg.color }}
+                  style={{ backgroundColor: `${verdictCfg.color}25`, color: verdictCfg.color }}
                 >
                   {verdictCfg.label}
                 </span>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: "oklch(1 0 0 / 80%)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "oklch(0.18 0.02 155)" }}>
                 {review.message}
               </p>
               <button
                 onClick={fetchReview}
                 className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: MUTED }}
+                style={{ color: "oklch(0.5 0.02 155)" }}
               >
                 Régénérer
               </button>
