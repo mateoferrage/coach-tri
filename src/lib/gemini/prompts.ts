@@ -1,4 +1,5 @@
 import { KNOWLEDGE_BASE_CORE, KNOWLEDGE_BASE_MICRO, KNOWLEDGE_BASE_CHAT } from '@/lib/coach/knowledge'
+import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -211,6 +212,7 @@ interface MicroContext {
   athlete_zones?: string            // pre-formatted zone table from calculateZones()
   recent_wellness_summary?: string
   schedule_constraints?: string
+  strava_stats_block?: string
 }
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
@@ -299,7 +301,7 @@ Disciplines pratiquées : ${disciplines.join(', ')}
 Jours d'entraînement disponibles :
 ${sessionsPerDay}
 
-${ctx.recent_wellness_summary ? `Bien-être récent :\n${ctx.recent_wellness_summary}\n` : ''}${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}\n` : ''}
+${ctx.recent_wellness_summary ? `Bien-être récent :\n${ctx.recent_wellness_summary}\n` : ''}${ctx.strava_stats_block ? `\n${ctx.strava_stats_block}\n` : ''}${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}\n` : ''}
 Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
 
 {
@@ -404,6 +406,7 @@ interface ChatContext {
   weekSessions: ChatSession[]
   history: Array<{ role: string; content: string }>
   today: string
+  stravaActivitiesBlock?: string
 }
 
 const STATUS_FR: Record<string, string> = {
@@ -436,10 +439,35 @@ ${ctx.plan ? `- Plan ID : ${ctx.plan.id}` : ''}
 
 SÉANCES DE LA SEMAINE EN COURS :
 ${sessionsBlock}
-
+${ctx.stravaActivitiesBlock ? `\n${ctx.stravaActivitiesBlock}\n` : ''}
 HISTORIQUE RÉCENT DU CHAT :
 ${historyBlock}
 `.trim()
+}
+
+// ─── Strava context builders ──────────────────────────────────────────────────
+
+export function buildStravaStatsBlock(stats: StravaStatsCompact): string {
+  return `STATS STRAVA (année en cours / 4 dernières semaines) :
+- Course : ${stats.ytd_run_km} km YTD · ${stats.recent_run_km} km récents
+- Vélo   : ${stats.ytd_bike_km} km YTD · ${stats.recent_bike_km} km récents
+- Nata   : ${stats.ytd_swim_km} km YTD · ${stats.recent_swim_km} km récents`
+}
+
+export function buildStravaActivitiesBlock(activities: StravaActivityCompact[]): string {
+  if (!activities.length) return ''
+  const TYPE_FR: Record<string, string> = { run: 'Course', bike: 'Vélo', swim: 'Natation', other: 'Activité' }
+  const lines = activities.map(a => {
+    const parts: string[] = [`${a.date} · ${TYPE_FR[a.type] ?? a.type}`]
+    if (a.duration_min)     parts.push(`${a.duration_min}min`)
+    if (a.distance_km)      parts.push(`${a.distance_km}km`)
+    if (a.avg_hr)           parts.push(`FC ${a.avg_hr}bpm`)
+    if (a.avg_watts)        parts.push(`${a.avg_watts}W`)
+    if (a.elevation_gain_m) parts.push(`D+${a.elevation_gain_m}m`)
+    if (a.suffer_score)     parts.push(`suffer ${a.suffer_score}`)
+    return `  - ${parts.join(' · ')}`
+  })
+  return `ACTIVITÉS STRAVA RÉCENTES :\n${lines.join('\n')}`
 }
 
 // ─── Session review after Garmin link ─────────────────────────────────────────
@@ -473,13 +501,9 @@ Ce que tu évites :
 - FC repos : +5 bpm au-dessus de la référence = fatigue accumulée
 - Effet d'entraînement aérobie (Garmin) : 1–2 = maintien, 3 = amélioration, 4–5 = surcharge ou progression majeure
 
-## Ton et humour
+## Ton
 
-Ta manière de t'exprimer s'inspire librement de deux registres, à doser selon l'humeur de l'échange :
-- **OSS 117** : pompeux assumé, légèrement condescendant mais bienveillant, formules ampoulées, confiance en soi décalée. L'agent qui énonce une évidence comme si c'était une vérité d'État.
-- **Le roi Arthur (Kaamelott)** : autorité exaspérée mais lucide, frustration contenue face à l'évidence qui échappe à tout le monde, phrases qui tombent à plat puis qui font mouche.
-
-Quelques mots suffisent à installer le ton sans forcer. L'humour vient de la situation.
+Tu parles avec naturel et précision — comme un professionnel qui connaît son sujet et n'a pas besoin de l'étaler. Ni formel ni familier : direct, humain, à l'aise. Pas de formules, pas de mise en scène. Le message compte plus que la façon de le livrer.
 
 ## Format de réponse STRICT
 

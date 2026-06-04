@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { GarminConnectCard } from "@/components/garmin/GarminConnectCard";
 import { PhysiologySection } from "@/components/profile/PhysiologySection";
+import { StravaConnectCard } from "@/components/strava/StravaConnectCard";
 
 export const metadata = { title: "Profil — Coach Tri" };
 
@@ -156,7 +157,7 @@ export default async function ProfilePage() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [profileRes, garminCredsRes, garminStatsRes, wellnessRes, activitiesRes, physiologyRes] = await Promise.all([
+  const [profileRes, garminCredsRes, garminStatsRes, wellnessRes, activitiesRes, physiologyRes, stravaCredsRes] = await Promise.all([
     (supabase as any).from("profiles")
       .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date")
       .eq("id", user!.id).single(),
@@ -182,6 +183,9 @@ export default async function ProfilePage() {
     (supabase as any).from("physiology_current")
       .select("vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, resting_hr, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date")
       .eq("user_id", user!.id).maybeSingle(),
+
+    (supabase as any).from("strava_credentials")
+      .select("last_sync_at").eq("user_id", user!.id).maybeSingle(),
   ]);
 
   const profile     = profileRes.data as {
@@ -199,6 +203,7 @@ export default async function ProfilePage() {
     hr_threshold_bike: number | null; css_pace_sec_per_100m: number | null;
     test_date: string | null;
   } | null;
+  const stravaCreds = stravaCredsRes.data as { last_sync_at: string | null } | null;
 
   // Volume 30j
   const volumes = computeVolumes(activities);
@@ -431,6 +436,15 @@ export default async function ProfilePage() {
         <GarminConnectCard
           connected={garminCreds !== null}
           lastSyncAt={garminCreds?.last_sync_at ?? null}
+        />
+      </section>
+
+      {/* ── Strava ── */}
+      <section>
+        <SectionTitle>Connexion Strava</SectionTitle>
+        <StravaConnectCard
+          connected={stravaCreds !== null}
+          lastSyncAt={stravaCreds?.last_sync_at ?? null}
         />
       </section>
     </div>

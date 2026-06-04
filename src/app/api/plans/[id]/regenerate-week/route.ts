@@ -2,11 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, type PriorWeek, type PlanWeekOverview } from '@/lib/gemini/prompts'
+import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildStravaStatsBlock, type PriorWeek, type PlanWeekOverview } from '@/lib/gemini/prompts'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
 import { addDays, format, parseISO } from 'date-fns'
+import { refreshIfNeeded, getAthleteStatsCompact, type StravaTokens } from '@/lib/strava/client'
 
 const BodySchema = z.object({
   week_num: z.number().int().positive(),
@@ -202,6 +203,43 @@ export async function POST(
     scheduleConstraints = lines.join('\n')
   }
 
+  // Strava stats for Scenario B (silently skip if not connected)
+  let stravaStatsBlock: string | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: stravaCreds } = await (supabase as any)
+    .from('strava_credentials')
+    .select('athlete_id, access_token, refresh_token, expires_at')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (stravaCreds) {
+    try {
+      const tokens: StravaTokens = {
+        access_token:  stravaCreds.access_token,
+        refresh_token: stravaCreds.refresh_token,
+        expires_at:    stravaCreds.expires_at,
+        athlete_id:    stravaCreds.athlete_id,
+      }
+      const refreshed = await refreshIfNeeded(tokens)
+      if (refreshed.access_token !== stravaCreds.access_token) {
+        const adminClient = createAdminClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (adminClient as any)
+          .from('strava_credentials')
+          .update({
+            access_token:  refreshed.access_token,
+            refresh_token: refreshed.refresh_token,
+            expires_at:    refreshed.expires_at,
+          })
+          .eq('user_id', user.id)
+      }
+      const stats = await getAthleteStatsCompact(refreshed.access_token, refreshed.athlete_id)
+      stravaStatsBlock = buildStravaStatsBlock(stats)
+    } catch {
+      // Strava indisponible — génération continue sans ce contexte
+    }
+  }
+
   const userPrompt = buildMicroPrompt({
     week: {
       week_num: week.week_num as number,
@@ -224,6 +262,7 @@ export async function POST(
     athlete_zones: athleteZones,
     recent_wellness_summary: wellnessSummary || undefined,
     schedule_constraints: scheduleConstraints || undefined,
+    strava_stats_block: stravaStatsBlock,
   })
 
   let microPlan: MicroSessions

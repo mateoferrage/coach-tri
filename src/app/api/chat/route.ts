@@ -4,6 +4,9 @@ import { generateJSON } from '@/lib/gemini/client'
 import { COACH_CHAT_SYSTEM, buildChatContext } from '@/lib/gemini/prompts'
 import { z } from 'zod'
 import { differenceInWeeks, parseISO } from 'date-fns'
+import { refreshIfNeeded, getRecentActivitiesCompact, type StravaTokens } from '@/lib/strava/client'
+import { buildStravaActivitiesBlock } from '@/lib/gemini/prompts'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const PostSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
   const weekEndStr = weekEnd.toISOString().split('T')[0]
 
   // Fetch context in parallel
-  const [profileRes, planRes, weekSessionsRes, historyRes] = await Promise.all([
+  const [profileRes, planRes, weekSessionsRes, historyRes, stravaCredsRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('profiles')
@@ -95,12 +98,22 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10),
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('strava_credentials')
+      .select('athlete_id, access_token, refresh_token, expires_at')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const profile = profileRes.data as { first_name: string | null; level: string | null; weekly_hours_avg: number | null } | null
   const plan = planRes.data as { id: string; name: string | null; start_date: string; plan_weeks: Array<{ week_num: number; phase: string }>; goal: { race_name: string; race_date: string } | null } | null
   const weekSessions = (weekSessionsRes.data ?? []) as Array<{ id: string; discipline: string; session_type: string; title: string | null; duration_min: number; session_date: string; status: string; expected_rpe: number | null }>
   const history = ((historyRes.data ?? []) as Array<{ role: string; content: string }>).reverse()
+  const stravaCreds = stravaCredsRes.data as {
+    athlete_id: number; access_token: string; refresh_token: string; expires_at: number
+  } | null
 
   // Resolve current week
   let currentWeekNum = 0
@@ -109,6 +122,36 @@ export async function POST(request: Request) {
     const startDate = parseISO(plan.start_date)
     currentWeekNum = Math.min(Math.max(1, differenceInWeeks(now, startDate) + 1), plan.plan_weeks?.length ?? 1)
     currentPhase = plan.plan_weeks?.find(w => w.week_num === currentWeekNum)?.phase ?? null
+  }
+
+  // Strava live context (Scenario C) — silently skip on error
+  let stravaActivitiesBlock: string | undefined
+  if (stravaCreds) {
+    try {
+      const tokens: StravaTokens = {
+        access_token:  stravaCreds.access_token,
+        refresh_token: stravaCreds.refresh_token,
+        expires_at:    stravaCreds.expires_at,
+        athlete_id:    stravaCreds.athlete_id,
+      }
+      const refreshed = await refreshIfNeeded(tokens)
+      if (refreshed.access_token !== stravaCreds.access_token) {
+        const admin = createAdminClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (admin as any)
+          .from('strava_credentials')
+          .update({
+            access_token:  refreshed.access_token,
+            refresh_token: refreshed.refresh_token,
+            expires_at:    refreshed.expires_at,
+          })
+          .eq('user_id', user.id)
+      }
+      const activities = await getRecentActivitiesCompact(refreshed.access_token, 5)
+      stravaActivitiesBlock = buildStravaActivitiesBlock(activities)
+    } catch {
+      // Strava indisponible — ne pas bloquer le chat
+    }
   }
 
   // Save user message
@@ -128,6 +171,7 @@ export async function POST(request: Request) {
     weekSessions,
     history,
     today,
+    stravaActivitiesBlock,
   })
 
   const fullPrompt = `${contextBlock}\n\nMessage de l'athlète : "${message}"`
