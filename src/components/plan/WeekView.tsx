@@ -49,8 +49,8 @@ interface WeekViewProps {
 export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: WeekViewProps) {
   const [open, setOpen] = useState(defaultOpen || isCurrentWeek)
   const [generating, setGenerating] = useState(false)
-  const [sessions, setSessions] = useState<Session[]>(week.sessions ?? [])
 
+  const sessions = week.sessions ?? []
   const completedCount = sessions.filter(s => s.status === 'done').length
   const hasSessions = sessions.length > 0
 
