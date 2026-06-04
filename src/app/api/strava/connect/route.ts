@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 export async function GET() {
   const supabase = await createClient()
@@ -11,12 +12,24 @@ export async function GET() {
   const callbackUrl = `${appUrl}/api/strava/callback`
   const scope       = 'read,activity:read'
 
+  // CSRF protection — random state stored in a short-lived cookie
+  const state = crypto.randomUUID()
+  const cookieStore = await cookies()
+  cookieStore.set('strava_oauth_state', state, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    maxAge:   600, // 10 min
+    path:     '/',
+    sameSite: 'lax',
+  })
+
   const url = new URL('https://www.strava.com/oauth/authorize')
   url.searchParams.set('client_id',       clientId)
   url.searchParams.set('redirect_uri',    callbackUrl)
   url.searchParams.set('response_type',   'code')
   url.searchParams.set('approval_prompt', 'auto')
   url.searchParams.set('scope',           scope)
+  url.searchParams.set('state',           state)
 
   return redirect(url.toString())
 }

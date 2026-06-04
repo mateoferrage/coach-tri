@@ -17,6 +17,8 @@ export async function POST() {
 
   if (credsError || !creds) return apiError('Compte Strava non connecté', 400)
 
+  const admin = createAdminClient()
+
   let tokens: StravaTokens
   try {
     tokens = await refreshIfNeeded({
@@ -30,7 +32,6 @@ export async function POST() {
   }
 
   if (tokens.access_token !== creds.access_token) {
-    const admin = createAdminClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (admin as any)
       .from('strava_credentials')
@@ -54,7 +55,6 @@ export async function POST() {
     return apiSuccess({ activities_synced: 0 })
   }
 
-  const admin = createAdminClient()
   const rows  = activities.map(a => ({ ...a, user_id: user.id }))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: upsertError } = await (admin as any)

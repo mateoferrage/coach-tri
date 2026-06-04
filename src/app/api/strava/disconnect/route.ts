@@ -9,7 +9,9 @@ export async function DELETE() {
 
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from('strava_credentials').delete().eq('user_id', user.id)
+  const { error: deleteError } = await (admin as any)
+    .from('strava_credentials').delete().eq('user_id', user.id)
+  if (deleteError) return apiError(deleteError.message, 500)
 
   return apiSuccess({ disconnected: true })
 }

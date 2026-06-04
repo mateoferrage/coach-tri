@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { exchangeCode } from '@/lib/strava/client'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -13,6 +14,15 @@ export async function GET(request: Request) {
   const error = searchParams.get('error')
 
   if (error || !code) return redirect('/profile?strava_error=access_denied')
+
+  // CSRF verification
+  const stateParam  = searchParams.get('state')
+  const cookieStore = await cookies()
+  const storedState = cookieStore.get('strava_oauth_state')?.value
+  cookieStore.delete('strava_oauth_state')
+  if (!stateParam || stateParam !== storedState) {
+    return redirect('/profile?strava_error=state_mismatch')
+  }
 
   try {
     const tokens = await exchangeCode(code)
