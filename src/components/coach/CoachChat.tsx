@@ -111,8 +111,10 @@ export default function CoachChat({ planId }: Props) {
   }, [router])
 
   const resetConversation = useCallback(async () => {
-    await fetch('/api/chat', { method: 'DELETE' })
-    setMessages([])
+    const res = await fetch('/api/chat', { method: 'DELETE' })
+    if (res.ok) {
+      setMessages([])
+    }
   }, [])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
