@@ -204,3 +204,20 @@ export async function POST(request: Request) {
 
   return apiSuccess(savedMsg)
 }
+
+export async function DELETE(_request: Request) {
+  const supabase = await createClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) return apiError('Non authentifié', 401)
+
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: updateError } = await (admin as any)
+    .from('chat_messages')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('user_id', user.id)
+    .is('archived_at', null)
+
+  if (updateError) return apiError(updateError.message)
+  return apiSuccess({ archived: true })
+}
