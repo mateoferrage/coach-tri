@@ -110,6 +110,11 @@ export default function CoachChat({ planId }: Props) {
     }
   }, [router])
 
+  const resetConversation = useCallback(async () => {
+    await fetch('/api/chat', { method: 'DELETE' })
+    setMessages([])
+  }, [])
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -138,17 +143,27 @@ export default function CoachChat({ planId }: Props) {
             Coach IA
           </p>
         </div>
-        {sending && (
-          <div className="ml-auto flex gap-1">
-            {[0, 1, 2].map(i => (
-              <div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full animate-bounce"
-                style={{ backgroundColor: MINT, animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </div>
-        )}
+        <div className="ml-auto flex items-center gap-3">
+          {sending && (
+            <div className="flex gap-1">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ backgroundColor: MINT, animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
+          )}
+          <button
+            onClick={resetConversation}
+            className="text-xs uppercase tracking-widest transition-opacity hover:opacity-70"
+            style={{ color: MUTED }}
+            title="Démarrer une nouvelle conversation"
+          >
+            Nouvelle conv.
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
