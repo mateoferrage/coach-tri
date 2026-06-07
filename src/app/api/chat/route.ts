@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     .from('chat_messages')
     .select('id, role, content, proposed_action, action_status, created_at')
     .eq('user_id', user.id)
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
       .from('chat_messages')
       .select('role, content')
       .eq('user_id', user.id)
+      .is('archived_at', null)
       .order('created_at', { ascending: false })
       .limit(10),
 
