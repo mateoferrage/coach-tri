@@ -10,6 +10,7 @@ import { StopProgramButton } from '@/components/plan/StopProgramButton'
 import { differenceInWeeks, parseISO, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Programme — Coach Tri' }
 
 export default async function ProgramPage() {
