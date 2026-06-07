@@ -126,17 +126,55 @@ export default async function ProgramPage() {
       )}
 
       {/* Weeks */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
-        {weeks.map(week => (
-          <WeekView
-            key={week.id as string}
-            week={week as unknown as Parameters<typeof WeekView>[0]['week']}
-            planId={plan.id as string}
-            isCurrentWeek={(week.week_num as number) === currentWeekNum}
-          />
-        ))}
-      </div>
+      {(() => {
+        const currentWeek = weeks.find(w => (w.week_num as number) === currentWeekNum) ?? null
+        const futureWeeks = weeks
+          .filter(w => (w.week_num as number) > currentWeekNum)
+          .sort((a, b) => (a.week_num as number) - (b.week_num as number))
+        const pastWeeks = weeks
+          .filter(w => (w.week_num as number) < currentWeekNum)
+          .sort((a, b) => (b.week_num as number) - (a.week_num as number))
+
+        return (
+          <div className="space-y-3">
+            <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
+
+            {currentWeek && (
+              <WeekView
+                key={currentWeek.id as string}
+                week={currentWeek as unknown as Parameters<typeof WeekView>[0]['week']}
+                planId={plan.id as string}
+                isCurrentWeek={true}
+              />
+            )}
+
+            {futureWeeks.map(week => (
+              <WeekView
+                key={week.id as string}
+                week={week as unknown as Parameters<typeof WeekView>[0]['week']}
+                planId={plan.id as string}
+                isCurrentWeek={false}
+              />
+            ))}
+
+            {pastWeeks.length > 0 && (
+              <>
+                <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide pt-2">
+                  Semaines passées
+                </h3>
+                {pastWeeks.map(week => (
+                  <WeekView
+                    key={week.id as string}
+                    week={week as unknown as Parameters<typeof WeekView>[0]['week']}
+                    planId={plan.id as string}
+                    isCurrentWeek={false}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Danger zone */}
       <div className="flex justify-center pt-4 pb-8">
