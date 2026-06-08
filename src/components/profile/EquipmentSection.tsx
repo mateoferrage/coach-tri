@@ -16,6 +16,7 @@ interface Shoe {
   name: string
   usage: 'footing' | 'dynamic' | 'competition'
   surface: 'road' | 'trail'
+  _key?: number
 }
 
 interface EquipmentData {
@@ -68,6 +69,7 @@ export function EquipmentSection({ initial }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<EquipmentData>(initial ?? {})
 
   function toggleSwim(key: keyof NonNullable<EquipmentData['swim']>) {
@@ -87,7 +89,7 @@ export function EquipmentSection({ initial }: Props) {
   function addShoe() {
     setData(prev => ({
       ...prev,
-      run: { shoes: [...(prev.run?.shoes ?? []), { name: '', usage: 'footing', surface: 'road' }] },
+      run: { shoes: [...(prev.run?.shoes ?? []), { name: '', usage: 'footing', surface: 'road', _key: Date.now() }] },
     }))
   }
 
@@ -108,12 +110,18 @@ export function EquipmentSection({ initial }: Props) {
 
   async function save() {
     setSaving(true)
-    await fetch('/api/profile', {
+    setError(null)
+    const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ equipment: data }),
     })
     setSaving(false)
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setError(json.error ?? 'Erreur lors de la sauvegarde')
+      return
+    }
     setEditing(false)
     router.refresh()
   }
@@ -211,6 +219,8 @@ export function EquipmentSection({ initial }: Props) {
     )
   }
 
+  const hasEmptyShoe = (data.run?.shoes ?? []).some(s => !s.name.trim())
+
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -263,7 +273,7 @@ export function EquipmentSection({ initial }: Props) {
           <div className="space-y-3">
             {(data.run?.shoes ?? []).map((shoe, i) => (
               <div
-                key={i}
+                key={shoe._key ?? i}
                 className="rounded-xl p-3 space-y-2"
                 style={{ backgroundColor: 'oklch(1 0 0 / 4%)', border: `1px solid ${DIV}` }}
               >
@@ -331,13 +341,18 @@ export function EquipmentSection({ initial }: Props) {
           <Button
             type="button"
             onClick={save}
-            disabled={saving}
+            disabled={saving || hasEmptyShoe}
             className="flex-1 font-bold"
             style={{ backgroundColor: MINT, color: DARK }}
           >
             {saving ? 'Sauvegarde…' : 'Enregistrer'}
           </Button>
         </div>
+        {error && (
+          <p className="text-xs text-center" style={{ color: 'oklch(0.65 0.20 25)' }}>
+            {error}
+          </p>
+        )}
       </div>
     </div>
   )

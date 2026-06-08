@@ -397,7 +397,6 @@ export default async function ProfilePage() {
 
       {/* ── Matériel ── */}
       <section>
-        <SectionTitle>Matériel</SectionTitle>
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <EquipmentSection initial={(profile?.equipment ?? {}) as any} />
       </section>
