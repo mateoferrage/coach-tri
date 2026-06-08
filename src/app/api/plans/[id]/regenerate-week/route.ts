@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildStravaStatsBlock, type PriorWeek, type PlanWeekOverview } from '@/lib/gemini/prompts'
+import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildEquipmentBlock, buildStravaStatsBlock, type PriorWeek, type PlanWeekOverview, type EquipmentData } from '@/lib/gemini/prompts'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
@@ -60,7 +60,7 @@ export async function POST(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('profiles')
-      .select('level, weekly_hours_avg, available_disciplines')
+      .select('level, weekly_hours_avg, available_disciplines, equipment')
       .eq('id', user.id)
       .single() as Promise<{ data: Record<string, unknown> | null }>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,6 +96,10 @@ export async function POST(
   if (!week) return apiError(`Semaine ${week_num} introuvable`, 404)
 
   const profile = profileResult.data
+  const equipmentRaw = profile?.equipment as EquipmentData | null
+  const equipmentBlock = equipmentRaw && Object.keys(equipmentRaw).length > 0
+    ? buildEquipmentBlock(equipmentRaw)
+    : undefined
   const allPlanWeeks = allPlanWeeksResult.data ?? []
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
@@ -263,6 +267,7 @@ export async function POST(
     recent_wellness_summary: wellnessSummary || undefined,
     schedule_constraints: scheduleConstraints || undefined,
     strava_stats_block: stravaStatsBlock,
+    equipment_block: equipmentBlock,
   })
 
   let microPlan: MicroSessions

@@ -1,5 +1,29 @@
 import { z } from 'zod'
 
+const ShoeSchema = z.object({
+  name: z.string().min(1).max(100),
+  usage: z.enum(['footing', 'dynamic', 'competition']),
+  surface: z.enum(['road', 'trail']),
+})
+
+const EquipmentSchema = z.object({
+  swim: z.object({
+    paddles:   z.boolean(),
+    fins:      z.boolean(),
+    pull_buoy: z.boolean(),
+    kickboard: z.boolean(),
+    snorkel:   z.boolean(),
+  }).optional(),
+  bike: z.object({
+    aero_bars: z.boolean(),
+  }).optional(),
+  run: z.object({
+    shoes: z.array(ShoeSchema),
+  }).optional(),
+}).optional()
+
+export type EquipmentProfile = z.infer<typeof EquipmentSchema>
+
 // Zod v4 — use z.number() without coerce; use valueAsNumber in form inputs
 export const ProfileSchema = z.object({
   first_name: z.string().min(1, 'Prénom requis').max(100),
@@ -12,6 +36,7 @@ export const ProfileSchema = z.object({
   weekly_hours_avg: z.number().min(1).max(40).optional(),
   available_disciplines: z.array(z.enum(['swim', 'bike', 'run'])).min(1, 'Sélectionner au moins une discipline'),
   notes: z.string().max(1000).optional(),
+  equipment: EquipmentSchema,
 })
 
 export type Profile = z.infer<typeof ProfileSchema>
