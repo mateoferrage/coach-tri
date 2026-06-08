@@ -23,11 +23,14 @@ export interface EquipmentData {
   }
 }
 
+const EQUIPMENT_USAGE_FR: Record<string, string> = { footing: 'footing', dynamic: 'dynamique', competition: 'compétition' }
+const EQUIPMENT_SURFACE_FR: Record<string, string> = { road: 'route', trail: 'trail' }
+
 export function buildEquipmentBlock(eq: EquipmentData): string {
   const lines: string[] = ['MATÉRIEL DISPONIBLE :']
 
   const swim = eq.swim
-  if (swim) {
+  if (swim && Object.values(swim).some(v => v !== undefined)) {
     const items = [
       `plaquettes mains ${swim.paddles ? '✓' : '✗'}`,
       `palmes ${swim.fins ? '✓' : '✗'}`,
@@ -39,17 +42,15 @@ export function buildEquipmentBlock(eq: EquipmentData): string {
   }
 
   const bike = eq.bike
-  if (bike) {
+  if (bike && bike.aero_bars !== undefined) {
     lines.push(`Vélo : prolongateurs ${bike.aero_bars ? '✓' : '✗'}`)
   }
 
   const shoes = eq.run?.shoes
   if (shoes?.length) {
-    const USAGE_FR: Record<string, string> = { footing: 'footing', dynamic: 'dynamique', competition: 'compétition' }
-    const SURFACE_FR: Record<string, string> = { road: 'route', trail: 'trail' }
     lines.push('Course :')
     for (const s of shoes) {
-      lines.push(`  - ${s.name} (${USAGE_FR[s.usage] ?? s.usage} · ${SURFACE_FR[s.surface] ?? s.surface})`)
+      lines.push(`  - ${s.name} (${EQUIPMENT_USAGE_FR[s.usage] ?? s.usage} · ${EQUIPMENT_SURFACE_FR[s.surface] ?? s.surface})`)
     }
   }
 
