@@ -1,6 +1,61 @@
 import { KNOWLEDGE_BASE_CORE, KNOWLEDGE_BASE_MICRO, KNOWLEDGE_BASE_CHAT } from '@/lib/coach/knowledge'
 import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
+// ─── Equipment ─────────────────────────────────────────────────────────────────
+
+export interface EquipmentData {
+  swim?: {
+    paddles?: boolean
+    fins?: boolean
+    pull_buoy?: boolean
+    kickboard?: boolean
+    snorkel?: boolean
+  }
+  bike?: {
+    aero_bars?: boolean
+  }
+  run?: {
+    shoes?: Array<{
+      name: string
+      usage: 'footing' | 'dynamic' | 'competition'
+      surface: 'road' | 'trail'
+    }>
+  }
+}
+
+export function buildEquipmentBlock(eq: EquipmentData): string {
+  const lines: string[] = ['MATÉRIEL DISPONIBLE :']
+
+  const swim = eq.swim
+  if (swim) {
+    const items = [
+      `plaquettes mains ${swim.paddles ? '✓' : '✗'}`,
+      `palmes ${swim.fins ? '✓' : '✗'}`,
+      `pullbuoy ${swim.pull_buoy ? '✓' : '✗'}`,
+      `planche ${swim.kickboard ? '✓' : '✗'}`,
+      `tuba frontal ${swim.snorkel ? '✓' : '✗'}`,
+    ]
+    lines.push(`Natation : ${items.join(', ')}`)
+  }
+
+  const bike = eq.bike
+  if (bike) {
+    lines.push(`Vélo : prolongateurs ${bike.aero_bars ? '✓' : '✗'}`)
+  }
+
+  const shoes = eq.run?.shoes
+  if (shoes?.length) {
+    const USAGE_FR: Record<string, string> = { footing: 'footing', dynamic: 'dynamique', competition: 'compétition' }
+    const SURFACE_FR: Record<string, string> = { road: 'route', trail: 'trail' }
+    lines.push('Course :')
+    for (const s of shoes) {
+      lines.push(`  - ${s.name} (${USAGE_FR[s.usage] ?? s.usage} · ${SURFACE_FR[s.surface] ?? s.surface})`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
 export const TRIATHLON_COACH_SYSTEM = `
@@ -213,6 +268,7 @@ interface MicroContext {
   recent_wellness_summary?: string
   schedule_constraints?: string
   strava_stats_block?: string
+  equipment_block?: string
 }
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
@@ -301,7 +357,7 @@ Disciplines pratiquées : ${disciplines.join(', ')}
 Jours d'entraînement disponibles :
 ${sessionsPerDay}
 
-${ctx.recent_wellness_summary ? `Bien-être récent :\n${ctx.recent_wellness_summary}\n` : ''}${ctx.strava_stats_block ? `\n${ctx.strava_stats_block}\n` : ''}${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}\n` : ''}
+${ctx.recent_wellness_summary ? `Bien-être récent :\n${ctx.recent_wellness_summary}\n` : ''}${ctx.strava_stats_block ? `\n${ctx.strava_stats_block}\n` : ''}${ctx.schedule_constraints ? `\nEMPLOI DU TEMPS PERSONNEL (créneaux OCCUPÉS — ne jamais placer d'entraînement dessus) :\n${ctx.schedule_constraints}\n` : ''}${ctx.equipment_block ? `\n${ctx.equipment_block}\n\nRÈGLES MATÉRIEL (STRICTES) :\n- Ne jamais prescrire un exercice nécessitant un accessoire marqué ✗\n- Si prolongateurs vélo ✓ : inclure du travail en position aéro dans au moins une séance vélo longue\n- Pour la course : recommander dans le coaching_note la chaussure adaptée (footing → chaussure footing, compétition → chaussure compétition, trail → chaussure trail)\n` : ''}
 Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
 
 {
