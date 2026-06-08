@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { GarminConnectCard } from "@/components/garmin/GarminConnectCard";
 import { PhysiologySection } from "@/components/profile/PhysiologySection";
+import { EquipmentSection } from "@/components/profile/EquipmentSection";
 import { StravaConnectCard } from "@/components/strava/StravaConnectCard";
 
 export const metadata = { title: "Profil — Coach Tri" };
@@ -159,7 +160,7 @@ export default async function ProfilePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profileRes, garminCredsRes, garminStatsRes, wellnessRes, activitiesRes, physiologyRes, stravaCredsRes] = await Promise.all([
     (supabase as any).from("profiles")
-      .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date")
+      .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date, equipment")
       .eq("id", user!.id).single(),
 
     (supabase as any).from("garmin_credentials")
@@ -191,6 +192,7 @@ export default async function ProfilePage() {
   const profile     = profileRes.data as {
     first_name: string | null; level: string | null; weight_kg: number | null;
     weekly_hours_avg: number | null; available_disciplines: string[] | null; birth_date: string | null;
+    equipment: Record<string, unknown> | null;
   } | null;
   const garminCreds = garminCredsRes.data as { last_sync_at: string | null } | null;
   const gStats      = garminStatsRes.data as Record<string, unknown> | null;
@@ -392,6 +394,13 @@ export default async function ProfilePage() {
           </div>
         </section>
       )}
+
+      {/* ── Matériel ── */}
+      <section>
+        <SectionTitle>Matériel</SectionTitle>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <EquipmentSection initial={(profile?.equipment ?? {}) as any} />
+      </section>
 
       {/* ── Informations personnelles ── */}
       <section>
