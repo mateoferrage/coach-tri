@@ -296,7 +296,7 @@ export function EquipmentSection({ initial }: Props) {
                 </div>
                 <div className="flex gap-2">
                   <Select value={shoe.usage} onValueChange={v => { if (v) updateShoe(i, 'usage', v) }}>
-                    <SelectTrigger className="flex-1 text-xs">
+                    <SelectTrigger className="flex-1 text-xs" style={{ color: 'oklch(1 0 0 / 90%)' }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -306,7 +306,7 @@ export function EquipmentSection({ initial }: Props) {
                     </SelectContent>
                   </Select>
                   <Select value={shoe.surface} onValueChange={v => { if (v) updateShoe(i, 'surface', v) }}>
-                    <SelectTrigger className="flex-1 text-xs">
+                    <SelectTrigger className="flex-1 text-xs" style={{ color: 'oklch(1 0 0 / 90%)' }}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
