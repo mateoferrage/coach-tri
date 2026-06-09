@@ -8,14 +8,14 @@ const ShoeSchema = z.object({
 
 const EquipmentSchema = z.object({
   swim: z.object({
-    paddles:   z.boolean(),
-    fins:      z.boolean(),
-    pull_buoy: z.boolean(),
-    kickboard: z.boolean(),
-    snorkel:   z.boolean(),
+    paddles:   z.boolean().optional(),
+    fins:      z.boolean().optional(),
+    pull_buoy: z.boolean().optional(),
+    kickboard: z.boolean().optional(),
+    snorkel:   z.boolean().optional(),
   }).optional(),
   bike: z.object({
-    aero_bars: z.boolean(),
+    aero_bars: z.boolean().optional(),
   }).optional(),
   run: z.object({
     shoes: z.array(ShoeSchema),

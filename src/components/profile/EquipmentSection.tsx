@@ -204,7 +204,7 @@ export function EquipmentSection({ initial }: Props) {
                 <div className="space-y-1.5">
                   {data.run!.shoes!.map((shoe, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-sm font-bold">{shoe.name}</span>
+                      <span className="text-sm font-bold" style={{ color: 'oklch(1 0 0 / 90%)' }}>{shoe.name}</span>
                       <span className="text-xs" style={{ color: 'oklch(1 0 0 / 40%)' }}>
                         {USAGE_LABELS[shoe.usage]} · {SURFACE_LABELS[shoe.surface]}
                       </span>
