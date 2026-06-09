@@ -283,6 +283,7 @@ export function EquipmentSection({ initial }: Props) {
                     value={shoe.name}
                     onChange={e => updateShoe(i, 'name', e.target.value)}
                     className="flex-1 text-sm"
+                    style={{ color: 'oklch(1 0 0 / 90%)' }}
                   />
                   <button
                     type="button"
