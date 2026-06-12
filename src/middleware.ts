@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const protectedPrefixes = ['/dashboard', '/profile', '/program', '/history', '/session', '/onboarding']
+  const protectedPrefixes = ['/dashboard', '/profile', '/program', '/activities', '/calendar', '/session', '/onboarding']
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
 
   // Redirect unauthenticated users away from protected routes

@@ -27,6 +27,11 @@ async function tryGet(gc: any, url: string): Promise<{ ok: boolean; data?: unkno
 }
 
 export async function GET() {
+  // Endpoint de diagnostic : jamais exposé en production (données Garmin brutes)
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return Response.json({ error: "Non authentifié" }, { status: 401 });

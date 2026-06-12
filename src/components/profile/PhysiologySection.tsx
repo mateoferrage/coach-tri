@@ -5,12 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronUp, Pencil, FlaskConical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-const MINT  = 'oklch(0.843 0.165 157)'
-const DARK  = 'oklch(0.25 0.055 158)'
-const DARKER = 'oklch(0.17 0.05 158)'
-const DIV   = 'oklch(1 0 0 / 8%)'
-const MUTED = 'oklch(1 0 0 / 40%)'
+import { ACCENT as MINT, ACCENT_FG, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, TEXT_FAINT as MUTED, withAlpha } from '@/lib/theme'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +53,7 @@ function TestHint({ children }: { children: React.ReactNode }) {
       {open && (
         <div
           className="mt-2 rounded-xl p-3 text-xs leading-relaxed"
-          style={{ backgroundColor: `${MINT}10`, border: `1px solid ${MINT}25`, color: 'oklch(1 0 0 / 65%)' }}
+          style={{ backgroundColor: withAlpha(MINT, 6), border: `1px solid ${withAlpha(MINT, 15)}`, color: 'oklch(1 0 0 / 65%)' }}
         >
           {children}
         </div>
@@ -208,7 +203,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <button
             onClick={() => setEditing(true)}
             className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-70"
-            style={{ color: MINT, borderColor: `${MINT}40` }}
+            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
           >
             <Pencil size={11} />
             {hasAnyData ? 'Modifier' : 'Renseigner'}
@@ -422,7 +417,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
               onClick={handleSave}
               disabled={saving}
               className="flex-1 font-bold"
-              style={{ backgroundColor: MINT, color: DARK }}
+              style={{ backgroundColor: MINT, color: ACCENT_FG }}
             >
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </Button>

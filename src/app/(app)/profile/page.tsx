@@ -3,12 +3,9 @@ import { GarminConnectCard } from "@/components/garmin/GarminConnectCard";
 import { PhysiologySection } from "@/components/profile/PhysiologySection";
 import { EquipmentSection } from "@/components/profile/EquipmentSection";
 import { StravaConnectCard } from "@/components/strava/StravaConnectCard";
+import { ACCENT as MINT, SURFACE as DARK, DIVIDER as DIV, withAlpha } from "@/lib/theme";
 
 export const metadata = { title: "Profil — Coach Tri" };
-
-const MINT  = "oklch(0.843 0.165 157)";
-const DARK  = "oklch(0.25 0.055 158)";
-const DIV   = "oklch(1 0 0 / 8%)";
 
 const LEVEL_LABELS: Record<string, string> = {
   beginner: "Débutant", intermediate: "Intermédiaire",
@@ -272,12 +269,12 @@ export default async function ProfilePage() {
                 src={gStats.profile_image_url as string}
                 alt="Avatar Garmin"
                 className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                style={{ border: `2px solid ${MINT}40` }}
+                style={{ border: `2px solid ${withAlpha(MINT, 25)}` }}
               />
             ) : (
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-                style={{ backgroundColor: `${MINT}18`, border: `1px solid ${MINT}30` }}
+                style={{ backgroundColor: withAlpha(MINT, 9), border: `1px solid ${withAlpha(MINT, 19)}` }}
               >
                 🏃
               </div>
@@ -408,7 +405,7 @@ export default async function ProfilePage() {
           <a
             href="/onboarding"
             className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-colors hover:opacity-70"
-            style={{ color: MINT, borderColor: `${MINT}40` }}
+            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
           >
             Modifier
           </a>

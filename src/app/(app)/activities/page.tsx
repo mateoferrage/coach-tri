@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { GarminSyncButton } from "@/components/garmin/GarminSyncButton";
 import { AddActivityModal } from "@/components/activities/AddActivityModal";
+import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER, withAlpha } from "@/lib/theme";
 
 export const metadata = { title: "Activités — Coach Tri" };
 
@@ -91,13 +92,6 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const MINT    = "oklch(0.843 0.165 157)";
-const DARK    = "oklch(0.25 0.055 158)";
-const DARKER  = "oklch(0.17 0.05 158)";
-const DIVIDER = "oklch(1 0 0 / 8%)";
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function TEBadge({ value }: { value: number | null }) {
@@ -183,7 +177,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-              style={{ backgroundColor: `${MINT}18`, border: `1px solid ${MINT}30` }}
+              style={{ backgroundColor: withAlpha(MINT, 9), border: `1px solid ${withAlpha(MINT, 19)}` }}
             >
               {sport.icon}
             </div>

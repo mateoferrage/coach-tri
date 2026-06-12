@@ -6,11 +6,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
-const MINT   = 'oklch(0.843 0.165 157)'
-const DARK   = 'oklch(0.25 0.055 158)'
-const DARKER = 'oklch(0.17 0.05 158)'
-const DIV    = 'oklch(1 0 0 / 8%)'
+import { ACCENT as MINT, ACCENT_FG, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, withAlpha } from '@/lib/theme'
 
 interface Shoe {
   name: string
@@ -56,7 +52,7 @@ function ToggleChip({ active, label, onClick }: { active: boolean; label: string
       className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
       style={{
         backgroundColor: active ? MINT : 'oklch(1 0 0 / 6%)',
-        color: active ? DARK : 'oklch(1 0 0 / 45%)',
+        color: active ? ACCENT_FG : 'oklch(1 0 0 / 45%)',
         border: `1px solid ${active ? MINT : 'oklch(1 0 0 / 12%)'}`,
       }}
     >
@@ -148,7 +144,7 @@ export function EquipmentSection({ initial }: Props) {
             type="button"
             onClick={() => setEditing(true)}
             className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-colors hover:opacity-70"
-            style={{ color: MINT, borderColor: `${MINT}40` }}
+            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
           >
             <Pencil size={11} />
             Modifier
@@ -173,7 +169,7 @@ export function EquipmentSection({ initial }: Props) {
                     <span
                       key={item.key}
                       className="px-3 py-1 rounded-lg text-xs font-bold"
-                      style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+                      style={{ backgroundColor: withAlpha(MINT, 9), color: MINT, border: `1px solid ${withAlpha(MINT, 19)}` }}
                     >
                       {item.label}
                     </span>
@@ -189,7 +185,7 @@ export function EquipmentSection({ initial }: Props) {
                 </p>
                 <span
                   className="px-3 py-1 rounded-lg text-xs font-bold"
-                  style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+                  style={{ backgroundColor: withAlpha(MINT, 9), color: MINT, border: `1px solid ${withAlpha(MINT, 19)}` }}
                 >
                   Prolongateurs
                 </span>
@@ -321,7 +317,7 @@ export function EquipmentSection({ initial }: Props) {
               type="button"
               onClick={addShoe}
               className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-xl border transition-opacity hover:opacity-70 w-full justify-center"
-              style={{ color: MINT, borderColor: `${MINT}30`, backgroundColor: `${MINT}08` }}
+              style={{ color: MINT, borderColor: withAlpha(MINT, 19), backgroundColor: withAlpha(MINT, 3) }}
             >
               <Plus size={13} />
               Ajouter une paire

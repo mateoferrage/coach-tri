@@ -4,17 +4,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { LayoutDashboard, Activity, CalendarRange, CalendarDays, UserRound, type LucideIcon } from "lucide-react";
 
 interface AppNavProps {
   user: User;
 }
 
-const navLinks = [
-  { href: "/dashboard",  label: "Tableau de bord" },
-  { href: "/activities", label: "Activités" },
-  { href: "/program",    label: "Programme" },
-  { href: "/calendar",   label: "Calendrier" },
-  { href: "/profile",    label: "Profil" },
+const navLinks: { href: string; label: string; shortLabel: string; icon: LucideIcon }[] = [
+  { href: "/dashboard",  label: "Tableau de bord", shortLabel: "Accueil",    icon: LayoutDashboard },
+  { href: "/activities", label: "Activités",       shortLabel: "Activités",  icon: Activity },
+  { href: "/program",    label: "Programme",       shortLabel: "Programme",  icon: CalendarRange },
+  { href: "/calendar",   label: "Calendrier",      shortLabel: "Agenda",     icon: CalendarDays },
+  { href: "/profile",    label: "Profil",          shortLabel: "Profil",     icon: UserRound },
 ];
 
 export function AppNav({ user }: AppNavProps) {
@@ -47,18 +48,19 @@ export function AppNav({ user }: AppNavProps) {
 
           {/* Nav links — desktop */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map(({ href, label }) => {
+            {navLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(href + "/");
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
                     active
                       ? "text-sidebar-primary bg-sidebar-primary/15"
                       : "text-white/50 hover:text-white hover:bg-white/5"
                   }`}
                 >
+                  <Icon size={14} strokeWidth={2.5} />
                   {label}
                 </Link>
               );
@@ -82,17 +84,18 @@ export function AppNav({ user }: AppNavProps) {
 
       {/* Mobile bottom bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-sidebar-border bg-sidebar">
-        {navLinks.map(({ href, label }) => {
+        {navLinks.map(({ href, shortLabel, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center justify-center py-3 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[9px] font-bold uppercase tracking-wide transition-colors ${
                 active ? "text-sidebar-primary" : "text-white/40"
               }`}
             >
-              {label}
+              <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+              {shortLabel}
             </Link>
           );
         })}

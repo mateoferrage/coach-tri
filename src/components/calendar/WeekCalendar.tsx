@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { addDays, addWeeks, subWeeks, startOfWeek, format, getISODay, parseISO } from "date-fns";
+import { addDays, addWeeks, subWeeks, startOfWeek, format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 import { EventModal } from "./EventModal";
 import type { CalendarEvent, ScheduleEventInput } from "@/lib/schemas/schedule";
-
-const MINT   = "oklch(0.843 0.165 157)";
-const DARK   = "oklch(0.25 0.055 158)";
-const CARD   = "oklch(0.25 0.055 158)";
-const BORDER = "oklch(1 0 0 / 8%)";
-const MUTED  = "oklch(1 0 0 / 40%)";
+import { ACCENT as MINT, ACCENT_FG as DARK, SURFACE as CARD, DIVIDER as BORDER, TEXT_FAINT as MUTED } from "@/lib/theme";
 
 const HOUR_PX    = 44;
 const START_HOUR = 6;
@@ -155,7 +151,8 @@ export function WeekCalendar() {
   }
 
   async function handleDelete(sourceId: string) {
-    await fetch(`/api/schedule/${sourceId}`, { method: "DELETE" });
+    const res = await fetch(`/api/schedule/${sourceId}`, { method: "DELETE" });
+    if (!res.ok) toast.error("Impossible de supprimer l'événement.");
     setEditingEvent(null);
     await refreshEvents();
   }
@@ -163,6 +160,7 @@ export function WeekCalendar() {
   async function handleMoveSession(sessId: string, newDate: string, newHour: number) {
     const timeStr = `${String(newHour).padStart(2, "0")}:00`;
     const dayPart = newHour < 12 ? "morning" : newHour < 17 ? "midday" : "evening";
+    const previous = sessions;
 
     // Optimistic UI update
     setSessions((prev) =>
@@ -173,17 +171,22 @@ export function WeekCalendar() {
       )
     );
 
-    await fetch(`/api/sessions/${sessId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_date: newDate, session_time: timeStr, day_part: dayPart }),
-    });
+    try {
+      const res = await fetch(`/api/sessions/${sessId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_date: newDate, session_time: timeStr, day_part: dayPart }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setSessions(previous); // rollback de la mise à jour optimiste
+      toast.error("Impossible de déplacer la séance.");
+    }
   }
 
   const days    = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const hours   = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
-  const totalH  = (END_HOUR - START_HOUR + 1) * HOUR_PX;
 
   return (
     <div className="flex flex-col" style={{ minHeight: 0, flex: 1 }}>
@@ -200,7 +203,7 @@ export function WeekCalendar() {
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
-          <span className="text-sm font-medium px-2" style={{ color: "#000000", minWidth: 180, textAlign: "center" }}>
+          <span className="text-sm font-medium px-2" style={{ color: "oklch(0.95 0 0)", minWidth: 180, textAlign: "center" }}>
             {format(weekStart, "d MMM", { locale: fr })} – {format(addDays(weekStart, 6), "d MMM yyyy", { locale: fr })}
           </span>
           <button

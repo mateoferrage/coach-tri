@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ACCENT, withAlpha } from '@/lib/theme'
 
 interface Session {
   id: string
@@ -19,11 +20,13 @@ const DISCIPLINE_EMOJI: Record<string, string> = {
   swim: '🏊', bike: '🚴', run: '🏃', brick: '⚡', strength: '💪', rest: '😴',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  planned: 'border-border bg-card hover:border-primary/50',
-  done: 'border-green-500/30 bg-green-500/10',
-  skipped: 'border-border bg-muted opacity-60',
-  modified: 'border-yellow-500/30 bg-yellow-500/10',
+const AMBER = 'oklch(0.82 0.15 78)' // ambre du design system (--chart-3)
+
+const STATUS_STYLES: Record<string, { className: string; style?: React.CSSProperties }> = {
+  planned:  { className: 'border-border bg-card hover:border-primary/50' },
+  done:     { className: '', style: { borderColor: withAlpha(ACCENT, 19), backgroundColor: withAlpha(ACCENT, 6) } },
+  skipped:  { className: 'border-border bg-muted opacity-60' },
+  modified: { className: '', style: { borderColor: withAlpha(AMBER, 19), backgroundColor: withAlpha(AMBER, 6) } },
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -32,13 +35,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function SessionCard({ session }: { session: Session }) {
   const emoji = DISCIPLINE_EMOJI[session.discipline] ?? '🏋️'
-  const style = STATUS_STYLES[session.status] ?? STATUS_STYLES.planned
+  const status = STATUS_STYLES[session.status] ?? STATUS_STYLES.planned
   const date = parseISO(session.session_date)
 
   return (
     <Link
       href={`/session/${session.id}`}
-      className={`block rounded-xl border-2 p-4 transition-all ${style}`}
+      className={`block rounded-xl border-2 p-4 transition-all ${status.className}`}
+      style={status.style}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">

@@ -41,8 +41,9 @@ export function SessionActions({ session }: { session: Session }) {
         <CardContent className="py-4 text-center text-muted-foreground text-sm">
           Séance passée
           <button
-            className="ml-2 underline text-foreground"
+            className="ml-2 underline text-foreground disabled:opacity-50"
             onClick={() => updateSession({ status: 'planned' })}
+            disabled={loading}
           >
             Remettre en planifiée
           </button>

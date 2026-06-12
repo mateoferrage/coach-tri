@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, withAlpha } from '@/lib/theme'
-
-const MUTED = 'oklch(1 0 0 / 40%)'
+import { toast } from 'sonner'
+import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, TEXT_FAINT as MUTED, withAlpha } from '@/lib/theme'
 
 interface ProposedAction {
   type: 'cancel_session' | 'move_session' | 'adjust_session' | 'regenerate_week'
@@ -68,9 +67,11 @@ export default function CoachChat({ planId }: Props) {
       const data = await res.json()
       if (res.ok && data) {
         setMessages(prev => [...prev, data as Message])
+      } else {
+        toast.error((data as { error?: string })?.error ?? 'Le coach n\'a pas pu répondre. Réessaie.')
       }
     } catch {
-      // silently ignore
+      toast.error('Erreur réseau — message non envoyé.')
     } finally {
       setSending(false)
     }
@@ -85,7 +86,10 @@ export default function CoachChat({ planId }: Props) {
         body: JSON.stringify({ action_status: status }),
       })
       const data = await res.json()
-      if (!res.ok) return
+      if (!res.ok) {
+        toast.error((data as { error?: string })?.error ?? 'Impossible de traiter l\'action.')
+        return
+      }
 
       setMessages(prev => prev.map(m =>
         m.id === msgId ? { ...m, action_status: status } : m
@@ -108,9 +112,12 @@ export default function CoachChat({ planId }: Props) {
   }, [router])
 
   const resetConversation = useCallback(async () => {
-    const res = await fetch('/api/chat', { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/chat', { method: 'DELETE' })
+      if (!res.ok) throw new Error()
       setMessages([])
+    } catch {
+      toast.error('Impossible de réinitialiser la conversation.')
     }
   }, [])
 

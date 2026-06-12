@@ -1,12 +1,16 @@
+import { ACCENT, GLACIER } from '@/lib/theme'
+
+// Palette oklch alignée sur le design system (cf. theme.ts / globals.css --chart-*)
 const PHASE_COLORS: Record<string, string> = {
-  prep:  'bg-muted-foreground',
-  base:  'bg-blue-500',
-  build: 'bg-orange-500',
-  peak:  'bg-red-500',
-  taper: 'bg-green-500',
-  race:  'bg-purple-600',
-  maintenance: 'bg-teal-500',
+  prep:  'oklch(0.72 0.04 252)',  // acier
+  base:  'oklch(0.74 0.13 233)',  // bleu glacier
+  build: 'oklch(0.82 0.15 78)',   // ambre
+  peak:  'oklch(0.65 0.20 25)',   // rouge effort
+  taper: ACCENT,                  // vert menthe
+  race:  'oklch(0.78 0.18 300)',  // violet course
+  maintenance: GLACIER,           // teal
 }
+const PHASE_FALLBACK = 'oklch(0.60 0.02 252)'
 
 const PHASE_LABELS: Record<string, string> = {
   prep: 'Prépa', base: 'Base', build: 'Construction',
@@ -35,8 +39,11 @@ export function PhaseBar({ phases, total_weeks, current_week }: PhaseBarProps) {
           return (
             <div
               key={`${phase.phase}-${phase.start_week_num}`}
-              className={`${PHASE_COLORS[phase.phase] ?? 'bg-muted-foreground'} transition-all`}
-              style={{ width: `${widthPct}%` }}
+              className="transition-all"
+              style={{
+                width: `${widthPct}%`,
+                backgroundColor: PHASE_COLORS[phase.phase] ?? PHASE_FALLBACK,
+              }}
               title={`${PHASE_LABELS[phase.phase]} (S${phase.start_week_num}–S${phase.end_week_num})`}
             />
           )
@@ -52,7 +59,10 @@ export function PhaseBar({ phases, total_weeks, current_week }: PhaseBarProps) {
                 : 'text-muted-foreground'
             }`}
           >
-            <div className={`h-2 w-2 rounded-full ${PHASE_COLORS[phase.phase] ?? 'bg-muted-foreground'}`} />
+            <div
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: PHASE_COLORS[phase.phase] ?? PHASE_FALLBACK }}
+            />
             {PHASE_LABELS[phase.phase]} S{phase.start_week_num}–{phase.end_week_num}
           </div>
         ))}

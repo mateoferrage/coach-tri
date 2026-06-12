@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { getISODay } from "date-fns";
+import { format, getISODay } from "date-fns";
 import type { ScheduleEventInput, CalendarEvent } from "@/lib/schemas/schedule";
-
-const MINT   = "oklch(0.843 0.165 157)";
-const DARK   = "oklch(0.25 0.055 158)";
-const CARD   = "oklch(0.25 0.055 158)";
-const BORDER = "oklch(1 0 0 / 8%)";
-const MUTED  = "oklch(1 0 0 / 40%)";
+import { ACCENT as MINT, ACCENT_FG, SURFACE as DARK, SURFACE as CARD, DIVIDER as BORDER, TEXT_FAINT as MUTED } from "@/lib/theme";
 
 const EVENT_TYPES = [
   { value: "cours", label: "📚 Cours" },
@@ -30,7 +25,8 @@ interface EventModalProps {
 export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClose }: EventModalProps) {
   const isEdit = !!initialEvent;
 
-  const today   = initialEvent?.event_date ?? initialDate ?? new Date().toISOString().split("T")[0];
+  // format() = date locale (toISOString renverrait la date UTC → mauvais jour en soirée)
+  const today   = initialEvent?.event_date ?? initialDate ?? format(new Date(), "yyyy-MM-dd");
   const initDay = getISODay(new Date(today + "T00:00:00"));
 
   const [title,         setTitle]         = useState(initialEvent?.title ?? "");
@@ -306,7 +302,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
             type="submit"
             disabled={saving}
             className="flex-[2] rounded-xl py-2.5 text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: MINT, color: DARK }}
+            style={{ backgroundColor: MINT, color: ACCENT_FG }}
           >
             {saving ? "Enregistrement…" : isEdit ? "Enregistrer" : "Ajouter"}
           </button>

@@ -6,6 +6,9 @@ import { SessionActions } from '@/components/plan/SessionActions'
 import { GarminLinker } from '@/components/plan/GarminLinker'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ACCENT, withAlpha } from '@/lib/theme'
+
+export const metadata = { title: 'Séance — Coach Tri' }
 
 const DISCIPLINE_EMOJI: Record<string, string> = {
   swim: '🏊', bike: '🚴', run: '🏃', brick: '⚡', strength: '💪', rest: '😴',
@@ -83,7 +86,7 @@ export default async function SessionPage({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */ null}
+      {/* Header */}
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <span>{format(date, 'EEEE d MMMM yyyy', { locale: fr })}</span>
@@ -105,7 +108,7 @@ export default async function SessionPage({
         </div>
       </div>
 
-      {/* Key metrics */ null}
+      {/* Key metrics */}
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardContent className="pt-4 text-center">
@@ -128,7 +131,7 @@ export default async function SessionPage({
         </Card>
       </div>
 
-      {/* Zone cible */ null}
+      {/* Zone cible */}
       {(session.target_zone as string | null | undefined) && (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Zone cible :</span>
@@ -144,7 +147,7 @@ export default async function SessionPage({
         </div>
       )}
 
-      {/* Structure de séance */ null}
+      {/* Structure de séance */}
       {structure && (
         <Card>
           <CardHeader><CardTitle className="text-base">Déroulé de la séance</CardTitle></CardHeader>
@@ -171,16 +174,17 @@ export default async function SessionPage({
         </Card>
       )}
 
-      {/* Note coach */ null}
+      {/* Note coach */}
       {(session.coaching_note as string | null | undefined) && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-4 text-sm text-amber-800 italic">
-            💡 {session.coaching_note as string}
+        <Card style={{ backgroundColor: withAlpha(ACCENT, 8), borderColor: withAlpha(ACCENT, 25) }}>
+          <CardContent className="pt-4 text-sm italic" style={{ color: 'oklch(0.92 0 0)' }}>
+            💡 <span style={{ color: ACCENT }} className="font-semibold not-italic uppercase tracking-widest text-xs mr-1">Note du coach</span>
+            {session.coaching_note as string}
           </CardContent>
         </Card>
       )}
 
-      {/* Lier une activité Garmin */ null}
+      {/* Lier une activité Garmin */}
       {(session.discipline as string) !== 'rest' && (
         <GarminLinker
           sessionId={id}
@@ -190,7 +194,7 @@ export default async function SessionPage({
         />
       )}
 
-      {/* Actions */ null}
+      {/* Actions */}
       <SessionActions session={session as unknown as Parameters<typeof SessionActions>[0]['session']} />
     </div>
   )

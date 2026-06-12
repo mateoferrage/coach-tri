@@ -141,8 +141,13 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
     try {
       let goal_id = settings.existing_goal_id ?? goalCreated?.id
 
-      // If race mode and no goal yet, create the goal first
+      // If race mode and no goal yet, validate then create the goal first
       if (mode === 'race' && !goal_id) {
+        const valid = await goalForm.trigger()
+        if (!valid) {
+          toast.error('Complète les informations de la course (nom, date, type).')
+          return
+        }
         const goalData = goalForm.getValues()
         const goalRes = await fetch('/api/goals', {
           method: 'POST',

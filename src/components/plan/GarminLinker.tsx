@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const MINT    = "oklch(0.843 0.165 157)";
-const DARK    = "oklch(0.25 0.055 158)";
-const DIV     = "oklch(1 0 0 / 8%)";
-const MUTED   = "oklch(1 0 0 / 40%)";
+import { ACCENT as MINT, SURFACE as DARK, DIVIDER as DIV, TEXT_FAINT as MUTED, withAlpha } from "@/lib/theme";
 
 const DISCIPLINE_EMOJI: Record<string, string> = {
   swim: "🏊", bike: "🚴", run: "🏃", triathlon: "🏁", strength: "💪", other: "⚡",
@@ -76,9 +72,9 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
     setReviewError(null);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/coach-review`, { method: "POST" });
-      const json = await res.json() as { data?: CoachReview; error?: string };
+      const json = await res.json() as (CoachReview & { error?: string });
       if (!res.ok) throw new Error(json.error ?? "Erreur");
-      if (json.data) setReview(json.data);
+      if (json.verdict && json.message) setReview({ verdict: json.verdict, message: json.message });
     } catch (e) {
       setReviewError(e instanceof Error ? e.message : "Impossible d'obtenir le retour du coach");
     } finally {
@@ -130,7 +126,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
         /* ── Activité liée ── */
         <div
           className="rounded-xl p-4 flex items-start justify-between gap-3"
-          style={{ backgroundColor: DARK, border: `1px solid ${MINT}40` }}
+          style={{ backgroundColor: DARK, border: `1px solid ${withAlpha(MINT, 25)}` }}
         >
           <div className="flex items-start gap-3">
             <span className="text-xl flex-shrink-0">{DISCIPLINE_EMOJI[linked.activity_type] ?? "⚡"}</span>
@@ -159,7 +155,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
             <button
               onClick={() => setOpen(true)}
               className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{ backgroundColor: DARK, border: `1px dashed ${MINT}40`, color: MINT }}
+              style={{ backgroundColor: DARK, border: `1px dashed ${withAlpha(MINT, 25)}`, color: MINT }}
             >
               + Lier une activité Garmin
             </button>
@@ -216,7 +212,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
             <button
               onClick={fetchReview}
               className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{ backgroundColor: DARK, border: `1px dashed ${MINT}40`, color: MINT }}
+              style={{ backgroundColor: DARK, border: `1px dashed ${withAlpha(MINT, 25)}`, color: MINT }}
             >
               Demander le retour du coach
             </button>
@@ -255,7 +251,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           {review && !reviewLoading && verdictCfg && (
             <div
               className="rounded-xl px-4 py-4 space-y-2"
-              style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${verdictCfg.color}40` }}
+              style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${withAlpha(verdictCfg.color, 25)}` }}
             >
               <div className="flex items-center gap-2">
                 <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "oklch(0.72 0.02 158)" }}>
@@ -263,7 +259,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 </p>
                 <span
                   className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${verdictCfg.color}25`, color: verdictCfg.color }}
+                  style={{ backgroundColor: withAlpha(verdictCfg.color, 15), color: verdictCfg.color }}
                 >
                   {verdictCfg.label}
                 </span>

@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const MINT = "oklch(0.843 0.165 157)";
-const DARK = "oklch(0.25 0.055 158)";
-const DIV  = "oklch(1 0 0 / 8%)";
-const BG   = "oklch(0.25 0.055 158)";
-const BG2  = "oklch(0.17 0.05 158)";
+import { format } from "date-fns";
+import { ACCENT as MINT, ACCENT_FG as DARK, SURFACE as BG, SURFACE_DEEP as BG2, DIVIDER as DIV, withAlpha } from "@/lib/theme";
 
 const DISCIPLINES = [
   { value: "run",      label: "Course",   icon: "🏃" },
@@ -40,7 +36,8 @@ export function AddActivityModal() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split("T")[0];
+  // Date/heure locales (toISOString renverrait la date UTC → décalage en soirée)
+  const today = format(new Date(), "yyyy-MM-dd");
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   const [form, setForm] = useState({
@@ -162,7 +159,7 @@ export function AddActivityModal() {
                       onClick={() => set("discipline", d.value)}
                       className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all"
                       style={{
-                        backgroundColor: form.discipline === d.value ? `${MINT}20` : BG2,
+                        backgroundColor: form.discipline === d.value ? withAlpha(MINT, 12) : BG2,
                         border: `1px solid ${form.discipline === d.value ? MINT : "oklch(1 0 0 / 8%)"}`,
                         color: form.discipline === d.value ? MINT : "oklch(1 0 0 / 45%)",
                       }}

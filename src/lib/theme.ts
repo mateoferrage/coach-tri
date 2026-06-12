@@ -15,6 +15,7 @@ export const DIVIDER = "oklch(1 0 0 / 8%)"; // séparateur sur sombre
 // ── Texte ──────────────────────────────────────────────────
 export const TEXT = "oklch(0.95 0 0)"; // blanc
 export const TEXT_MUTED = "oklch(0.72 0.02 158)"; // gris atténué
+export const TEXT_FAINT = "oklch(1 0 0 / 40%)"; // blanc estompé (labels secondaires)
 
 // ── Accents ────────────────────────────────────────────────
 export const ACCENT = "oklch(0.843 0.165 157)"; // vert menthe — accent triathlon

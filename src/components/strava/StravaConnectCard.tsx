@@ -4,15 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ACCENT as MINT, ACCENT_FG as DARK, withAlpha } from '@/lib/theme'
 
 interface Props {
   connected: boolean
   lastSyncAt: string | null
 }
 
-const MINT   = 'oklch(0.843 0.165 157)'
-const DARK   = 'oklch(0.25 0.055 158)'
-const ORANGE = '#FC4C02'
+const ORANGE = '#FC4C02' // couleur de marque Strava
 
 export function StravaConnectCard({ connected: initialConnected, lastSyncAt: initialLastSync }: Props) {
   const router       = useRouter()
@@ -40,7 +39,7 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erreur de synchronisation')
       setLastSync(new Date().toISOString())
-      toast.success(`✅ Sync Strava — ${data.data?.activities_synced ?? 0} activité(s) importée(s).`)
+      toast.success(`✅ Sync Strava — ${data.activities_synced ?? 0} activité(s) importée(s).`)
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur de synchronisation')
@@ -81,7 +80,7 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
           {connected && (
             <span
               className="text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: `${MINT}20`, color: MINT }}
+              style={{ backgroundColor: withAlpha(MINT, 12), color: MINT }}
             >
               ● Connecté
             </span>

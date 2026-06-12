@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { SessionCard } from './SessionCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -47,6 +48,7 @@ interface WeekViewProps {
 }
 
 export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: WeekViewProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(defaultOpen || isCurrentWeek)
   const [generating, setGenerating] = useState(false)
 
@@ -68,8 +70,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erreur')
       toast.success(`${data.sessions_created} séances générées`)
-      // Reload to get fresh data
-      window.location.reload()
+      router.refresh()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur lors de la génération')
     } finally {
