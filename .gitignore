@@ -24,6 +24,15 @@
 .DS_Store
 *.pem
 
+# doublons Finder/iCloud ("fichier 2.ext")
+* 2
+* 2.*
+
+# outillage local
+.claude/
+.superpowers/
+supabase/.temp/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
