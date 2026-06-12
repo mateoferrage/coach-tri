@@ -37,7 +37,7 @@ export default async function ProgramPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
         <h1 className="text-2xl font-bold">Aucun programme actif</h1>
-        <p className="text-zinc-500">Créez votre premier programme pour commencer à vous entraîner.</p>
+        <p className="text-muted-foreground">Créez votre premier programme pour commencer à vous entraîner.</p>
         <Link href="/program/new" className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-medium px-4 py-2 transition-all hover:bg-primary/80">
           Créer un programme
         </Link>
@@ -82,13 +82,13 @@ export default async function ProgramPage() {
           <h1 className="text-2xl font-bold">
             {goal ? (goal.race_name as string) : 'Programme Maintien'}
           </h1>
-          <p className="text-zinc-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             {total_weeks} semaines ·{' '}
             {format(startDate, 'd MMM yyyy', { locale: fr })}
             {plan.end_date ? ` → ${format(parseISO(plan.end_date as string), 'd MMM yyyy', { locale: fr })}` : ''}
           </p>
         </div>
-        <Link href="/program/new" className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-sm font-medium px-3 py-1.5 hover:bg-zinc-50 transition-colors">
+        <Link href="/program/new" className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-sm font-medium px-3 py-1.5 hover:bg-muted transition-colors">
           Nouveau programme
         </Link>
       </div>
@@ -97,26 +97,26 @@ export default async function ProgramPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card><CardContent className="pt-4 text-center">
           <div className="text-2xl font-bold">{currentWeekNum}</div>
-          <div className="text-xs text-zinc-500 mt-1">Semaine en cours</div>
+          <div className="text-xs text-muted-foreground mt-1">Semaine en cours</div>
         </CardContent></Card>
         <Card><CardContent className="pt-4 text-center">
           <div className="text-2xl font-bold">{PHASE_LABELS[currentPhase?.phase as string] ?? '—'}</div>
-          <div className="text-xs text-zinc-500 mt-1">Phase actuelle</div>
+          <div className="text-xs text-muted-foreground mt-1">Phase actuelle</div>
         </CardContent></Card>
         <Card><CardContent className="pt-4 text-center">
           <div className="text-2xl font-bold">{doneSessions}</div>
-          <div className="text-xs text-zinc-500 mt-1">Séances complétées</div>
+          <div className="text-xs text-muted-foreground mt-1">Séances complétées</div>
         </CardContent></Card>
         <Card><CardContent className="pt-4 text-center">
           <div className="text-2xl font-bold">{totalHoursDone.toFixed(0)}h</div>
-          <div className="text-xs text-zinc-500 mt-1">Volume accumulé</div>
+          <div className="text-xs text-muted-foreground mt-1">Volume accumulé</div>
         </CardContent></Card>
       </div>
 
       {/* Phase bar */}
       {phases.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Périodisation</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Périodisation</h2>
           <PhaseBar
             phases={phases as unknown as Parameters<typeof PhaseBar>[0]['phases']}
             total_weeks={total_weeks}
@@ -137,7 +137,7 @@ export default async function ProgramPage() {
 
         return (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Semaines</h2>
 
             {currentWeek && (
               <WeekView
@@ -159,7 +159,7 @@ export default async function ProgramPage() {
 
             {pastWeeks.length > 0 && (
               <>
-                <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide pt-2">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-2">
                   Semaines passées
                 </h3>
                 {pastWeeks.map(week => (

@@ -7,7 +7,7 @@ import { StravaConnectCard } from "@/components/strava/StravaConnectCard";
 export const metadata = { title: "Profil — Coach Tri" };
 
 const MINT  = "oklch(0.843 0.165 157)";
-const DARK  = "oklch(0.116 0.022 155)";
+const DARK  = "oklch(0.25 0.055 158)";
 const DIV   = "oklch(1 0 0 / 8%)";
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -40,12 +40,12 @@ function StatBlock({ label, value, unit, sub }: {
         {label}
       </p>
       {value != null ? (
-        <p className="text-2xl font-black leading-tight" style={{ color: MINT }}>
+        <p className="text-2xl font-semibold leading-tight" style={{ color: MINT }}>
           {value}
           {unit && <span className="text-sm font-medium ml-1" style={{ color: "oklch(1 0 0 / 45%)" }}>{unit}</span>}
         </p>
       ) : (
-        <p className="text-2xl font-black" style={{ color: "oklch(1 0 0 / 20%)" }}>—</p>
+        <p className="text-2xl font-semibold" style={{ color: "oklch(1 0 0 / 20%)" }}>—</p>
       )}
       {sub && <p className="text-[10px]" style={{ color: "oklch(1 0 0 / 30%)" }}>{sub}</p>}
     </div>
@@ -229,7 +229,7 @@ export default async function ProfilePage() {
       {/* Header */}
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Mon compte</p>
-        <h1 className="text-3xl font-black uppercase tracking-tight">Profil</h1>
+        <h1 className="text-3xl font-semibold uppercase tracking-tight">Profil</h1>
       </div>
 
       {/* ── Volume 30 jours ── */}
@@ -283,7 +283,7 @@ export default async function ProfilePage() {
               </div>
             )}
             <div>
-              <p className="font-black text-lg" style={{ color: "oklch(0.97 0 0)" }}>
+              <p className="font-semibold text-lg" style={{ color: "oklch(0.97 0 0)" }}>
                 {gStats.display_name as string}
               </p>
               {!!(gStats.garmin_username) && (
@@ -344,7 +344,7 @@ export default async function ProfilePage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "oklch(1 0 0 / 38%)" }}>
                     Readiness
                   </p>
-                  <p className="text-2xl font-black leading-tight" style={{ color: readinessColor }}>
+                  <p className="text-2xl font-semibold leading-tight" style={{ color: readinessColor }}>
                     {readiness}
                     <span className="text-sm font-medium ml-1" style={{ color: "oklch(1 0 0 / 45%)" }}>/100</span>
                   </p>
@@ -382,7 +382,7 @@ export default async function ProfilePage() {
                   {pr.label}
                 </span>
                 <div className="text-right">
-                  <span className="font-black text-base" style={{ color: MINT }}>{pr.time}</span>
+                  <span className="font-semibold text-base" style={{ color: MINT }}>{pr.time}</span>
                   {pr.date && (
                     <span className="text-[10px] ml-2" style={{ color: "oklch(1 0 0 / 30%)" }}>
                       {new Date(pr.date).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}

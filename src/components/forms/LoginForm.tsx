@@ -89,8 +89,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all disabled:opacity-60"
-        style={{ backgroundColor: "oklch(0.843 0.165 157)", color: "oklch(0.116 0.022 155)" }}
+        className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-60"
       >
         {loading ? "Chargement…" : isSignUp ? "Créer un compte" : "Se connecter"}
       </button>

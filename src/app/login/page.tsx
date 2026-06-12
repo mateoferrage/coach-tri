@@ -4,52 +4,42 @@ export const metadata = { title: "Connexion — Coach Tri" };
 
 export default function LoginPage() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-4"
-      style={{ backgroundColor: "oklch(0.116 0.022 155)" }}
-    >
-      {/* Subtle topo pattern overlay */}
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      {/* Filigrane topographique — signature DA Sommet */}
+      <div className="topo-lines absolute inset-0 opacity-[0.06] pointer-events-none" />
+      {/* Halo orange chaud en bas (lever de soleil) */}
       <div
-        className="absolute inset-0 opacity-5 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, oklch(0.843 0.165 157) 1px, transparent 0)`,
-          backgroundSize: "32px 32px",
-        }}
+        className="absolute -bottom-40 left-1/2 -translate-x-1/2 h-96 w-[40rem] rounded-full blur-3xl pointer-events-none"
+        style={{ background: "radial-gradient(circle, oklch(0.843 0.165 157 / 18%), transparent 70%)" }}
       />
 
       <div className="relative w-full max-w-sm space-y-8">
 
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-3xl font-black uppercase tracking-widest text-white">
+          <div className="flex items-center justify-center gap-1 font-[family-name:var(--font-display)]">
+            <span className="text-4xl font-semibold uppercase tracking-[0.18em] text-foreground">
               Coach
             </span>
-            <span
-              className="text-3xl font-black uppercase tracking-widest"
-              style={{ color: "oklch(0.843 0.165 157)" }}
-            >
+            <span className="text-4xl font-semibold uppercase tracking-[0.18em] text-primary">
               &nbsp;Tri
             </span>
           </div>
-          <p className="text-sm font-medium text-white/40 uppercase tracking-widest">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.25em]">
             Coaching triathlon IA
           </p>
         </div>
 
         {/* Form card */}
         <div
-          className="rounded-2xl p-8 space-y-6"
-          style={{
-            backgroundColor: "oklch(0.160 0.022 155)",
-            boxShadow: "0 0 0 1px oklch(1 0 0 / 8%), 0 20px 40px oklch(0 0 0 / 40%)",
-          }}
+          className="rounded-2xl border border-border bg-card p-8 space-y-6"
+          style={{ boxShadow: "0 20px 50px oklch(0 0 0 / 45%)" }}
         >
           <LoginForm />
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-white/20">
+        <p className="text-center text-xs text-muted-foreground/60">
           Propulsé par Gemini 2.5 Flash · Données Garmin
         </p>
       </div>

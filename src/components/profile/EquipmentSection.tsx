@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const MINT   = 'oklch(0.843 0.165 157)'
-const DARK   = 'oklch(0.116 0.022 155)'
-const DARKER = 'oklch(0.09 0.018 155)'
+const DARK   = 'oklch(0.25 0.055 158)'
+const DARKER = 'oklch(0.17 0.05 158)'
 const DIV    = 'oklch(1 0 0 / 8%)'
 
 interface Shoe {

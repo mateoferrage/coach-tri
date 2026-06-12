@@ -13,7 +13,7 @@ interface Props {
 }
 
 const MINT = 'oklch(0.843 0.165 157)'
-const DARK = 'oklch(0.116 0.022 155)'
+const DARK = 'oklch(0.25 0.055 158)'
 
 export function GarminConnectCard({ connected: initialConnected, lastSyncAt: initialLastSync }: Props) {
   const router = useRouter()
@@ -100,7 +100,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
           </div>
           {connected && (
             <span
-              className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+              className="text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full"
               style={{ backgroundColor: `${MINT}20`, color: MINT }}
             >
               ● Connecté
@@ -146,7 +146,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
               <button
                 onClick={handleSync}
                 disabled={loading !== null}
-                className="flex-1 py-2.5 rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
+                className="flex-1 py-2.5 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
                 style={{ backgroundColor: MINT, color: DARK }}
               >
                 {loading === 'sync' ? '⏳ Synchronisation…' : '↺ Synchroniser maintenant'}
@@ -207,7 +207,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
             <button
               type="submit"
               disabled={loading !== null}
-              className="w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
+              className="w-full py-2.5 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
               style={{ backgroundColor: MINT, color: DARK }}
             >
               {loading === 'connect' ? '⏳ Connexion…' : 'Connecter mon compte Garmin'}

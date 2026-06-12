@@ -21,7 +21,7 @@ export default async function NewProgramPage() {
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Nouveau programme</h1>
-        <p className="text-zinc-500 mt-1">
+        <p className="text-muted-foreground mt-1">
           L&apos;IA va générer votre programme complet en quelques secondes.
         </p>
       </div>

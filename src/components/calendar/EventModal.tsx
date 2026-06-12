@@ -5,8 +5,8 @@ import { getISODay } from "date-fns";
 import type { ScheduleEventInput, CalendarEvent } from "@/lib/schemas/schedule";
 
 const MINT   = "oklch(0.843 0.165 157)";
-const DARK   = "oklch(0.116 0.022 155)";
-const CARD   = "oklch(0.14 0.022 155)";
+const DARK   = "oklch(0.25 0.055 158)";
+const CARD   = "oklch(0.25 0.055 158)";
 const BORDER = "oklch(1 0 0 / 8%)";
 const MUTED  = "oklch(1 0 0 / 40%)";
 
@@ -107,7 +107,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-black uppercase tracking-widest" style={{ color: MINT }}>
+          <h2 className="text-base font-semibold uppercase tracking-widest" style={{ color: MINT }}>
             {isEdit ? "Modifier l'événement" : "Nouvel événement"}
           </h2>
           <button
@@ -123,7 +123,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
         {isEdit && initialEvent?.is_recurring && (
           <div
             className="rounded-xl px-3 py-2 text-xs"
-            style={{ backgroundColor: "oklch(0.78 0.18 55 / 10%)", border: "1px solid oklch(0.78 0.18 55 / 25%)", color: "oklch(0.78 0.18 55)" }}
+            style={{ backgroundColor: "oklch(0.88 0.16 157 / 10%)", border: "1px solid oklch(0.88 0.16 157 / 25%)", color: "oklch(0.88 0.16 157)" }}
           >
             ↻ Événement récurrent — les modifications s&apos;appliquent à toutes les occurrences.
           </div>
@@ -305,7 +305,7 @@ export function EventModal({ initialDate, initialEvent, onSave, onDelete, onClos
           <button
             type="submit"
             disabled={saving}
-            className="flex-[2] rounded-xl py-2.5 text-xs font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex-[2] rounded-xl py-2.5 text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: MINT, color: DARK }}
           >
             {saving ? "Enregistrement…" : isEdit ? "Enregistrer" : "Ajouter"}

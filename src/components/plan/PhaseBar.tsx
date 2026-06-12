@@ -1,5 +1,5 @@
 const PHASE_COLORS: Record<string, string> = {
-  prep:  'bg-zinc-400',
+  prep:  'bg-muted-foreground',
   base:  'bg-blue-500',
   build: 'bg-orange-500',
   peak:  'bg-red-500',
@@ -35,7 +35,7 @@ export function PhaseBar({ phases, total_weeks, current_week }: PhaseBarProps) {
           return (
             <div
               key={`${phase.phase}-${phase.start_week_num}`}
-              className={`${PHASE_COLORS[phase.phase] ?? 'bg-zinc-400'} transition-all`}
+              className={`${PHASE_COLORS[phase.phase] ?? 'bg-muted-foreground'} transition-all`}
               style={{ width: `${widthPct}%` }}
               title={`${PHASE_LABELS[phase.phase]} (S${phase.start_week_num}–S${phase.end_week_num})`}
             />
@@ -48,11 +48,11 @@ export function PhaseBar({ phases, total_weeks, current_week }: PhaseBarProps) {
             key={`${phase.phase}-${phase.start_week_num}`}
             className={`flex items-center gap-1.5 text-xs ${
               current_week >= phase.start_week_num && current_week <= phase.end_week_num
-                ? 'font-semibold text-zinc-900'
-                : 'text-zinc-500'
+                ? 'font-semibold text-foreground'
+                : 'text-muted-foreground'
             }`}
           >
-            <div className={`h-2 w-2 rounded-full ${PHASE_COLORS[phase.phase] ?? 'bg-zinc-400'}`} />
+            <div className={`h-2 w-2 rounded-full ${PHASE_COLORS[phase.phase] ?? 'bg-muted-foreground'}`} />
             {PHASE_LABELS[phase.phase]} S{phase.start_week_num}–{phase.end_week_num}
           </div>
         ))}

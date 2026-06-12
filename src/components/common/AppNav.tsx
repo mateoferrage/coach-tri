@@ -29,16 +29,18 @@ export function AppNav({ user }: AppNavProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-sidebar-border" style={{ backgroundColor: "oklch(0.116 0.022 155)" }}>
-      <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar relative">
+      {/* Filigrane topographique — signature DA Sommet */}
+      <div className="topo-lines absolute inset-0 opacity-[0.04] pointer-events-none" />
+      <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between relative">
 
         {/* Logo */}
         <div className="flex items-center gap-10">
-          <Link href="/dashboard" className="flex items-center gap-0.5">
-            <span className="text-lg font-black uppercase tracking-widest text-white">
+          <Link href="/dashboard" className="flex items-center gap-0.5 font-[family-name:var(--font-display)]">
+            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-foreground">
               Coach
             </span>
-            <span className="text-lg font-black uppercase tracking-widest" style={{ color: "oklch(0.843 0.165 157)" }}>
+            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-primary">
               &nbsp;Tri
             </span>
           </Link>
@@ -79,7 +81,7 @@ export function AppNav({ user }: AppNavProps) {
       </div>
 
       {/* Mobile bottom bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-sidebar-border" style={{ backgroundColor: "oklch(0.116 0.022 155)" }}>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-sidebar-border bg-sidebar">
         {navLinks.map(({ href, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (

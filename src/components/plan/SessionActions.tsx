@@ -37,11 +37,11 @@ export function SessionActions({ session }: { session: Session }) {
 
   if (session.status === 'skipped') {
     return (
-      <Card className="border-zinc-200">
-        <CardContent className="py-4 text-center text-zinc-500 text-sm">
+      <Card className="border-border">
+        <CardContent className="py-4 text-center text-muted-foreground text-sm">
           Séance passée
           <button
-            className="ml-2 underline text-zinc-700"
+            className="ml-2 underline text-foreground"
             onClick={() => updateSession({ status: 'planned' })}
           >
             Remettre en planifiée

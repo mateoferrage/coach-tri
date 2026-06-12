@@ -94,8 +94,8 @@ function formatTime(iso: string): string {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const MINT    = "oklch(0.843 0.165 157)";
-const DARK    = "oklch(0.116 0.022 155)";
-const DARKER  = "oklch(0.09 0.018 155)";
+const DARK    = "oklch(0.25 0.055 158)";
+const DARKER  = "oklch(0.17 0.05 158)";
 const DIVIDER = "oklch(1 0 0 / 8%)";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -107,10 +107,10 @@ function TEBadge({ value }: { value: number | null }) {
     score < 2 ? "oklch(0.6 0.05 200)"  :
     score < 3 ? "oklch(0.75 0.15 145)" :
     score < 4 ? MINT :
-    "oklch(0.78 0.18 55)";
+    "oklch(0.88 0.16 157)";
   return (
     <span
-      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+      className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
       style={{ color, border: `1px solid ${color}` }}
     >
       TE {score.toFixed(1)}
@@ -124,7 +124,7 @@ function StatPill({ label, value }: { label: string; value: string }) {
       <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "oklch(1 0 0 / 35%)" }}>
         {label}
       </span>
-      <span className="text-sm font-black" style={{ color: "oklch(1 0 0 / 85%)" }}>
+      <span className="text-sm font-semibold" style={{ color: "oklch(1 0 0 / 85%)" }}>
         {value}
       </span>
     </div>
@@ -134,8 +134,8 @@ function StatPill({ label, value }: { label: string; value: string }) {
 function ManualBadge() {
   return (
     <span
-      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-      style={{ color: "oklch(0.78 0.18 55)", border: "1px solid oklch(0.78 0.18 55)" }}
+      className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
+      style={{ color: "oklch(0.88 0.16 157)", border: "1px solid oklch(0.88 0.16 157)" }}
     >
       Manuel
     </span>
@@ -188,7 +188,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
               {sport.icon}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest" style={{ color: MINT }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: MINT }}>
                 {sport.label}
               </p>
               {activity.name && (
@@ -207,7 +207,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
         {/* Hero metric */}
         {hero ? (
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-black leading-none" style={{ color: "oklch(0.98 0 0)" }}>
+            <span className="text-5xl font-semibold leading-none" style={{ color: "oklch(0.98 0 0)" }}>
               {hero.value}
             </span>
             {hero.unit && (
@@ -275,7 +275,7 @@ export default async function ActivitiesPage() {
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Historique
           </p>
-          <h1 className="text-3xl font-black uppercase tracking-tight">
+          <h1 className="text-3xl font-semibold uppercase tracking-tight">
             Activités
           </h1>
         </div>

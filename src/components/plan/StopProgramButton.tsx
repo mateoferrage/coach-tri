@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 
 const MINT = 'oklch(0.843 0.165 157)'
-const DARK = 'oklch(0.116 0.022 155)'
+const DARK = 'oklch(0.25 0.055 158)'
 
 export function StopProgramButton({ planId }: { planId: string }) {
   const router = useRouter()
@@ -39,7 +39,7 @@ export function StopProgramButton({ planId }: { planId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-sm text-zinc-400 hover:text-red-400 transition-colors underline underline-offset-4"
+        className="text-sm text-muted-foreground hover:text-red-400 transition-colors underline underline-offset-4"
       >
         Arrêter le programme
       </button>

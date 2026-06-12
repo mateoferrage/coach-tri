@@ -7,8 +7,8 @@ import { EventModal } from "./EventModal";
 import type { CalendarEvent, ScheduleEventInput } from "@/lib/schemas/schedule";
 
 const MINT   = "oklch(0.843 0.165 157)";
-const DARK   = "oklch(0.116 0.022 155)";
-const CARD   = "oklch(0.14 0.022 155)";
+const DARK   = "oklch(0.25 0.055 158)";
+const CARD   = "oklch(0.25 0.055 158)";
 const BORDER = "oklch(1 0 0 / 8%)";
 const MUTED  = "oklch(1 0 0 / 40%)";
 
@@ -31,10 +31,10 @@ interface TrainingSession {
 // Explicit hex backgrounds for good visibility on dark theme
 const DISC_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   swim:     { bg: "rgba(56,189,248,0.22)",  border: "#38bdf8", text: "#38bdf8"  },
-  bike:     { bg: "rgba(251,146,60,0.22)",  border: "#fb923c", text: "#fb923c"  },
+  bike:     { bg: "rgba(52,211,153,0.22)",  border: "#34d399", text: "#34d399"  },
   run:      { bg: "rgba(244,114,182,0.22)", border: "#f472b6", text: "#f472b6"  },
   brick:    { bg: "rgba(250,204,21,0.22)",  border: "#facc15", text: "#facc15"  },
-  strength: { bg: "rgba(52,211,153,0.22)",  border: "#34d399", text: "#34d399"  },
+  strength: { bg: "rgba(100,116,139,0.22)", border: "#64748b", text: "#64748b"  },
   rest:     { bg: "rgba(148,163,184,0.22)", border: "#94a3b8", text: "#94a3b8"  },
 };
 const DISC_FALLBACK = DISC_COLORS.rest;
@@ -222,7 +222,7 @@ export function WeekCalendar() {
 
         <button
           onClick={() => { setClickedDate(undefined); setShowModal(true); }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-opacity hover:opacity-90"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90"
           style={{ backgroundColor: MINT, color: DARK }}
         >
           <span className="text-base leading-none">+</span> Ajouter
@@ -233,7 +233,7 @@ export function WeekCalendar() {
       <div className="flex flex-wrap items-center gap-3 mb-4 flex-shrink-0">
         {[
           { label: "Natation", color: "#38bdf8" },
-          { label: "Vélo",     color: "#fb923c" },
+          { label: "Vélo",     color: "#34d399" },
           { label: "Course",   color: "#f472b6" },
         ].map(({ label, color }) => (
           <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: MUTED }}>
@@ -255,8 +255,8 @@ export function WeekCalendar() {
       </div>
 
       {/* ── Grid ── */}
-      <div ref={gridRef} className="overflow-y-auto rounded-xl" style={{ flex: 1, minHeight: 0, border: `1px solid ${BORDER}`, backgroundColor: "#0d1710" }}>
-        <div style={{ minWidth: 640, backgroundColor: "#0d1710" }}>
+      <div ref={gridRef} className="overflow-y-auto rounded-xl" style={{ flex: 1, minHeight: 0, border: `1px solid ${BORDER}`, backgroundColor: "#15261c" }}>
+        <div style={{ minWidth: 640, backgroundColor: "#15261c" }}>
 
           {/* Day headers — sticky */}
           <div
@@ -264,7 +264,7 @@ export function WeekCalendar() {
             style={{
               gridTemplateColumns: "44px repeat(7, 1fr)",
               position: "sticky", top: 0, zIndex: 10,
-              backgroundColor: "#0d1710",
+              backgroundColor: "#15261c",
               borderBottom: "1px solid rgba(255,255,255,0.08)",
             }}
           >
@@ -293,10 +293,10 @@ export function WeekCalendar() {
           </div>
 
           {/* Body: time column + 7 day columns */}
-          <div className="flex" style={{ backgroundColor: "#0d1710" }}>
+          <div className="flex" style={{ backgroundColor: "#15261c" }}>
 
             {/* Time labels */}
-            <div style={{ width: 44, flexShrink: 0, backgroundColor: "#0d1710", borderRight: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ width: 44, flexShrink: 0, backgroundColor: "#15261c", borderRight: "1px solid rgba(255,255,255,0.08)" }}>
               {hours.map((h) => (
                 <div key={h} style={{
                   height: HOUR_PX,
@@ -326,7 +326,7 @@ export function WeekCalendar() {
                   style={{
                     flex: 1,
                     position: "relative",
-                    backgroundColor: "#0d1710",
+                    backgroundColor: "#15261c",
                     borderRight: colIdx < 6 ? "1px solid rgba(255,255,255,0.08)" : "none",
                   }}
                 >
@@ -350,7 +350,7 @@ export function WeekCalendar() {
                           borderBottom: "1px solid rgba(255,255,255,0.04)",
                           backgroundColor: isDropTarget
                             ? "rgba(94,245,160,0.1)"
-                            : h % 2 === 0 ? "#0d1710" : "#111a13",
+                            : h % 2 === 0 ? "#15261c" : "#1a2e22",
                           outline: isDropTarget ? "1px solid rgba(94,245,160,0.4)" : "none",
                           cursor: "pointer",
                           transition: "background-color 0.1s",

@@ -26,13 +26,13 @@ export default async function OnboardingPage() {
   const isEditing = !!(profile?.first_name);
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-xl">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold">
             {isEditing ? "Modifier mon profil" : "Bienvenue sur Coach Tri"}
           </h1>
-          <p className="mt-2 text-zinc-500">
+          <p className="mt-2 text-muted-foreground">
             {isEditing ? "Mets à jour tes informations" : "Configurons votre profil en 3 étapes"}
           </p>
         </div>

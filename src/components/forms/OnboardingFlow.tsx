@@ -151,7 +151,7 @@ export function OnboardingFlow({
           <div
             key={s}
             className={`h-1.5 flex-1 rounded-full transition-colors ${
-              s <= step ? "bg-zinc-900" : "bg-zinc-200"
+              s <= step ? "bg-primary" : "bg-border"
             }`}
           />
         ))}
@@ -261,8 +261,8 @@ export function OnboardingFlow({
                   onClick={() => toggleDiscipline(d.id)}
                   className={`flex-1 py-3 px-4 rounded-lg border-2 text-sm font-medium transition-colors ${
                     selectedDisciplines.includes(d.id)
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-200 hover:border-zinc-400"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border hover:border-primary/50"
                   }`}
                 >
                   {d.label}
@@ -317,7 +317,7 @@ export function OnboardingFlow({
               {!isEditing && (
                 <button
                   type="button"
-                  className="w-full text-sm text-zinc-400 hover:text-zinc-600"
+                  className="w-full text-sm text-muted-foreground hover:text-foreground"
                   onClick={() => submitProfile()}
                   disabled={loading}
                 >

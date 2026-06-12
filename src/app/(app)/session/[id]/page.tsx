@@ -85,7 +85,7 @@ export default async function SessionPage({
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */ null}
       <div>
-        <div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <span>{format(date, 'EEEE d MMMM yyyy', { locale: fr })}</span>
           <span>·</span>
           <span>Semaine {(session.plan_week as Record<string, unknown>)?.week_num as number}</span>
@@ -110,20 +110,20 @@ export default async function SessionPage({
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{session.duration_min as number}<span className="text-sm font-normal ml-1">min</span></div>
-            <div className="text-xs text-zinc-500 mt-1">Durée prévue</div>
+            <div className="text-xs text-muted-foreground mt-1">Durée prévue</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{(session.planned_tss as number | null) ?? '—'}</div>
-            <div className="text-xs text-zinc-500 mt-1">TSS estimé</div>
+            <div className="text-xs text-muted-foreground mt-1">TSS estimé</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
             <div className="text-2xl font-bold">{rpe ?? '—'}<span className="text-sm font-normal">/10</span></div>
-            <div className="text-xs text-zinc-500 mt-1">RPE cible</div>
-            {rpe && <div className="text-xs text-zinc-400">{RPE_LABELS[rpe]}</div>}
+            <div className="text-xs text-muted-foreground mt-1">RPE cible</div>
+            {rpe && <div className="text-xs text-muted-foreground">{RPE_LABELS[rpe]}</div>}
           </CardContent>
         </Card>
       </div>
@@ -131,7 +131,7 @@ export default async function SessionPage({
       {/* Zone cible */ null}
       {(session.target_zone as string | null | undefined) && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-zinc-500">Zone cible :</span>
+          <span className="text-muted-foreground">Zone cible :</span>
           <Badge variant="outline" className="font-mono">{session.target_zone as string}</Badge>
           {targetValues && Object.entries(targetValues).map(([key, val]) => {
             let label = ''
@@ -139,7 +139,7 @@ export default async function SessionPage({
             if (key === 'watts') label = `${(val as number[]).join('–')} W`
             if (key === 'pace') label = `Allure ${String(val)}/km`
             if (!label) return null
-            return <span key={key} className="text-zinc-400 text-xs">{label}</span>
+            return <span key={key} className="text-muted-foreground text-xs">{label}</span>
           })}
         </div>
       )}
@@ -151,20 +151,20 @@ export default async function SessionPage({
           <CardContent className="space-y-4 text-sm">
             {structure.warmup && (
               <div>
-                <p className="font-medium text-zinc-700 mb-1">🔥 Échauffement</p>
-                <p className="text-zinc-600 leading-relaxed">{structure.warmup}</p>
+                <p className="font-medium text-foreground mb-1">🔥 Échauffement</p>
+                <p className="text-muted-foreground leading-relaxed">{structure.warmup}</p>
               </div>
             )}
             {structure.main && (
               <div>
-                <p className="font-medium text-zinc-700 mb-1">⚡ Bloc principal</p>
-                <p className="text-zinc-600 leading-relaxed whitespace-pre-line">{structure.main}</p>
+                <p className="font-medium text-foreground mb-1">⚡ Bloc principal</p>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{structure.main}</p>
               </div>
             )}
             {structure.cooldown && (
               <div>
-                <p className="font-medium text-zinc-700 mb-1">🧊 Retour au calme</p>
-                <p className="text-zinc-600 leading-relaxed">{structure.cooldown}</p>
+                <p className="font-medium text-foreground mb-1">🧊 Retour au calme</p>
+                <p className="text-muted-foreground leading-relaxed">{structure.cooldown}</p>
               </div>
             )}
           </CardContent>

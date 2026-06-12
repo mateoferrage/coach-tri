@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const MINT    = "oklch(0.843 0.165 157)";
-const DARK    = "oklch(0.116 0.022 155)";
+const DARK    = "oklch(0.25 0.055 158)";
 const DIV     = "oklch(1 0 0 / 8%)";
 const MUTED   = "oklch(1 0 0 / 40%)";
 
@@ -135,7 +135,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           <div className="flex items-start gap-3">
             <span className="text-xl flex-shrink-0">{DISCIPLINE_EMOJI[linked.activity_type] ?? "⚡"}</span>
             <div>
-              <p className="text-sm font-black" style={{ color: MINT }}>
+              <p className="text-sm font-semibold" style={{ color: MINT }}>
                 {linked.name ?? DISCIPLINE_LABEL[linked.activity_type] ?? "Activité"}
               </p>
               <p className="text-xs mt-0.5" style={{ color: MUTED }}>
@@ -258,7 +258,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${verdictCfg.color}40` }}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "oklch(0.45 0.02 155)" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "oklch(0.72 0.02 158)" }}>
                   Retour du coach
                 </p>
                 <span
@@ -268,13 +268,13 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                   {verdictCfg.label}
                 </span>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: "oklch(0.18 0.02 155)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "oklch(0.92 0 0)" }}>
                 {review.message}
               </p>
               <button
                 onClick={fetchReview}
                 className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: "oklch(0.5 0.02 155)" }}
+                style={{ color: "oklch(0.72 0.02 158)" }}
               >
                 Régénérer
               </button>

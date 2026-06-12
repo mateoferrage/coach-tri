@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 const MINT  = 'oklch(0.843 0.165 157)'
-const DARK  = 'oklch(0.116 0.022 155)'
-const DARKER = 'oklch(0.09 0.018 155)'
+const DARK  = 'oklch(0.25 0.055 158)'
+const DARKER = 'oklch(0.17 0.05 158)'
 const DIV   = 'oklch(1 0 0 / 8%)'
 const MUTED = 'oklch(1 0 0 / 40%)'
 
@@ -105,7 +105,7 @@ function ValueRow({ label, value, unit }: { label: string; value: string | null;
   return (
     <div className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: DIV }}>
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>{label}</span>
-      <span className="text-sm font-black" style={{ color: value ? MINT : 'oklch(1 0 0 / 20%)' }}>
+      <span className="text-sm font-semibold" style={{ color: value ? MINT : 'oklch(1 0 0 / 20%)' }}>
         {value ?? '—'}{value && unit ? <span className="text-xs font-medium ml-1" style={{ color: MUTED }}>{unit}</span> : null}
       </span>
     </div>
@@ -195,7 +195,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
         style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
       >
         <div>
-          <p className="text-sm font-black uppercase tracking-widest" style={{ color: 'oklch(0.97 0 0)' }}>
+          <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'oklch(0.97 0 0)' }}>
             Données physiologiques
           </p>
           {initial?.test_date && !editing && (

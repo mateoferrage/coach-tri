@@ -20,10 +20,10 @@ const DISCIPLINE_EMOJI: Record<string, string> = {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  planned: 'border-zinc-200 bg-white hover:border-zinc-400',
-  done: 'border-green-200 bg-green-50',
-  skipped: 'border-zinc-200 bg-zinc-50 opacity-60',
-  modified: 'border-yellow-200 bg-yellow-50',
+  planned: 'border-border bg-card hover:border-primary/50',
+  done: 'border-green-500/30 bg-green-500/10',
+  skipped: 'border-border bg-muted opacity-60',
+  modified: 'border-yellow-500/30 bg-yellow-500/10',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,7 +45,7 @@ export function SessionCard({ session }: { session: Session }) {
           <span className="text-xl shrink-0">{emoji}</span>
           <div className="min-w-0">
             <p className="font-medium text-sm truncate">{session.title}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {format(date, 'EEEE d MMM', { locale: fr })} · {session.duration_min} min
             </p>
           </div>
@@ -58,7 +58,7 @@ export function SessionCard({ session }: { session: Session }) {
         </Badge>
       </div>
       {session.coaching_note && session.status === 'planned' && (
-        <p className="mt-2 text-xs text-zinc-500 line-clamp-2 italic">
+        <p className="mt-2 text-xs text-muted-foreground line-clamp-2 italic">
           {session.coaching_note}
         </p>
       )}

@@ -11,7 +11,7 @@ export default function CalendarPage() {
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Emploi du temps
           </p>
-          <h1 className="text-2xl font-black uppercase tracking-tight">
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">
             Calendrier
           </h1>
         </div>

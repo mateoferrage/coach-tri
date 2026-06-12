@@ -2,11 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, withAlpha } from '@/lib/theme'
 
-const MINT = 'oklch(0.843 0.165 157)'
-const DARK = 'oklch(0.116 0.022 155)'
-const DARKER = 'oklch(0.09 0.018 155)'
-const DIV = 'oklch(1 0 0 / 8%)'
 const MUTED = 'oklch(1 0 0 / 40%)'
 
 interface ProposedAction {
@@ -136,12 +133,12 @@ export default function CoachChat({ planId }: Props) {
       >
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-          style={{ backgroundColor: `${MINT}20`, border: `1px solid ${MINT}40` }}
+          style={{ backgroundColor: `${withAlpha(MINT, 12)}`, border: `1px solid ${withAlpha(MINT, 30)}` }}
         >
           🤖
         </div>
         <div>
-          <p className="text-xs font-black uppercase tracking-widest" style={{ color: MINT }}>
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: MINT }}>
             Coach IA
           </p>
         </div>
@@ -181,7 +178,7 @@ export default function CoachChat({ planId }: Props) {
             <div
               className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
               style={msg.role === 'user'
-                ? { backgroundColor: `${MINT}25`, color: 'oklch(0.97 0 0)', border: `1px solid ${MINT}40` }
+                ? { backgroundColor: `${withAlpha(MINT, 16)}`, color: 'oklch(0.97 0 0)', border: `1px solid ${withAlpha(MINT, 30)}` }
                 : { backgroundColor: DARKER, color: 'oklch(0.9 0 0)', border: `1px solid ${DIV}` }
               }
             >
@@ -192,7 +189,7 @@ export default function CoachChat({ planId }: Props) {
             {msg.role === 'assistant' && msg.proposed_action && (
               <div
                 className="max-w-[85%] rounded-xl px-3 py-2 text-xs space-y-2"
-                style={{ backgroundColor: `${MINT}10`, border: `1px solid ${MINT}30` }}
+                style={{ backgroundColor: `${withAlpha(MINT, 8)}`, border: `1px solid ${withAlpha(MINT, 22)}` }}
               >
                 <p className="font-bold" style={{ color: MINT }}>
                   Action proposée
@@ -206,7 +203,7 @@ export default function CoachChat({ planId }: Props) {
                     <button
                       onClick={() => handleAction(msg.id, 'confirmed')}
                       disabled={confirming === msg.id}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-black uppercase tracking-widest transition-opacity disabled:opacity-50"
+                      className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
                       style={{ backgroundColor: MINT, color: DARK }}
                     >
                       {confirming === msg.id ? '...' : 'Confirmer'}
@@ -214,7 +211,7 @@ export default function CoachChat({ planId }: Props) {
                     <button
                       onClick={() => handleAction(msg.id, 'rejected')}
                       disabled={confirming === msg.id}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-black uppercase tracking-widest transition-opacity disabled:opacity-50"
+                      className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
                       style={{ backgroundColor: `${DIV}`, color: 'oklch(0.7 0 0)', border: `1px solid ${DIV}` }}
                     >
                       Refuser
@@ -249,7 +246,7 @@ export default function CoachChat({ planId }: Props) {
           disabled={sending}
           className="flex-1 resize-none rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50"
           style={{
-            backgroundColor: 'oklch(0.13 0.02 155)',
+            backgroundColor: DARKER,
             border: `1px solid ${DIV}`,
             color: 'oklch(0.95 0 0)',
             maxHeight: '80px',

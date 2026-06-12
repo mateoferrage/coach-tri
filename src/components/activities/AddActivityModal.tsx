@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const MINT = "oklch(0.843 0.165 157)";
-const DARK = "oklch(0.116 0.022 155)";
+const DARK = "oklch(0.25 0.055 158)";
 const DIV  = "oklch(1 0 0 / 8%)";
-const BG   = "oklch(0.14 0.022 155)";
-const BG2  = "oklch(0.09 0.018 155)";
+const BG   = "oklch(0.25 0.055 158)";
+const BG2  = "oklch(0.17 0.05 158)";
 
 const DISCIPLINES = [
   { value: "run",      label: "Course",   icon: "🏃" },
@@ -117,7 +117,7 @@ export function AddActivityModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-opacity hover:opacity-80"
+        className="text-xs font-semibold uppercase tracking-widest px-4 py-2.5 rounded-xl transition-opacity hover:opacity-80"
         style={{ backgroundColor: MINT, color: DARK }}
       >
         + Activité
@@ -138,7 +138,7 @@ export function AddActivityModal() {
               className="px-5 py-4 flex items-center justify-between"
               style={{ borderBottom: `1px solid ${DIV}`, backgroundColor: BG2 }}
             >
-              <p className="font-black uppercase tracking-widest text-sm" style={{ color: MINT }}>
+              <p className="font-semibold uppercase tracking-widest text-sm" style={{ color: MINT }}>
                 Ajouter une activité
               </p>
               <button
@@ -278,7 +278,7 @@ export function AddActivityModal() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="w-full py-3 rounded-xl font-semibold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: MINT, color: DARK }}
               >
                 {loading ? "Enregistrement…" : "Enregistrer l'activité"}

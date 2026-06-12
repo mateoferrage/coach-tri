@@ -81,11 +81,11 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
 
   return (
     <div className={`rounded-xl border-2 overflow-hidden transition-all ${
-      isCurrentWeek ? 'border-zinc-900' : 'border-zinc-200'
+      isCurrentWeek ? 'border-primary' : 'border-border'
     }`}>
       {/* Header */}
       <button
-        className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors text-left"
+        className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors text-left"
         onClick={() => setOpen(o => !o)}
       >
         <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
               {isCurrentWeek && <Badge variant="default" className="text-xs">En cours</Badge>}
               {week.is_recovery_week && <Badge variant="secondary" className="text-xs">Récupération</Badge>}
             </div>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {format(weekStart, 'd MMM', { locale: fr })} ·{' '}
               {PHASE_LABELS[week.phase] ?? week.phase} ·{' '}
               {week.planned_volume_hours}h · TSS {week.planned_tss}
@@ -104,19 +104,19 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
         </div>
         <div className="flex items-center gap-3">
           {hasSessions && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted-foreground">
               {completedCount}/{sessions.length} séances
             </span>
           )}
-          <span className="text-zinc-400 text-sm">{open ? '▲' : '▼'}</span>
+          <span className="text-muted-foreground text-sm">{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {/* Content */}
       {open && (
-        <div className="px-4 pb-4 border-t border-zinc-100">
+        <div className="px-4 pb-4 border-t border-border">
           {week.notes && (
-            <p className="text-xs text-zinc-500 italic py-3">{week.notes}</p>
+            <p className="text-xs text-muted-foreground italic py-3">{week.notes}</p>
           )}
 
           {hasSessions ? (
@@ -129,7 +129,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-zinc-500">Séances non encore générées</p>
+              <p className="text-sm text-muted-foreground">Séances non encore générées</p>
               <Button
                 size="sm"
                 onClick={generateSessions}

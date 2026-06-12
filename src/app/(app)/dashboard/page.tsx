@@ -2,20 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { differenceInWeeks, parseISO } from "date-fns";
 import CoachChat from "@/components/coach/CoachChat";
+import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP, DIVIDER as DIV, DISCIPLINE, disciplineColor, withAlpha } from "@/lib/theme";
 
 export const metadata = { title: "Tableau de bord — Coach Tri" };
 
-const MINT  = "oklch(0.843 0.165 157)";
-const DARK  = "oklch(0.116 0.022 155)";
-const DIV   = "oklch(1 0 0 / 8%)";
-
-const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: "🏊", bike: "🚴", run: "🏃", brick: "⚡", strength: "💪", rest: "😴",
-};
-const DISCIPLINE_LABEL: Record<string, string> = {
-  swim: "Natation", bike: "Vélo", run: "Course à pied",
-  brick: "Enchaînement", strength: "Renforcement", rest: "Récupération",
-};
+const DISCIPLINE_EMOJI: Record<string, string> = Object.fromEntries(
+  Object.entries(DISCIPLINE).map(([k, v]) => [k, v.icon]),
+);
+const DISCIPLINE_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(DISCIPLINE).map(([k, v]) => [k, v.label]),
+);
 const SESSION_TYPE_LABEL: Record<string, string> = {
   easy: "Endurance facile", tempo: "Tempo", threshold: "Seuil",
   vo2: "VO2max", race_pace: "Allure course", technique: "Technique",
@@ -101,7 +97,7 @@ export default async function DashboardPage() {
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Tableau de bord
         </p>
-        <h1 className="text-3xl font-black uppercase tracking-tight">
+        <h1 className="text-3xl font-semibold uppercase tracking-tight">
           Bonjour,{" "}
           <span style={{ color: MINT }}>{firstName}</span>
         </h1>
@@ -117,30 +113,37 @@ export default async function DashboardPage() {
         {todaySession ? (
           <div
             className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+            style={{
+              backgroundColor: DARK,
+              border: `1px solid ${DIV}`,
+              borderLeft: `3px solid ${disciplineColor(todaySession.discipline as string)}`,
+            }}
           >
             {/* Top */}
             <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                  style={{ backgroundColor: `${MINT}18`, border: `1px solid ${MINT}30` }}
+                  style={{
+                    backgroundColor: withAlpha(disciplineColor(todaySession.discipline as string), 12),
+                    border: `1px solid ${withAlpha(disciplineColor(todaySession.discipline as string), 30)}`,
+                  }}
                 >
                   {DISCIPLINE_EMOJI[todaySession.discipline as string] ?? "⚡"}
                 </div>
                 <div>
-                  <p className="font-black uppercase tracking-widest text-sm leading-tight" style={{ color: MINT }}>
+                  <p className="font-semibold uppercase tracking-widest text-sm leading-tight" style={{ color: disciplineColor(todaySession.discipline as string) }}>
                     {DISCIPLINE_LABEL[todaySession.discipline as string]}
                     {todaySession.session_type ? ` · ${SESSION_TYPE_LABEL[todaySession.session_type as string]}` : ""}
                   </p>
-                  <p className="text-base font-black mt-0.5" style={{ color: "oklch(0.97 0 0)" }}>
+                  <p className="text-base font-bold mt-0.5 text-foreground">
                     {(todaySession.title as string | null) ?? "Séance du jour"}
                   </p>
                 </div>
               </div>
               <div
-                className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-                style={{ color: MINT, border: `1px solid ${MINT}` }}
+                className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full font-mono"
+                style={{ color: MINT, border: `1px solid ${withAlpha(MINT, 60)}` }}
               >
                 {todaySession.duration_min as number} min
               </div>
@@ -149,23 +152,23 @@ export default async function DashboardPage() {
             {/* Footer */}
             <div
               className="px-5 py-3 flex items-center justify-between gap-3"
-              style={{ borderTop: `1px solid ${DIV}`, backgroundColor: "oklch(0.09 0.018 155)" }}
+              style={{ borderTop: `1px solid ${DIV}`, backgroundColor: SURFACE_DEEP }}
             >
               <div className="flex gap-4">
                 {(todaySession.planned_tss as number | null) != null && (
                   <span className="text-xs" style={{ color: "oklch(1 0 0 / 45%)" }}>
-                    <span className="font-black" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.planned_tss as number}</span> TSS
+                    <span className="font-semibold" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.planned_tss as number}</span> TSS
                   </span>
                 )}
                 {(todaySession.expected_rpe as number | null) != null && (
                   <span className="text-xs" style={{ color: "oklch(1 0 0 / 45%)" }}>
-                    RPE <span className="font-black" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.expected_rpe as number}/10</span>
+                    RPE <span className="font-semibold" style={{ color: "oklch(1 0 0 / 80%)" }}>{todaySession.expected_rpe as number}/10</span>
                   </span>
                 )}
               </div>
               <Link
                 href={`/session/${todaySession.id as string}`}
-                className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-opacity hover:opacity-80"
+                className="text-xs font-semibold uppercase tracking-widest px-4 py-2 rounded-xl transition-opacity hover:opacity-80"
                 style={{ backgroundColor: MINT, color: DARK }}
               >
                 Voir la séance →
@@ -186,8 +189,8 @@ export default async function DashboardPage() {
             </div>
             <Link
               href="/program"
-              className="text-xs font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
-              style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+              className="text-xs font-semibold uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
+              style={{ backgroundColor: `${withAlpha(MINT, 12)}`, color: MINT, border: `1px solid ${withAlpha(MINT, 30)}` }}
             >
               Voir le programme
             </Link>
@@ -208,7 +211,7 @@ export default async function DashboardPage() {
             <p className="text-sm" style={{ color: "oklch(1 0 0 / 50%)" }}>Aucun programme actif.</p>
             <Link
               href="/program/new"
-              className="inline-flex items-center justify-center rounded-xl font-black uppercase tracking-widest text-sm px-6 py-3 transition-opacity hover:opacity-90"
+              className="inline-flex items-center justify-center rounded-xl font-semibold uppercase tracking-widest text-sm px-6 py-3 transition-opacity hover:opacity-90"
               style={{ backgroundColor: MINT, color: DARK }}
             >
               ✨ Créer mon programme
@@ -228,7 +231,7 @@ export default async function DashboardPage() {
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
             <div>
-              <p className="font-black uppercase tracking-widest text-sm" style={{ color: MINT }}>
+              <p className="font-semibold uppercase tracking-widest text-sm" style={{ color: MINT }}>
                 {((plan.goal as Record<string, unknown> | null)?.race_name as string | null) ?? (plan.name as string | null) ?? "Programme d'entraînement"}
               </p>
               <p className="text-xs mt-0.5" style={{ color: "oklch(1 0 0 / 40%)" }}>
@@ -237,8 +240,8 @@ export default async function DashboardPage() {
             </div>
             <Link
               href="/program"
-              className="text-xs font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
-              style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+              className="text-xs font-semibold uppercase tracking-widest px-3 py-2 rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
+              style={{ backgroundColor: `${withAlpha(MINT, 12)}`, color: MINT, border: `1px solid ${withAlpha(MINT, 30)}` }}
             >
               Voir →
             </Link>

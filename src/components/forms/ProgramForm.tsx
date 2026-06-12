@@ -67,7 +67,7 @@ function TimeInput({
 
   return (
     <div className="space-y-1">
-      {label && <Label className="text-xs text-zinc-600">{label}</Label>}
+      {label && <Label className="text-xs text-muted-foreground">{label}</Label>}
       <div className="flex items-center gap-1">
         {showHours && (
           <>
@@ -77,7 +77,7 @@ function TimeInput({
               onChange={e => { const n = Math.max(0, Math.min(23, parseInt(e.target.value) || 0)); setH(n); fire(n, m, s) }}
               className="w-14 text-center px-1"
             />
-            <span className="text-zinc-400 text-xs">h</span>
+            <span className="text-muted-foreground text-xs">h</span>
           </>
         )}
         <Input
@@ -86,14 +86,14 @@ function TimeInput({
           onChange={e => { const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0)); setM(n); fire(h, n, s) }}
           className="w-14 text-center px-1"
         />
-        <span className="text-zinc-400 text-xs">min</span>
+        <span className="text-muted-foreground text-xs">min</span>
         <Input
           type="number" min={0} max={59}
           value={s}
           onChange={e => { const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0)); setS(n); fire(h, m, n) }}
           className="w-14 text-center px-1"
         />
-        <span className="text-zinc-400 text-xs">s</span>
+        <span className="text-muted-foreground text-xs">s</span>
       </div>
     </div>
   )
@@ -293,7 +293,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
               </div>
 
               {watchTargetType === 'time' && (
-                <div className="space-y-4 p-4 bg-zinc-50 rounded-lg border border-zinc-200">
+                <div className="space-y-4 p-4 bg-muted rounded-lg border border-border">
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Temps total cible</p>
                     <TimeInput
@@ -305,7 +305,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-zinc-600">Détail par discipline <span className="font-normal text-zinc-400">(optionnel)</span></p>
+                    <p className="text-sm font-medium text-muted-foreground">Détail par discipline <span className="font-normal text-muted-foreground">(optionnel)</span></p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       <TimeInput
                         label="Natation"
@@ -349,7 +349,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
         <TabsContent value="maintenance" className="mt-4">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-muted-foreground">
                 Programme continu sans date de fin. L&apos;IA génère 12 semaines de base,
                 renouvelables automatiquement selon vos données Garmin.
               </p>
@@ -378,12 +378,12 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 onClick={() => settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])}
                 className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
                   settingsForm.watch('methodology') === m.value
-                    ? 'border-zinc-900 bg-zinc-50'
-                    : 'border-zinc-200 hover:border-zinc-300'
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/40'
                 }`}
               >
                 <p className="font-medium text-sm">{m.label}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{m.desc}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{m.desc}</p>
               </button>
             ))}
           </div>
