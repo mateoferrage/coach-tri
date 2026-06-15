@@ -2,23 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { GarminSyncButton } from "@/components/garmin/GarminSyncButton";
 import { AddActivityModal } from "@/components/activities/AddActivityModal";
 import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER, withAlpha } from "@/lib/theme";
+import { mergeActivities, type UnifiedActivity, type GarminRow, type StravaRow } from "@/lib/activities/unify";
 
 export const metadata = { title: "Activités — Coach Tri" };
-
-type Activity = {
-  id: string;
-  garmin_activity_id: number;
-  activity_type: string;
-  name: string | null;
-  started_at: string;
-  duration_s: number | null;
-  distance_m: number | null;
-  avg_hr: number | null;
-  max_hr: number | null;
-  avg_speed_ms: number | null;
-  elevation_gain_m: number | null;
-  aerobic_te: number | null;
-};
 
 type SportInfo = {
   label: string;
@@ -136,20 +122,32 @@ function ManualBadge() {
   );
 }
 
-function ActivityCard({ activity }: { activity: Activity }) {
-  const sport = getSport(activity.activity_type);
-  const isManual = activity.garmin_activity_id < 0;
+function SourceChip({ source }: { source: "garmin" | "strava" }) {
+  const color = source === "strava" ? "oklch(0.70 0.17 35)" : "oklch(0.72 0.12 230)";
+  const label = source === "strava" ? "Strava" : "Garmin";
+  return (
+    <span
+      className="text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+      style={{ color, border: `1px solid ${color}` }}
+    >
+      {label}
+    </span>
+  );
+}
 
-  // Hero metric — distance first, fallback to duration
+function ActivityCard({ activity }: { activity: UnifiedActivity }) {
+  const sport = getSport(activity.activity_type);
+  const isManual = activity.is_manual;
+
   const hero = (!sport.isStrength && activity.distance_m)
     ? heroDistance(activity.distance_m, sport.isSwim)
     : heroDuration(activity.duration_s);
 
-  // Secondary stats (exclude hero to avoid duplication)
   const showDuration = !!(!sport.isStrength && activity.distance_m && activity.duration_s);
   const pace         = formatPace(activity.avg_speed_ms, sport.isCycling, sport.isSwim);
   const avgHr        = activity.avg_hr ? `${activity.avg_hr} bpm` : null;
   const maxHr        = activity.max_hr ? `${activity.max_hr} bpm` : null;
+  const watts        = activity.avg_watts ? `${activity.avg_watts} W` : null;
   const elevation    = (activity.elevation_gain_m ?? 0) > 0
     ? `${Math.round(activity.elevation_gain_m!)} m`
     : null;
@@ -158,6 +156,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
   const stats: { label: string; value: string }[] = [
     showDuration && { label: "Durée",     value: formatDuration(activity.duration_s)! },
     pace         && { label: sport.isCycling ? "Vitesse" : "Allure",  value: pace },
+    watts        && { label: "Puissance", value: watts },
     avgHr        && { label: "FC moy.",   value: avgHr },
     elevation    && { label: "D+",        value: elevation },
     maxHr        && { label: "FC max",    value: maxHr },
@@ -169,10 +168,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
       className="rounded-2xl overflow-hidden"
       style={{ backgroundColor: DARK, border: `1px solid ${DIVIDER}` }}
     >
-      {/* Top section */}
       <div className="px-5 pt-5 pb-4">
-
-        {/* Sport + time + TE */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div
@@ -195,10 +191,14 @@ function ActivityCard({ activity }: { activity: Activity }) {
               </p>
             </div>
           </div>
-          {isManual ? <ManualBadge /> : <TEBadge value={activity.aerobic_te} />}
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex gap-1.5">
+              {activity.sources.map((src) => <SourceChip key={src} source={src} />)}
+            </div>
+            {isManual ? <ManualBadge /> : <TEBadge value={activity.aerobic_te} />}
+          </div>
         </div>
 
-        {/* Hero metric */}
         {hero ? (
           <div className="flex items-baseline gap-2">
             <span className="text-5xl font-semibold leading-none" style={{ color: "oklch(0.98 0 0)" }}>
@@ -217,7 +217,6 @@ function ActivityCard({ activity }: { activity: Activity }) {
         )}
       </div>
 
-      {/* Stats row */}
       {stats.length > 0 && (
         <div
           className="px-5 py-3 flex flex-wrap gap-x-6 gap-y-2"
@@ -238,18 +237,29 @@ export default async function ActivitiesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: activities } = await (supabase as any)
-    .from("garmin_activities")
-    .select("id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te")
-    .eq("user_id", user!.id)
-    .order("started_at", { ascending: false })
-    .limit(50) as { data: Activity[] | null };
+  const [garminRes, stravaRes] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("garmin_activities")
+      .select("id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te")
+      .eq("user_id", user!.id)
+      .order("started_at", { ascending: false })
+      .limit(100),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("strava_activities")
+      .select("id, strava_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, avg_watts, suffer_score")
+      .eq("user_id", user!.id)
+      .order("started_at", { ascending: false })
+      .limit(100),
+  ]);
 
-  const list = activities ?? [];
+  const garminRows = (garminRes.data ?? []) as GarminRow[];
+  const stravaRows = (stravaRes.data ?? []) as StravaRow[];
+  const list: UnifiedActivity[] = mergeActivities(garminRows, stravaRows).slice(0, 50);
 
   // Group by calendar day
-  const groups: { dateKey: string; label: string; items: Activity[] }[] = [];
+  const groups: { dateKey: string; label: string; items: UnifiedActivity[] }[] = [];
   for (const activity of list) {
     const dateKey = activity.started_at.split("T")[0];
     const last = groups[groups.length - 1];
@@ -290,7 +300,7 @@ export default async function ActivitiesPage() {
             Aucune activité synchronisée.
           </p>
           <p className="text-xs" style={{ color: "oklch(1 0 0 / 25%)" }}>
-            Connectez votre compte Garmin et lancez une synchronisation.
+            Connecte ton compte Garmin ou Strava et lance une synchronisation.
           </p>
         </div>
       ) : (
