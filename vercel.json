@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/garmin_sync.py": {
-      "maxDuration": 30
-    }
-  }
-}

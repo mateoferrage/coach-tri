@@ -19,7 +19,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | Framework | Next.js 16.2.6 — App Router, React 19 |
 | Base de données / Auth | Supabase (PostgreSQL + Auth SSR) |
 | IA | Google Gemini 2.5 Flash (`@google/genai`) |
-| Montres / GPS | Garmin Connect (`garmin-connect`) |
+| Montres / GPS | Garmin Connect (`garmin-connect`) — TypeScript/Node, **pas de pont Python** |
+| Activités | Strava (OAuth2, `STRAVA_CLIENT_ID`/`SECRET`) |
 | UI | Tailwind CSS v4 + shadcn/ui + lucide-react |
 | Validation | Zod v4 |
 | Dates | date-fns v4 |
@@ -264,6 +265,19 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 
 ---
 
+## Intégration Strava
+
+**OAuth2** (`src/lib/strava/client.ts`) — alternative/complément à Garmin pour importer les activités.
+
+- `GET /api/strava/connect` : construit l'URL d'autorisation Strava (scope `read,activity:read`), pose un cookie `strava_oauth_state` (CSRF), redirige vers Strava. Callback = `${NEXT_PUBLIC_APP_URL}/api/strava/callback`.
+- `GET /api/strava/callback` : vérifie le `state`, échange le code (`exchangeCode`), upsert dans `strava_credentials` (tokens **en clair**, contrairement à Garmin qui chiffre).
+- `POST /api/strava/sync` : rafraîchit le token si besoin (`refreshIfNeeded`), récupère activités + stats, upsert `strava_activities`.
+- `POST /api/strava/disconnect` : supprime les credentials.
+- **Config Strava** : *Authorization Callback Domain* = le host de `NEXT_PUBLIC_APP_URL` (sans `https://`).
+- Tables : `strava_credentials`, `strava_activities` (migration `0020_strava.sql`).
+
+---
+
 ## Design System
 
 ### Couleurs (OKLCH)
@@ -331,7 +345,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY     ← clé anon Supabase
 SUPABASE_SERVICE_ROLE_KEY         ← clé service_role (admin, server-side only)
 GEMINI_API_KEY                    ← clé Google AI Studio
 ENCRYPTION_KEY                    ← clé AES-256 pour Garmin (32 chars ou 64 hex)
+STRAVA_CLIENT_ID                  ← ID app Strava (strava.com/settings/api)
+STRAVA_CLIENT_SECRET              ← secret app Strava
+NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-tri-amber.vercel.app (callback OAuth Strava)
 ```
+
+> **Garmin / ENCRYPTION_KEY** : la prod (Vercel) utilise la clé d'origine qui déchiffre bien les identifiants Garmin stockés (sync OK). Le `.env.local` a une clé régénérée distincte → le sync Garmin échoue en **dev local** (déchiffrement impossible). Sans incidence en prod ; pour du Garmin en local, réaligner la clé et reconnecter Garmin.
+> **`INTERNAL_SECRET`** : vestige de l'ancien pont Python (supprimé) — plus utilisé par le code.
 
 ---
 
