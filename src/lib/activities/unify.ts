@@ -88,3 +88,62 @@ export function normalizeStrava(row: StravaRow): UnifiedActivity {
     sources: ['strava'],
   }
 }
+
+const DEDUP_WINDOW_MS = 10 * 60 * 1000   // ±10 min
+const DURATION_TOLERANCE = 0.25          // ±25 %
+const DEDUP_DISCIPLINES = new Set(['run', 'bike', 'swim'])
+
+function canDedup(a: UnifiedActivity): boolean {
+  return !a.is_manual && DEDUP_DISCIPLINES.has(a.activity_type)
+}
+
+function durationsCompatible(a: number | null, b: number | null): boolean {
+  if (a == null || b == null) return true   // pas de garde-fou si durée inconnue
+  if (a === 0 || b === 0) return a === b
+  return Math.abs(a - b) / Math.max(a, b) <= DURATION_TOLERANCE
+}
+
+function isSameSession(garmin: UnifiedActivity, strava: UnifiedActivity): boolean {
+  if (garmin.activity_type !== strava.activity_type) return false
+  const diff = Math.abs(Date.parse(garmin.started_at) - Date.parse(strava.started_at))
+  if (diff > DEDUP_WINDOW_MS) return false
+  return durationsCompatible(garmin.duration_s, strava.duration_s)
+}
+
+export function mergeActivities(garmin: GarminRow[], strava: StravaRow[]): UnifiedActivity[] {
+  const ug = garmin.map(normalizeGarmin)
+  const us = strava.map(normalizeStrava)
+  const usedStrava = new Set<number>()
+  const result: UnifiedActivity[] = []
+
+  for (const gActivity of ug) {
+    let match: { idx: number; diff: number } | null = null
+    if (canDedup(gActivity)) {
+      us.forEach((sActivity, idx) => {
+        if (usedStrava.has(idx) || !canDedup(sActivity)) return
+        if (!isSameSession(gActivity, sActivity)) return
+        const diff = Math.abs(Date.parse(gActivity.started_at) - Date.parse(sActivity.started_at))
+        if (!match || diff < match.diff) match = { idx, diff }
+      })
+    }
+    if (match) {
+      const sActivity = us[(match as { idx: number; diff: number }).idx]
+      usedStrava.add((match as { idx: number; diff: number }).idx)
+      result.push({
+        ...gActivity,
+        avg_watts: sActivity.avg_watts,
+        suffer_score: sActivity.suffer_score,
+        sources: ['garmin', 'strava'],
+      })
+    } else {
+      result.push(gActivity)
+    }
+  }
+
+  us.forEach((sActivity, idx) => {
+    if (!usedStrava.has(idx)) result.push(sActivity)
+  })
+
+  result.sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at))
+  return result
+}
