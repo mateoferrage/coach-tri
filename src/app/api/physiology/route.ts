@@ -27,8 +27,7 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = (await (supabase as any)
+  const { data } = (await supabase
     .from('physiology_current')
     .select('*')
     .eq('user_id', user.id)
@@ -52,8 +51,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const today = new Date().toISOString().split('T')[0]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (admin as any)
+  const { data, error } = (await admin
     .from('physiology')
     .insert({
       user_id: user.id,

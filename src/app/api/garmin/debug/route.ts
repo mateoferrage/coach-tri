@@ -23,9 +23,8 @@ function toDateStr(d: Date): string {
   return d.toISOString().split('T')[0]
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function tryGet(
-  gc: any,
+  gc: { get: (url: string) => Promise<unknown> },
   url: string,
 ): Promise<{ ok: boolean; data?: unknown; error?: string }> {
   try {
@@ -50,8 +49,8 @@ export async function GET() {
   if (authError || !user) return Response.json({ error: 'Non authentifié' }, { status: 401 })
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: creds } = await (admin as any)
+
+  const { data: creds } = await admin
     .from('garmin_credentials')
     .select('email_enc, password_enc, session_data')
     .eq('user_id', user.id)
@@ -190,8 +189,8 @@ export async function GET() {
     )
 
   // ── What's currently in DB ────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: stored } = await (admin as any)
+
+  const { data: stored } = await admin
     .from('garmin_stats')
     .select(
       'vo2max_run,vo2max_bike,fitness_age,training_readiness,training_load_7d,training_load_28d,display_name,personal_records',

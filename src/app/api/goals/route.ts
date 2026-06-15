@@ -10,8 +10,7 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('goals')
     .select('*')
     .eq('user_id', user.id)
@@ -34,8 +33,7 @@ export async function POST(request: Request) {
   const parsed = GoalSchema.safeParse(body)
   if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('goals')
     .insert({ user_id: user.id, ...parsed.data, status: 'active' })
     .select()

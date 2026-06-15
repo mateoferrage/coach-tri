@@ -274,8 +274,7 @@ export default async function ActivitiesPage() {
   } = await supabase.auth.getUser()
 
   const [garminRes, stravaRes] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('garmin_activities')
       .select(
         'id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te',
@@ -283,8 +282,8 @@ export default async function ActivitiesPage() {
       .eq('user_id', user!.id)
       .order('started_at', { ascending: false })
       .limit(100),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+
+    supabase
       .from('strava_activities')
       .select(
         'id, strava_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, avg_watts, suffer_score',

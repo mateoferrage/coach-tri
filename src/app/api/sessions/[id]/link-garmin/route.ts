@@ -21,8 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { garmin_activity_id } = parsed.data
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('sessions')
     .update({ garmin_activity_id })
     .eq('id', session_id)

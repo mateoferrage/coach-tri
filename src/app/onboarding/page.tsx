@@ -12,8 +12,7 @@ export default async function OnboardingPage() {
 
   if (!user) redirect('/login')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = (await (supabase as any)
+  const { data: profile } = (await supabase
     .from('profiles')
     .select(
       'first_name, birth_date, sex, weight_kg, height_cm, level, weekly_hours_avg, available_disciplines',

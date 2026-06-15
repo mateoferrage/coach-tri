@@ -32,8 +32,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '30'), 100)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error: fetchError } = await (supabase as any)
+  const { data, error: fetchError } = await supabase
     .from('chat_messages')
     .select('id, role, content, proposed_action, action_status, created_at')
     .eq('user_id', user.id)
@@ -72,15 +71,13 @@ export async function POST(request: Request) {
 
   // Fetch context in parallel
   const [profileRes, planRes, weekSessionsRes, historyRes, stravaCredsRes] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('profiles')
       .select('first_name, level, weekly_hours_avg')
       .eq('id', user.id)
       .single(),
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('plans')
       .select('id, name, start_date, plan_weeks(week_num, phase), goal:goals(race_name, race_date)')
       .eq('user_id', user.id)
@@ -89,8 +86,7 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle(),
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('sessions')
       .select(
         'id, title, discipline, session_type, duration_min, session_date, status, expected_rpe',
@@ -100,8 +96,7 @@ export async function POST(request: Request) {
       .lte('session_date', weekEndStr)
       .order('session_date', { ascending: true }),
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('chat_messages')
       .select('role, content')
       .eq('user_id', user.id)
@@ -109,8 +104,7 @@ export async function POST(request: Request) {
       .order('created_at', { ascending: false })
       .limit(10),
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from('strava_credentials')
       .select('athlete_id, access_token, refresh_token, expires_at')
       .eq('user_id', user.id)
@@ -172,8 +166,8 @@ export async function POST(request: Request) {
       const refreshed = await refreshIfNeeded(tokens)
       if (refreshed.access_token !== stravaCreds.access_token) {
         const admin = createAdminClient()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (admin as any)
+
+        await admin
           .from('strava_credentials')
           .update({
             access_token: refreshed.access_token,
@@ -190,8 +184,8 @@ export async function POST(request: Request) {
   }
 
   // Save user message
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).from('chat_messages').insert({
+
+  await supabase.from('chat_messages').insert({
     user_id: user.id,
     role: 'user',
     content: message,
@@ -224,8 +218,8 @@ export async function POST(request: Request) {
   if (!aiResponse.message) return apiError('Réponse IA invalide', 500)
 
   // Save assistant message
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: savedMsg } = await (supabase as any)
+
+  const { data: savedMsg } = await supabase
     .from('chat_messages')
     .insert({
       user_id: user.id,
@@ -249,8 +243,8 @@ export async function DELETE(_request: Request) {
   if (error || !user) return apiError('Non authentifié', 401)
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: updateError } = await (admin as any)
+
+  const { error: updateError } = await admin
     .from('chat_messages')
     .update({ archived_at: new Date().toISOString() })
     .eq('user_id', user.id)

@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
 
   // Fetch user profile
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = (await (supabase as any)
+
+  const { data: profile } = (await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -39,8 +39,7 @@ export async function POST(request: Request) {
   let end_date = format(addWeeks(parseISO(start_date), 16), 'yyyy-MM-dd')
 
   if (mode === 'race' && goal_id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: goalData } = (await (supabase as any)
+    const { data: goalData } = (await supabase
       .from('goals')
       .select('*')
       .eq('id', goal_id)
@@ -55,8 +54,8 @@ export async function POST(request: Request) {
   const total_weeks = Math.max(4, differenceInWeeks(parseISO(end_date), parseISO(start_date)))
 
   // Fetch recent Garmin data for context
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentActivities } = (await (admin as any)
+
+  const { data: recentActivities } = (await admin
     .from('garmin_activities')
     .select('activity_type, duration_s, distance_m, avg_hr, started_at')
     .eq('user_id', user.id)
@@ -64,8 +63,7 @@ export async function POST(request: Request) {
     .order('started_at', { ascending: false })
     .limit(30)) as { data: Array<Record<string, unknown>> | null }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentWellness } = (await (admin as any)
+  const { data: recentWellness } = (await admin
     .from('garmin_wellness')
     .select('date, hrv_rmssd, body_battery_start, resting_hr, sleep_score')
     .eq('user_id', user.id)
@@ -113,8 +111,8 @@ export async function POST(request: Request) {
   // --- Save to database ---
 
   // 1. Create plan
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan, error: planError } = (await (admin as any)
+
+  const { data: plan, error: planError } = (await admin
     .from('plans')
     .insert({
       user_id: user.id,
@@ -134,8 +132,8 @@ export async function POST(request: Request) {
   if (planError || !plan) return apiError(planError?.message ?? 'Erreur création plan', 500)
 
   // 2. Archive other active plans
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any)
+
+  await admin
     .from('plans')
     .update({ status: 'archived' })
     .eq('user_id', user.id)
@@ -144,8 +142,8 @@ export async function POST(request: Request) {
 
   // 3. Insert phases
   const phaseRows = macroPlan.phases.map((p) => ({ plan_id: plan.id, ...p }))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from('plan_phases').insert(phaseRows)
+
+  await admin.from('plan_phases').insert(phaseRows)
 
   // 4. Insert weeks
   const weekRows = macroPlan.weeks.map((w) => ({
@@ -153,15 +151,15 @@ export async function POST(request: Request) {
     ...w,
     start_date: format(addWeeks(parseISO(start_date), w.week_num - 1), 'yyyy-MM-dd'),
   }))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: insertedWeeks } = (await (admin as any)
+
+  const { data: insertedWeeks } = (await admin
     .from('plan_weeks')
     .insert(weekRows)
     .select('id, week_num')) as { data: Array<{ id: string; week_num: number }> | null }
 
   // 5. Log generation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from('plan_generations').insert({
+
+  await admin.from('plan_generations').insert({
     plan_id: plan.id,
     trigger: 'initial',
     scope: { weeks: [1, total_weeks] },

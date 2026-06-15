@@ -25,8 +25,7 @@ export async function POST(request: Request) {
     const email_enc = encryptCredential(email)
     const password_enc = encryptCredential(password)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('garmin_credentials')
       .upsert({ user_id: user.id, email_enc, password_enc }, { onConflict: 'user_id' })
 
@@ -47,11 +46,7 @@ export async function DELETE() {
 
   if (authError || !user) return apiError('Non authentifié', 401)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('garmin_credentials')
-    .delete()
-    .eq('user_id', user.id)
+  const { error } = await supabase.from('garmin_credentials').delete().eq('user_id', user.id)
 
   if (error) return apiError((error as { message: string }).message)
   return apiSuccess({ success: true })

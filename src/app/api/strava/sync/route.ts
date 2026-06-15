@@ -11,8 +11,7 @@ export async function POST() {
   } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: creds, error: credsError } = await (supabase as any)
+  const { data: creds, error: credsError } = await supabase
     .from('strava_credentials')
     .select('athlete_id, access_token, refresh_token, expires_at')
     .eq('user_id', user.id)
@@ -35,8 +34,7 @@ export async function POST() {
   }
 
   if (tokens.access_token !== creds.access_token) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any)
+    await admin
       .from('strava_credentials')
       .update({
         access_token: tokens.access_token,
@@ -59,15 +57,14 @@ export async function POST() {
   }
 
   const rows = activities.map((a) => ({ ...a, user_id: user.id }))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: upsertError } = await (admin as any)
+
+  const { error: upsertError } = await admin
     .from('strava_activities')
     .upsert(rows, { onConflict: 'user_id,strava_activity_id' })
 
   if (upsertError) return apiError(upsertError.message, 500)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any)
+  await admin
     .from('strava_credentials')
     .update({ last_sync_at: new Date().toISOString() })
     .eq('user_id', user.id)

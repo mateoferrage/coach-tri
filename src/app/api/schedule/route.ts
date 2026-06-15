@@ -78,8 +78,8 @@ export async function GET(request: Request) {
   const weekEndStr = format(weekEnd, 'yyyy-MM-dd')
 
   // Fetch one-off events in the week + recurring events that overlap the week
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase as any)
+
+  const { data, error } = (await supabase
     .from('schedule_events')
     .select('*')
     .eq('user_id', user.id)
@@ -112,8 +112,7 @@ export async function POST(request: Request) {
 
   const { is_recurring, recurrence_day, recurrence_end_date, ...rest } = parsed.data
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase as any)
+  const { data, error } = (await supabase
     .from('schedule_events')
     .insert({
       user_id: user.id,

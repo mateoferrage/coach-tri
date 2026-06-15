@@ -160,21 +160,6 @@ function computeVolumes(activities: ActivityRow[]) {
   return vol
 }
 
-/* ── Wellness helpers ─────────────────────────────────────────────────────── */
-
-type WellnessRow = {
-  hrv_rmssd: number | null
-  body_battery_start: number | null
-  resting_hr: number | null
-  steps: number | null
-  sleep_duration_s: number | null
-}
-
-function avg(arr: number[]): number | null {
-  if (!arr.length) return null
-  return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
-}
-
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
 export default async function ProfilePage() {
@@ -185,63 +170,42 @@ export default async function ProfilePage() {
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [
-    profileRes,
-    garminCredsRes,
-    garminStatsRes,
-    wellnessRes,
-    activitiesRes,
-    physiologyRes,
-    stravaCredsRes,
-  ] = await Promise.all([
-    (supabase as any)
-      .from('profiles')
-      .select(
-        'first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date, equipment',
-      )
-      .eq('id', user!.id)
-      .single(),
+  const [profileRes, garminCredsRes, garminStatsRes, activitiesRes, physiologyRes, stravaCredsRes] =
+    await Promise.all([
+      supabase
+        .from('profiles')
+        .select(
+          'first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date, equipment',
+        )
+        .eq('id', user!.id)
+        .single(),
 
-    (supabase as any)
-      .from('garmin_credentials')
-      .select('last_sync_at')
-      .eq('user_id', user!.id)
-      .single(),
+      supabase.from('garmin_credentials').select('last_sync_at').eq('user_id', user!.id).single(),
 
-    (supabase as any).from('garmin_stats').select('*').eq('user_id', user!.id).single(),
+      supabase.from('garmin_stats').select('*').eq('user_id', user!.id).single(),
 
-    (supabase as any)
-      .from('garmin_wellness')
-      .select('hrv_rmssd, body_battery_start, resting_hr, steps, sleep_duration_s')
-      .eq('user_id', user!.id)
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
-      .order('date', { ascending: false }),
+      supabase
+        .from('garmin_activities')
+        .select('activity_type, distance_m, duration_s, aerobic_te')
+        .eq('user_id', user!.id)
+        .gte('started_at', thirtyDaysAgo.toISOString())
+        .order('started_at', { ascending: false }),
 
-    (supabase as any)
-      .from('garmin_activities')
-      .select('activity_type, distance_m, duration_s, aerobic_te')
-      .eq('user_id', user!.id)
-      .gte('started_at', thirtyDaysAgo.toISOString())
-      .order('started_at', { ascending: false }),
+      supabase
+        .from('physiology_current')
+        .select(
+          'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, resting_hr, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date',
+        )
+        .eq('user_id', user!.id)
+        .maybeSingle(),
 
-    (supabase as any)
-      .from('physiology_current')
-      .select(
-        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, resting_hr, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date',
-      )
-      .eq('user_id', user!.id)
-      .maybeSingle(),
-
-    (supabase as any)
-      .from('strava_credentials')
-      .select('last_sync_at')
-      .eq('user_id', user!.id)
-      .maybeSingle(),
-  ])
+      supabase
+        .from('strava_credentials')
+        .select('last_sync_at')
+        .eq('user_id', user!.id)
+        .maybeSingle(),
+    ])
 
   const profile = profileRes.data as {
     first_name: string | null
@@ -254,7 +218,6 @@ export default async function ProfilePage() {
   } | null
   const garminCreds = garminCredsRes.data as { last_sync_at: string | null } | null
   const gStats = garminStatsRes.data as Record<string, unknown> | null
-  const wellness = (wellnessRes.data ?? []) as WellnessRow[]
   const activities = (activitiesRes.data ?? []) as ActivityRow[]
   const physiology = physiologyRes.data as {
     vma_kmh: number | null
@@ -517,8 +480,7 @@ export default async function ProfilePage() {
 
       {/* ── Matériel ── */}
       <section>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        <EquipmentSection initial={(profile?.equipment ?? {}) as any} />
+        <EquipmentSection initial={profile?.equipment ?? {}} />
       </section>
 
       {/* ── Informations personnelles ── */}

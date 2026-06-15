@@ -32,8 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { id } = await params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase as any)
+  const { data, error } = (await supabase
     .from('sessions')
     .select('*, plan_week:plan_weeks(week_num, phase, start_date)')
     .eq('id', id)
@@ -66,8 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       : {}),
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase as any)
+  const { data, error } = (await supabase
     .from('sessions')
     .update(updates)
     .eq('id', id)

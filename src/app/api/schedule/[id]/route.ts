@@ -15,8 +15,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const parsed = ScheduleEventSchema.partial().safeParse(body)
   if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('schedule_events')
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -39,8 +38,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { id } = await params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('schedule_events')
     .delete()
     .eq('id', id)

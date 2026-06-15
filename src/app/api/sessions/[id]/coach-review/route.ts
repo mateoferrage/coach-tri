@@ -24,8 +24,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const { id: session_id } = await params
 
   // Fetch session with its linked Garmin activity
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: session, error: sessionError } = await (supabase as any)
+
+  const { data: session, error: sessionError } = await supabase
     .from('sessions')
     .select(
       'title, discipline, session_type, duration_min, target_zone, target_values, expected_rpe, structure, coaching_note, actual_rpe, garmin_activity_id',
@@ -39,8 +39,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return apiError('Aucune activité Garmin liée à cette séance', 400)
 
   // Fetch the full Garmin activity data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: activity, error: activityError } = await (supabase as any)
+
+  const { data: activity, error: activityError } = await supabase
     .from('garmin_activities')
     .select(
       'activity_type, name, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te, anaerobic_te',
@@ -86,8 +86,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   // Persist review in sessions table
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from('sessions').update({ garmin_review: review }).eq('id', session_id)
+
+  await admin.from('sessions').update({ garmin_review: review }).eq('id', session_id)
 
   return apiSuccess(review)
 }

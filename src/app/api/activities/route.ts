@@ -32,8 +32,7 @@ export async function POST(request: Request) {
   const duration_s = Math.round(duration_min * 60)
   const avg_speed_ms = distance_m && duration_s ? distance_m / duration_s : null
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any)
+  const { data, error } = await admin
     .from('garmin_activities')
     .insert({
       user_id: user.id,

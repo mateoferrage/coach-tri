@@ -39,8 +39,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const admin = createAdminClient()
 
   // Verify plan ownership
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan } = (await (supabase as any)
+
+  const { data: plan } = (await supabase
     .from('plans')
     .select('id, status')
     .eq('id', plan_id)
@@ -58,52 +58,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     physiologyResult,
     garminStatsResult,
   ] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
-      .from('plan_weeks')
-      .select('*')
-      .eq('plan_id', plan_id)
-      .eq('week_num', week_num)
-      .single() as Promise<{ data: Record<string, unknown> | null }>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    admin.from('plan_weeks').select('*').eq('plan_id', plan_id).eq('week_num', week_num).single(),
+    supabase
       .from('profiles')
       .select('level, weekly_hours_avg, available_disciplines, equipment')
       .eq('id', user.id)
-      .single() as Promise<{ data: Record<string, unknown> | null }>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
+      .single(),
+    admin
       .from('plan_weeks')
       .select(
         'id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date',
       )
       .eq('plan_id', plan_id)
-      .order('week_num', { ascending: true }) as Promise<{
-      data: Array<Record<string, unknown>> | null
-    }>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
+      .order('week_num', { ascending: true }),
+    admin
       .from('garmin_wellness')
       .select('date, hrv_rmssd, body_battery_start, resting_hr')
       .eq('user_id', user.id)
       .order('date', { ascending: false })
-      .limit(7) as Promise<{ data: Array<Record<string, unknown>> | null }>,
+      .limit(7),
     // Physiology — use the view that returns the most recent measure
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
+    admin
       .from('physiology_current')
       .select(
         'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m',
       )
       .eq('user_id', user.id)
-      .maybeSingle() as Promise<{ data: Record<string, unknown> | null }>,
+      .maybeSingle(),
     // Garmin stats for VO2max fallback when no physiology data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
-      .from('garmin_stats')
-      .select('vo2max_run')
-      .eq('user_id', user.id)
-      .maybeSingle() as Promise<{ data: Record<string, unknown> | null }>,
+    admin.from('garmin_stats').select('vo2max_run').eq('user_id', user.id).maybeSingle(),
   ])
 
   const week = weekResult.data
@@ -153,8 +136,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (priorWeekRows.length > 0) {
     const priorWeekIds = priorWeekRows.map((w) => w.id as string)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: priorSessions } = (await (admin as any)
+
+    const { data: priorSessions } = (await admin
       .from('sessions')
       .select(
         'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min',
@@ -203,8 +186,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // ── Schedule constraints for this week ───────────────────────────────────────
   const weekStartDate = week.start_date as string
   const weekEndDate = format(addDays(parseISO(weekStartDate), 6), 'yyyy-MM-dd')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rawScheduleEvents } = (await (supabase as any)
+
+  const { data: rawScheduleEvents } = (await supabase
     .from('schedule_events')
     .select('*')
     .eq('user_id', user.id)
@@ -245,8 +228,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Strava stats for Scenario B (silently skip if not connected)
   let stravaStatsBlock: string | undefined
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: stravaCreds } = await (supabase as any)
+
+  const { data: stravaCreds } = await supabase
     .from('strava_credentials')
     .select('athlete_id, access_token, refresh_token, expires_at')
     .eq('user_id', user.id)
@@ -263,8 +246,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const refreshed = await refreshIfNeeded(tokens)
       if (refreshed.access_token !== stravaCreds.access_token) {
         const adminClient = createAdminClient()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (adminClient as any)
+
+        await adminClient
           .from('strava_credentials')
           .update({
             access_token: refreshed.access_token,
@@ -358,8 +341,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   // Delete existing planned sessions for this week (keep done/skipped)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any)
+
+  await admin
     .from('sessions')
     .delete()
     .eq('plan_week_id', week.id as string)
@@ -382,8 +365,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: insertedSessions, error: insertError } = (await (admin as any)
+  const { data: insertedSessions, error: insertError } = (await admin
     .from('sessions')
     .insert(sessionRows)
     .select('id, title, session_date, discipline')) as {
@@ -394,8 +376,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (insertError) return apiError(insertError.message)
 
   // Log generation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (admin as any).from('plan_generations').insert({
+
+  await admin.from('plan_generations').insert({
     plan_id,
     trigger: 'week_regenerate',
     scope: { week_num },

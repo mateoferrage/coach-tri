@@ -14,10 +14,8 @@ export async function GET(request: Request) {
   const end = searchParams.get('end')
   if (!start || !end) return apiError('Paramètres start et end requis', 400)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // Try with session_time first; fall back if the column doesn't exist yet (migration pending)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let { data, error } = await (supabase as any)
+  let { data, error }: { data: unknown[] | null; error: unknown } = await supabase
     .from('sessions')
     .select(
       'id, title, discipline, session_type, session_date, duration_min, status, day_part, session_time',
@@ -29,8 +27,7 @@ export async function GET(request: Request) {
 
   if (error && (error as { message: string }).message?.includes('session_time')) {
     // Column not yet created — retry without it
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fallback = await (supabase as any)
+    const fallback = await supabase
       .from('sessions')
       .select('id, title, discipline, session_type, session_date, duration_min, status, day_part')
       .eq('user_id', user.id)

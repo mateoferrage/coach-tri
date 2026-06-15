@@ -374,7 +374,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 !runPace && (
                   <TestHint>
                     <strong>Test 30 min</strong> : cours 30 min le plus vite possible à allure
-                    constante. L'allure moyenne = ton allure au seuil lactique.
+                    constante. L&apos;allure moyenne = ton allure au seuil lactique.
                     <br />
                     <br />
                     <strong>Depuis la VMA</strong> : seuil ≈ 85–90% VMA. À 16 km/h VMA → seuil ≈ 14
@@ -394,7 +394,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 !hrMaxRun && (
                   <TestHint>
                     Sprinte 2–3 fois 30 s à fond avec 30 s de récup après un bon échauffement. La FC
-                    max = valeur la plus haute vue sur ta montre pendant l'effort.
+                    max = valeur la plus haute vue sur ta montre pendant l&apos;effort.
                   </TestHint>
                 )
               }
@@ -409,8 +409,8 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
               hint={
                 !hrThreshRun && (
                   <TestHint>
-                    Lis la FC moyenne sur tes 20–30 dernières minutes lors d'un test à allure seuil.
-                    Ou estime : FC seuil ≈ 88–92% de ta FC max.
+                    Lis la FC moyenne sur tes 20–30 dernières minutes lors d&apos;un test à allure
+                    seuil. Ou estime : FC seuil ≈ 88–92% de ta FC max.
                   </TestHint>
                 )
               }
@@ -452,12 +452,12 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
               hint={
                 !ftp && (
                   <TestHint>
-                    <strong>Test 20 min</strong> : après 45 min d'échauffement avec 3 × 1 min vifs,
-                    pédale 20 min à fond. FTP = puissance moyenne × 0.95.
+                    <strong>Test 20 min</strong> : après 45 min d&apos;échauffement avec 3 × 1 min
+                    vifs, pédale 20 min à fond. FTP = puissance moyenne × 0.95.
                     <br />
                     <br />
-                    <strong>Test rampe</strong> : augmente la puissance de 20W chaque minute jusqu'à
-                    l'échec. FTP ≈ puissance max atteinte × 0.75.
+                    <strong>Test rampe</strong> : augmente la puissance de 20W chaque minute
+                    jusqu&apos;à l&apos;échec. FTP ≈ puissance max atteinte × 0.75.
                   </TestHint>
                 )
               }
@@ -472,8 +472,8 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
               hint={
                 !hrMax && (
                   <TestHint>
-                    Généralement 5–10 bpm plus basse qu'en course. Mesure lors du dernier sprint
-                    d'un test FTP ou lors d'une montée à fond.
+                    Généralement 5–10 bpm plus basse qu&apos;en course. Mesure lors du dernier
+                    sprint d&apos;un test FTP ou lors d&apos;une montée à fond.
                   </TestHint>
                 )
               }

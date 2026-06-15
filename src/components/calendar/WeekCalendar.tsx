@@ -92,7 +92,7 @@ export function WeekCalendar() {
   const [nowFrac, setNowFrac] = useState<number | null>(null)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
   // Drag & drop
-  const draggingId = useRef<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null)
 
@@ -442,7 +442,7 @@ export function WeekCalendar() {
                         onDrop={(e) => {
                           e.preventDefault()
                           setDropTarget(null)
-                          const id = draggingId.current
+                          const id = draggingId
                           if (id) handleMoveSession(id, dStr, h)
                         }}
                         style={{
@@ -557,20 +557,20 @@ export function WeekCalendar() {
                       ? timeToFrac(sess.session_time)
                       : (DAY_PART_HOUR[sess.day_part ?? ''] ?? 7)
                     const endH = startH + (sess.duration_min ?? 60) / 60
-                    const isDragging = draggingId.current === sess.id
+                    const isDragging = draggingId === sess.id
 
                     return (
                       <div
                         key={sess.id}
                         draggable
                         onDragStart={(e) => {
-                          draggingId.current = sess.id
+                          setDraggingId(sess.id)
                           e.dataTransfer.effectAllowed = 'move'
                           // ghost image via dataTransfer
                           e.dataTransfer.setData('text/plain', sess.id)
                         }}
                         onDragEnd={() => {
-                          draggingId.current = null
+                          setDraggingId(null)
                           setDropTarget(null)
                         }}
                         style={{

@@ -11,8 +11,8 @@ export async function DELETE() {
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: deleteError } = await (admin as any)
+
+  const { error: deleteError } = await admin
     .from('strava_credentials')
     .delete()
     .eq('user_id', user.id)

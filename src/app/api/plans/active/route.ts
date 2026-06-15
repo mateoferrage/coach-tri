@@ -9,8 +9,7 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan, error } = (await (supabase as any)
+  const { data: plan, error } = (await supabase
     .from('plans')
     .select(
       `

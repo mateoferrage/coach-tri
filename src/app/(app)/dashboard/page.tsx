@@ -49,11 +49,10 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profileRes, planRes, todaySessionRes, nextSessionRes] = await Promise.all([
-    (supabase as any).from('profiles').select('first_name, level').eq('id', user!.id).single(),
+    supabase.from('profiles').select('first_name, level').eq('id', user!.id).single(),
 
-    (supabase as any)
+    supabase
       .from('plans')
       .select(
         'id, name, start_date, end_date, status, goal:goals(race_name, race_date), plan_phases(*), plan_weeks(id, week_num, phase)',
@@ -64,7 +63,7 @@ export default async function DashboardPage() {
       .limit(1)
       .maybeSingle(),
 
-    (supabase as any)
+    supabase
       .from('sessions')
       .select(
         'id, title, discipline, session_type, duration_min, planned_tss, expected_rpe, status, coaching_note',
@@ -76,7 +75,7 @@ export default async function DashboardPage() {
       .limit(1)
       .maybeSingle(),
 
-    (supabase as any)
+    supabase
       .from('sessions')
       .select('id, title, discipline, session_type, duration_min, session_date, status')
       .eq('user_id', user!.id)
@@ -317,7 +316,7 @@ export default async function DashboardPage() {
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Ton coach
         </h2>
-        <CoachChat planId={(plan as Record<string, unknown> | null)?.id as string | null} />
+        <CoachChat />
       </section>
     </div>
   )

@@ -18,8 +18,7 @@ export default async function ProgramPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan } = (await (supabase as any)
+  const { data: plan } = (await supabase
     .from('plans')
     .select(
       `

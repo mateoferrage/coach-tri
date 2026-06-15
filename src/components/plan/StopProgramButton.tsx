@@ -12,9 +12,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
-const MINT = 'oklch(0.843 0.165 157)'
-const DARK = 'oklch(0.19 0 0)'
-
 export function StopProgramButton({ planId }: { planId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -49,7 +46,7 @@ export function StopProgramButton({ planId }: { planId: string }) {
           <DialogHeader>
             <DialogTitle>Arrêter le programme ?</DialogTitle>
             <DialogDescription>
-              Le programme sera archivé et vous n'aurez plus de programme actif. Vos séances
+              Le programme sera archivé et vous n&apos;aurez plus de programme actif. Vos séances
               réalisées et données Garmin sont conservées.
             </DialogDescription>
           </DialogHeader>

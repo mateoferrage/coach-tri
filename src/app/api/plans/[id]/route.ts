@@ -12,8 +12,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { id } = await params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan } = (await (supabase as any)
+  const { data: plan } = (await supabase
     .from('plans')
     .select('id, user_id')
     .eq('id', id)
@@ -23,8 +22,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!plan) return apiError('Plan introuvable', 404)
 
   const admin = createAdminClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (admin as any).from('plans').update({ status: 'archived' }).eq('id', id)
+
+  const { error } = await admin.from('plans').update({ status: 'archived' }).eq('id', id)
 
   if (error) return apiError(error.message)
   return apiSuccess({ archived: true })
@@ -40,8 +39,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { id } = await params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase as any)
+  const { data, error } = (await supabase
     .from('plans')
     .select(
       `

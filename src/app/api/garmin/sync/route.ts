@@ -150,7 +150,6 @@ async function fetchGarminStats(gc: any): Promise<GarminStats> {
     raw_fitness: null,
   }
 
-  let userProfileId: number | null = null
   let garminDisplayName: string | null = null // UUID used for PR endpoint
   const today = toDateStr(new Date())
   const weekAgo = toDateStr(new Date(Date.now() - 7 * 86_400_000))
@@ -167,7 +166,6 @@ async function fetchGarminStats(gc: any): Promise<GarminStats> {
       profile?.profileImageUrlLarge ??
       profile?.profileImage ??
       null
-    userProfileId = profile?.id ?? profile?.userId ?? profile?.userProfileId ?? null
     garminDisplayName = profile?.displayName ?? null // UUID — works for API paths
     stats.raw_profile = profile
   } catch {
@@ -350,8 +348,7 @@ export async function POST() {
 
   const admin = createAdminClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: creds } = (await (admin as any)
+  const { data: creds } = (await admin
     .from('garmin_credentials')
     .select('email_enc, password_enc, session_data, last_sync_at')
     .eq('user_id', user.id)
@@ -381,8 +378,7 @@ export async function POST() {
 
     // Upsert activities
     if (activities.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (admin as any).from('garmin_activities').upsert(
+      await admin.from('garmin_activities').upsert(
         activities.map((a) => ({ ...a, user_id: user.id })),
         { onConflict: 'user_id,garmin_activity_id' },
       )
@@ -390,8 +386,7 @@ export async function POST() {
 
     // Upsert wellness
     if (wellness.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (admin as any).from('garmin_wellness').upsert(
+      await admin.from('garmin_wellness').upsert(
         wellness.map((w) => ({ ...w, user_id: user.id })),
         { onConflict: 'user_id,date' },
       )
@@ -406,13 +401,13 @@ export async function POST() {
     for (const [key, value] of Object.entries(garminStats)) {
       if (value !== null) statsPayload[key] = value
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any).from('garmin_stats').upsert(statsPayload, { onConflict: 'user_id' })
+
+    await admin.from('garmin_stats').upsert(statsPayload, { onConflict: 'user_id' })
 
     // Persist refreshed tokens
     const tokens = gc.exportToken() as StoredTokens
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any)
+
+    await admin
       .from('garmin_credentials')
       .update({ last_sync_at: new Date().toISOString(), session_data: tokens })
       .eq('user_id', user.id)

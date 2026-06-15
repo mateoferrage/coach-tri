@@ -69,8 +69,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
   const { id } = await params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: session } = (await (supabase as any)
+  const { data: session } = (await supabase
     .from('sessions')
     .select(
       '*, plan_week:plan_weeks(week_num, phase, start_date), linked_garmin:garmin_activity_id(id, activity_type, name, started_at, duration_s, distance_m)',
@@ -97,10 +96,9 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const dateTo = new Date(sessionDate)
   dateTo.setDate(dateTo.getDate() + 1)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: garminCandidates } =
     garminTypes.length > 0
-      ? await (supabase as any)
+      ? await supabase
           .from('garmin_activities')
           .select('id, activity_type, name, started_at, duration_s, distance_m')
           .eq('user_id', user.id)

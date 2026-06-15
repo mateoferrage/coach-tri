@@ -27,11 +27,7 @@ interface Message {
   created_at: string
 }
 
-interface Props {
-  planId: string | null
-}
-
-export default function CoachChat({ planId }: Props) {
+export default function CoachChat() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)

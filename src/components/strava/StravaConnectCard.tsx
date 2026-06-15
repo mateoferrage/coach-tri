@@ -25,7 +25,8 @@ export function StravaConnectCard({
 
   useEffect(() => {
     if (searchParams.get('strava_connected') === '1') {
-      setConnected(true)
+      // Le serveur renvoie déjà connected=true après le callback OAuth ;
+      // on nettoie juste l'URL et on confirme à l'utilisateur.
       toast.success(
         'Compte Strava connecté ! Lance une synchronisation pour importer tes activités.',
       )

@@ -30,8 +30,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const admin = createAdminClient()
 
   // Fetch the message with its action
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: msg } = (await (supabase as any)
+
+  const { data: msg } = (await supabase
     .from('chat_messages')
     .select('id, proposed_action, action_status')
     .eq('id', id)
@@ -51,8 +51,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const action = msg.proposed_action
 
   // Update status in DB
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).from('chat_messages').update({ action_status }).eq('id', id)
+
+  await supabase.from('chat_messages').update({ action_status }).eq('id', id)
 
   if (action_status === 'rejected') {
     return apiSuccess({ action_status: 'rejected' })
@@ -63,8 +63,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (action.type === 'cancel_session') {
     const sessionId = p.session_id as string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin as any)
+
+    const { error } = await admin
       .from('sessions')
       .update({ status: 'skipped' })
       .eq('id', sessionId)
@@ -76,8 +76,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (action.type === 'move_session') {
     const sessionId = p.session_id as string
     const newDate = p.new_date as string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin as any)
+
+    const { error } = await admin
       .from('sessions')
       .update({ session_date: newDate })
       .eq('id', sessionId)
@@ -91,8 +91,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const sessionIdB = p.session_id_b as string
 
     // Fetch both sessions to get their current dates
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sessions, error: fetchError } = await (admin as any)
+
+    const { data: sessions, error: fetchError } = await admin
       .from('sessions')
       .select('id, session_date')
       .in('id', [sessionIdA, sessionIdB])
@@ -108,14 +108,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const dateA = sesA.session_date
     const dateB = sesB.session_date
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [resA, resB] = await Promise.all([
-      (admin as any)
+      admin
         .from('sessions')
         .update({ session_date: dateB })
         .eq('id', sessionIdA)
         .eq('user_id', user.id),
-      (admin as any)
+      admin
         .from('sessions')
         .update({ session_date: dateA })
         .eq('id', sessionIdB)
@@ -134,8 +133,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (p.duration_min) updates.duration_min = p.duration_min
     if (p.session_type) updates.session_type = p.session_type
     if (p.coaching_note) updates.coaching_note = p.coaching_note
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (admin as any)
+
+    const { error } = await admin
       .from('sessions')
       .update(updates)
       .eq('id', sessionId)

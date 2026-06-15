@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -156,7 +156,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
     resolver: zodResolver(GoalFormSchema),
     defaultValues: { priority: 'A', target_type: 'finish' },
   })
-  const watchTargetType = goalForm.watch('target_type')
+  const watchTargetType = useWatch({ control: goalForm.control, name: 'target_type' })
   const settingsForm = useForm<ProgramSettings>({
     resolver: zodResolver(ProgramSettingsSchema),
     defaultValues: {
@@ -164,6 +164,8 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
       start_date: format(new Date(), 'yyyy-MM-dd'),
     },
   })
+  // useWatch (plutôt que settingsForm.watch dans le render) : compatible React Compiler
+  const selectedMethodology = useWatch({ control: settingsForm.control, name: 'methodology' })
 
   function onRaceTypeChange(type: string | null) {
     if (!type) return
@@ -469,7 +471,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                   settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])
                 }
                 className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                  settingsForm.watch('methodology') === m.value
+                  selectedMethodology === m.value
                     ? 'border-primary bg-primary/10'
                     : 'border-border hover:border-primary/40'
                 }`}

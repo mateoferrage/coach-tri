@@ -30,8 +30,7 @@ export async function GET(request: Request) {
     const tokens = await exchangeCode(code)
     const admin = createAdminClient()
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any).from('strava_credentials').upsert(
+    await admin.from('strava_credentials').upsert(
       {
         user_id: user.id,
         athlete_id: tokens.athlete_id,
