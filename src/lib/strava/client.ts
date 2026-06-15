@@ -81,20 +81,24 @@ function projectActivity(raw: StravaRawActivity): StravaActivityCompact {
   }
 }
 
+// Strava renvoie des décimaux (ex. 180.7 W, 145.3 bpm) ; ces colonnes sont des integer en DB.
+const toInt = (n: number | undefined): number | null =>
+  n == null ? null : Math.round(n)
+
 function toRecord(raw: StravaRawActivity): StravaActivityRecord {
   return {
     strava_activity_id: raw.id,
     activity_type:      normalizeType(raw.type),
     name:               raw.name ?? null,
     started_at:         raw.start_date_local,
-    duration_s:         raw.elapsed_time ?? null,
+    duration_s:         toInt(raw.elapsed_time),
     distance_m:         raw.distance ?? null,
-    avg_hr:             raw.average_heartrate ?? null,
-    max_hr:             raw.max_heartrate ?? null,
+    avg_hr:             toInt(raw.average_heartrate),
+    max_hr:             toInt(raw.max_heartrate),
     avg_speed_ms:       raw.average_speed ?? null,
     elevation_gain_m:   raw.total_elevation_gain ?? null,
-    avg_watts:          raw.average_watts ?? null,
-    suffer_score:       raw.suffer_score ?? null,
+    avg_watts:          toInt(raw.average_watts),
+    suffer_score:       toInt(raw.suffer_score),
   }
 }
 
