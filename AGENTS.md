@@ -14,6 +14,34 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
+## Méthode de travail (réflexion attendue)
+
+> Ces principes priment sur la vitesse. L'objectif est un code **pro, durable et vérifié**, pas une correction qui « passe ».
+
+1. **Comprendre avant d'agir.** Lire le code concerné et identifier la **cause racine** avant de proposer un correctif. Ne pas se fier aux apparences : un symptôme (erreur de lint, bug) a presque toujours une origine structurelle (ex. les casts `as any` partout venaient des clients Supabase non typés — la vraie correction était de typer les factories, pas de masquer chaque appel).
+
+2. **Corriger la racine, jamais le symptôme.** Bannir les rustines qui font taire l'outil sans régler le fond : `as any`, `@ts-ignore`, `eslint-disable`, `try/catch` vides. Si une exception est réellement justifiée (ex. types Supabase générés incomplets), elle doit être **scopée et commentée** avec la raison — jamais globale ni silencieuse.
+
+3. **Ne jamais masquer un problème.** Quand une correction en révèle une autre (ex. retirer un cast fait apparaître un vrai désaccord de types), corriger ce nouveau problème pour de vrai. Un warning/erreur supprimé doit l'être parce qu'il est **résolu**, pas caché.
+
+4. **Vérifier systématiquement, preuves à l'appui.** Après tout changement, lancer la chaîne complète et lire la sortie avant de conclure :
+
+   ```bash
+   npm run typecheck && npm run lint && npm test && npm run format:check
+   ```
+
+   Ne **jamais** affirmer « c'est corrigé / terminé » sans avoir exécuté ces commandes et constaté le résultat. Énoncer les preuves (sortie réelle), pas des suppositions.
+
+5. **Distinguer l'intentionnel de l'accidentel.** Avant de supprimer ou réécrire, lire les commentaires, le contexte et l'historique git. Un délai de 350 ms, un cast scopé, un `eslint-disable` justifié peuvent être voulus — vérifier avant de toucher.
+
+6. **Changements minimaux et cohérents.** Respecter le style existant (Prettier : guillemets simples, pas de point-virgule). Pas de refactor opportuniste hors périmètre. Le diff doit rester lisible et focalisé.
+
+7. **Garder ce document synchronisé.** Toute évolution d'architecture, de schéma DB, de routes ou de patterns doit être répercutée ici dans le même changement. Une doc fausse fait prendre de mauvaises décisions.
+
+8. **Commits atomiques et explicites.** Un commit = une intention claire, avec un message qui décrit le _quoi_ et le _pourquoi_. Ne committer ni pousser sans demande explicite.
+
+---
+
 ## Stack technique
 
 | Couche                 | Technologie                                                                 |
@@ -360,10 +388,10 @@ MUTED  = oklch(1 0 0 / 40%)       → texte atténué
 
 ```tsx
 const supabase = await createClient() // @/lib/supabase/server
-const { data } = await (supabase as any).from('sessions').select('...')
+const { data } = await supabase.from('sessions').select('...')
 ```
 
-Le cast `as any` est utilisé partout car les types générés sont partiels.
+Les factories Supabase (`server.ts`, `client.ts`, `admin.ts`) renvoient un `SupabaseClient` (typage permissif côté lib) : **plus aucun cast `as any`** n'est nécessaire sur les appels. Les lignes (`data`) sont typées de façon souple ; quand on a besoin d'une forme précise côté lecture, on annote explicitement le résultat (`as { … } | null`) plutôt que `any`. Si un jour `src/types/db.ts` est régénéré complet (`npm run db:types`), on pourra typer les clients avec `<Database>` pour un typage strict de bout en bout.
 
 ### Route Handlers → toujours valider avec Zod d'abord
 
@@ -376,7 +404,7 @@ if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
 ```ts
 const admin = createAdminClient() // @/lib/supabase/admin (service_role)
-await (admin as any).from('sessions').insert(...)
+await admin.from('sessions').insert(...)
 ```
 
 ### Helpers de réponse API
