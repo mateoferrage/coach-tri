@@ -1,0 +1,59 @@
+'use client'
+
+import { useEffect } from 'react'
+
+// Capture les erreurs du root layout lui-même. Doit fournir ses propres <html>/<body>.
+// Styles inline uniquement : les variables de police/thème ne sont pas garanties ici.
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    console.error(error)
+  }, [error])
+
+  return (
+    <html lang="fr">
+      <body
+        style={{
+          margin: 0,
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1.5rem',
+          background: 'oklch(0.15 0 0)',
+          color: 'oklch(0.95 0 0)',
+          fontFamily: 'system-ui, sans-serif',
+          textAlign: 'center',
+          padding: '2rem',
+        }}
+      >
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>
+          Quelque chose s&apos;est mal passé
+        </h1>
+        <p style={{ color: 'oklch(0.72 0 0)', maxWidth: '28rem', margin: 0 }}>
+          L&apos;application a rencontré une erreur inattendue.
+        </p>
+        <button
+          onClick={reset}
+          style={{
+            border: 'none',
+            borderRadius: '0.75rem',
+            padding: '0.625rem 1.25rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            background: 'oklch(0.843 0.165 157)',
+            color: 'oklch(0.12 0 0)',
+          }}
+        >
+          Réessayer
+        </button>
+      </body>
+    </html>
+  )
+}
