@@ -3,7 +3,10 @@ import { apiError, apiSuccess } from '@/lib/utils/errors'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { searchParams } = new URL(request.url)
@@ -16,7 +19,9 @@ export async function GET(request: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let { data, error } = await (supabase as any)
     .from('sessions')
-    .select('id, title, discipline, session_type, session_date, duration_min, status, day_part, session_time')
+    .select(
+      'id, title, discipline, session_type, session_date, duration_min, status, day_part, session_time',
+    )
     .eq('user_id', user.id)
     .gte('session_date', start)
     .lte('session_date', end)

@@ -1,120 +1,144 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ACCENT as MINT, SURFACE as DARK, DIVIDER as DIV, TEXT_FAINT as MUTED, withAlpha } from "@/lib/theme";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  ACCENT as MINT,
+  SURFACE as DARK,
+  DIVIDER as DIV,
+  TEXT_FAINT as MUTED,
+  withAlpha,
+} from '@/lib/theme'
 
 const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: "🏊", bike: "🚴", run: "🏃", triathlon: "🏁", strength: "💪", other: "⚡",
-};
+  swim: '🏊',
+  bike: '🚴',
+  run: '🏃',
+  triathlon: '🏁',
+  strength: '💪',
+  other: '⚡',
+}
 const DISCIPLINE_LABEL: Record<string, string> = {
-  swim: "Natation", bike: "Vélo", run: "Course", triathlon: "Triathlon", strength: "Muscu", other: "Activité",
-};
+  swim: 'Natation',
+  bike: 'Vélo',
+  run: 'Course',
+  triathlon: 'Triathlon',
+  strength: 'Muscu',
+  other: 'Activité',
+}
 
 const VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  excellent: { label: "Excellent", color: MINT,                   bg: "oklch(0.843 0.165 157 / 12%)" },
-  good:      { label: "Bonne séance",  color: "oklch(0.78 0.14 157)", bg: "oklch(0.78 0.14 157 / 10%)" },
-  average:   { label: "Correcte",  color: "oklch(0.78 0.16 75)",   bg: "oklch(0.78 0.16 75 / 10%)"  },
-  poor:      { label: "À revoir",  color: "oklch(0.65 0.20 25)",   bg: "oklch(0.65 0.20 25 / 10%)"  },
-};
+  excellent: { label: 'Excellent', color: MINT, bg: 'oklch(0.843 0.165 157 / 12%)' },
+  good: { label: 'Bonne séance', color: 'oklch(0.78 0.14 157)', bg: 'oklch(0.78 0.14 157 / 10%)' },
+  average: { label: 'Correcte', color: 'oklch(0.78 0.16 75)', bg: 'oklch(0.78 0.16 75 / 10%)' },
+  poor: { label: 'À revoir', color: 'oklch(0.65 0.20 25)', bg: 'oklch(0.65 0.20 25 / 10%)' },
+}
 
 interface GarminActivity {
-  id: string;
-  activity_type: string;
-  name: string | null;
-  started_at: string;
-  duration_s: number | null;
-  distance_m: number | null;
+  id: string
+  activity_type: string
+  name: string | null
+  started_at: string
+  duration_s: number | null
+  distance_m: number | null
 }
 
 interface CoachReview {
-  verdict: "excellent" | "good" | "average" | "poor";
-  message: string;
+  verdict: 'excellent' | 'good' | 'average' | 'poor'
+  message: string
 }
 
 interface Props {
-  sessionId: string;
-  linkedActivity: GarminActivity | null;
-  candidates: GarminActivity[];
-  initialReview?: CoachReview | null;
+  sessionId: string
+  linkedActivity: GarminActivity | null
+  candidates: GarminActivity[]
+  initialReview?: CoachReview | null
 }
 
 function fmt(duration_s: number | null, distance_m: number | null, activityType: string): string {
-  const parts: string[] = [];
+  const parts: string[] = []
   if (duration_s) {
-    const h = Math.floor(duration_s / 3600);
-    const m = Math.floor((duration_s % 3600) / 60);
-    parts.push(h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`);
+    const h = Math.floor(duration_s / 3600)
+    const m = Math.floor((duration_s % 3600) / 60)
+    parts.push(h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`)
   }
   if (distance_m) {
-    parts.push(activityType === "swim" ? `${Math.round(distance_m)} m` : `${(distance_m / 1000).toFixed(2)} km`);
+    parts.push(
+      activityType === 'swim'
+        ? `${Math.round(distance_m)} m`
+        : `${(distance_m / 1000).toFixed(2)} km`,
+    )
   }
-  return parts.join(" · ") || "—";
+  return parts.join(' · ') || '—'
 }
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("fr-FR", {
-    weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-  });
+  return new Date(iso).toLocaleString('fr-FR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 export function GarminLinker({ sessionId, linkedActivity, candidates, initialReview }: Props) {
-  const router = useRouter();
-  const [linked, setLinked]               = useState<GarminActivity | null>(linkedActivity);
-  const [pending, setPending]             = useState(false);
-  const [open, setOpen]                   = useState(false);
-  const [review, setReview]               = useState<CoachReview | null>(initialReview ?? null);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [reviewError, setReviewError]     = useState<string | null>(null);
+  const router = useRouter()
+  const [linked, setLinked] = useState<GarminActivity | null>(linkedActivity)
+  const [pending, setPending] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [review, setReview] = useState<CoachReview | null>(initialReview ?? null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
 
   async function fetchReview() {
-    setReviewLoading(true);
-    setReviewError(null);
+    setReviewLoading(true)
+    setReviewError(null)
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/coach-review`, { method: "POST" });
-      const json = await res.json() as (CoachReview & { error?: string });
-      if (!res.ok) throw new Error(json.error ?? "Erreur");
-      if (json.verdict && json.message) setReview({ verdict: json.verdict, message: json.message });
+      const res = await fetch(`/api/sessions/${sessionId}/coach-review`, { method: 'POST' })
+      const json = (await res.json()) as CoachReview & { error?: string }
+      if (!res.ok) throw new Error(json.error ?? 'Erreur')
+      if (json.verdict && json.message) setReview({ verdict: json.verdict, message: json.message })
     } catch (e) {
-      setReviewError(e instanceof Error ? e.message : "Impossible d'obtenir le retour du coach");
+      setReviewError(e instanceof Error ? e.message : "Impossible d'obtenir le retour du coach")
     } finally {
-      setReviewLoading(false);
+      setReviewLoading(false)
     }
   }
 
   async function handleLink(garminId: string | null) {
-    setPending(true);
+    setPending(true)
     try {
       const linkRes = await fetch(`/api/sessions/${sessionId}/link-garmin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ garmin_activity_id: garminId }),
-      });
+      })
       if (!linkRes.ok) {
-        const json = await linkRes.json() as { error?: string };
-        setReviewError(json.error ?? "Erreur lors du lien Garmin");
-        return;
+        const json = (await linkRes.json()) as { error?: string }
+        setReviewError(json.error ?? 'Erreur lors du lien Garmin')
+        return
       }
 
-      const newStatus = garminId ? "done" : "planned";
+      const newStatus = garminId ? 'done' : 'planned'
       await fetch(`/api/sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
-      });
+      })
 
-      const found = garminId ? (candidates.find(c => c.id === garminId) ?? null) : null;
-      setLinked(found);
-      setOpen(false);
-      setReview(null);
-      router.refresh();
-      if (garminId) fetchReview();
+      const found = garminId ? (candidates.find((c) => c.id === garminId) ?? null) : null
+      setLinked(found)
+      setOpen(false)
+      setReview(null)
+      router.refresh()
+      if (garminId) fetchReview()
     } finally {
-      setPending(false);
+      setPending(false)
     }
   }
 
-  const verdictCfg = review ? (VERDICT_CONFIG[review.verdict] ?? VERDICT_CONFIG.good) : null;
+  const verdictCfg = review ? (VERDICT_CONFIG[review.verdict] ?? VERDICT_CONFIG.good) : null
 
   return (
     <div className="space-y-3">
@@ -129,13 +153,16 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           style={{ backgroundColor: DARK, border: `1px solid ${withAlpha(MINT, 25)}` }}
         >
           <div className="flex items-start gap-3">
-            <span className="text-xl flex-shrink-0">{DISCIPLINE_EMOJI[linked.activity_type] ?? "⚡"}</span>
+            <span className="text-xl flex-shrink-0">
+              {DISCIPLINE_EMOJI[linked.activity_type] ?? '⚡'}
+            </span>
             <div>
               <p className="text-sm font-semibold" style={{ color: MINT }}>
-                {linked.name ?? DISCIPLINE_LABEL[linked.activity_type] ?? "Activité"}
+                {linked.name ?? DISCIPLINE_LABEL[linked.activity_type] ?? 'Activité'}
               </p>
               <p className="text-xs mt-0.5" style={{ color: MUTED }}>
-                {formatDateTime(linked.started_at)} · {fmt(linked.duration_s, linked.distance_m, linked.activity_type)}
+                {formatDateTime(linked.started_at)} ·{' '}
+                {fmt(linked.duration_s, linked.distance_m, linked.activity_type)}
               </p>
             </div>
           </div>
@@ -155,7 +182,11 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
             <button
               onClick={() => setOpen(true)}
               className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{ backgroundColor: DARK, border: `1px dashed ${withAlpha(MINT, 25)}`, color: MINT }}
+              style={{
+                backgroundColor: DARK,
+                border: `1px dashed ${withAlpha(MINT, 25)}`,
+                color: MINT,
+              }}
             >
               + Lier une activité Garmin
             </button>
@@ -170,20 +201,26 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 </p>
               ) : (
                 <ul className="divide-y" style={{ borderColor: DIV }}>
-                  {candidates.map(c => (
+                  {candidates.map((c) => (
                     <li key={c.id}>
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
                         className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-white/5"
                       >
-                        <span className="text-lg flex-shrink-0">{DISCIPLINE_EMOJI[c.activity_type] ?? "⚡"}</span>
+                        <span className="text-lg flex-shrink-0">
+                          {DISCIPLINE_EMOJI[c.activity_type] ?? '⚡'}
+                        </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold truncate" style={{ color: "oklch(1 0 0 / 85%)" }}>
-                            {c.name ?? DISCIPLINE_LABEL[c.activity_type] ?? "Activité"}
+                          <p
+                            className="text-sm font-bold truncate"
+                            style={{ color: 'oklch(1 0 0 / 85%)' }}
+                          >
+                            {c.name ?? DISCIPLINE_LABEL[c.activity_type] ?? 'Activité'}
                           </p>
                           <p className="text-[11px] mt-0.5" style={{ color: MUTED }}>
-                            {formatDateTime(c.started_at)} · {fmt(c.duration_s, c.distance_m, c.activity_type)}
+                            {formatDateTime(c.started_at)} ·{' '}
+                            {fmt(c.duration_s, c.distance_m, c.activity_type)}
                           </p>
                         </div>
                       </button>
@@ -195,7 +232,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 <button
                   onClick={() => setOpen(false)}
                   className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: "oklch(1 0 0 / 30%)" }}
+                  style={{ color: 'oklch(1 0 0 / 30%)' }}
                 >
                   Annuler
                 </button>
@@ -212,7 +249,11 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
             <button
               onClick={fetchReview}
               className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{ backgroundColor: DARK, border: `1px dashed ${withAlpha(MINT, 25)}`, color: MINT }}
+              style={{
+                backgroundColor: DARK,
+                border: `1px dashed ${withAlpha(MINT, 25)}`,
+                color: MINT,
+              }}
             >
               Demander le retour du coach
             </button>
@@ -235,7 +276,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               className="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
               style={{ backgroundColor: DARK, border: `1px solid oklch(0.65 0.20 25 / 30%)` }}
             >
-              <p className="text-xs" style={{ color: "oklch(0.65 0.20 25)" }}>
+              <p className="text-xs" style={{ color: 'oklch(0.65 0.20 25)' }}>
                 {reviewError}
               </p>
               <button
@@ -251,26 +292,35 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           {review && !reviewLoading && verdictCfg && (
             <div
               className="rounded-xl px-4 py-4 space-y-2"
-              style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${withAlpha(verdictCfg.color, 25)}` }}
+              style={{
+                backgroundColor: verdictCfg.bg,
+                border: `1px solid ${withAlpha(verdictCfg.color, 25)}`,
+              }}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "oklch(0.72 0 0)" }}>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: 'oklch(0.72 0 0)' }}
+                >
                   Retour du coach
                 </p>
                 <span
                   className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: withAlpha(verdictCfg.color, 15), color: verdictCfg.color }}
+                  style={{
+                    backgroundColor: withAlpha(verdictCfg.color, 15),
+                    color: verdictCfg.color,
+                  }}
                 >
                   {verdictCfg.label}
                 </span>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: "oklch(0.92 0 0)" }}>
+              <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.92 0 0)' }}>
                 {review.message}
               </p>
               <button
                 onClick={fetchReview}
                 className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: "oklch(0.72 0 0)" }}
+                style={{ color: 'oklch(0.72 0 0)' }}
               >
                 Régénérer
               </button>
@@ -279,5 +329,5 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
         </div>
       )}
     </div>
-  );
+  )
 }

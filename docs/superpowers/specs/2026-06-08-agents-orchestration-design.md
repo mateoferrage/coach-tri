@@ -36,6 +36,7 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Invocation** : L'utilisateur décrit sa modification en langage naturel. Claude Code dispatche vers cet agent.
 
 **Comportement** :
+
 1. Si la demande est ambiguë, poser une seule question de clarification
 2. Identifier explicitement les couches touchées parmi : frontend / backend / IA / data
 3. Rédiger un mini-brief par spécialiste nécessaire
@@ -52,6 +53,7 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Périmètre** : Pages Next.js, composants React, design system Run Motion.
 
 **Sait faire** :
+
 - App Router Next.js 16, React 19, groupes de routes `(app)/`
 - Tailwind v4 + shadcn/ui, couleurs OKLCH inline (jamais de classes Tailwind custom)
 - Conventions UI : `rounded-2xl` cards, `rounded-xl` boutons, `font-black uppercase tracking-widest text-xs` étiquettes
@@ -68,6 +70,7 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Périmètre** : Route Handlers Next.js, logique métier, accès données Supabase.
 
 **Sait faire** :
+
 - Route Handlers App Router, `await params` (Next.js 16 — params est une Promise)
 - `createClient()` server pour Server Components, `createAdminClient()` pour écriture dans Route Handlers
 - Zod v4 : `safeParse()` systématique, `valueAsNumber: true` pour les nombres
@@ -83,6 +86,7 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Périmètre** : Prompts Gemini, logique du coach chat, génération de programme.
 
 **Sait faire** :
+
 - `generateJSON<T>(systemPrompt, userPrompt, { temperature? })` dans `src/lib/gemini/client.ts`
 - Modèle `gemini-2.5-flash`, `thinkingBudget: 0`, `responseMimeType: 'application/json'`
 - `COACH_CHAT_SYSTEM`, `buildMacroPrompt()`, `buildMicroPrompt()`, `buildChatContext()`
@@ -98,8 +102,9 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Périmètre** : Migrations Supabase, schéma DB, sync Garmin.
 
 **Sait faire** :
+
 - Conventions migrations : `coach-tri/supabase/migrations/000X_nom.sql`
-- Toutes les tables existantes (profiles, physiology, goals, plans, plan_phases, plan_weeks, sessions, garmin_*, schedule_events, chat_messages, availability_blocks, plan_generations)
+- Toutes les tables existantes (profiles, physiology, goals, plans, plan*phases, plan_weeks, sessions, garmin*\*, schedule_events, chat_messages, availability_blocks, plan_generations)
 - Upsert sur conflit : `ON CONFLICT (user_id, garmin_activity_id) DO UPDATE`
 - Architecture sync Garmin : délai 350ms intentionnel entre jours wellness (rate limit ~3 req/s)
 - Chiffrement AES-256-CBC credentials : `encryptCredential()` / `decryptCredential()`
@@ -110,14 +115,14 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 
 ## Règles de dépendances
 
-| Situation | Ordre d'exécution |
-|---|---|
-| Frontend + Backend sans lien entre eux | Parallèle |
-| Frontend consomme un nouvel endpoint Backend | Backend → Frontend |
-| Backend lit une nouvelle table ou colonne | Data → Backend |
-| Prompt IA modifié + UI du chat modifiée | Parallèle |
+| Situation                                              | Ordre d'exécution         |
+| ------------------------------------------------------ | ------------------------- |
+| Frontend + Backend sans lien entre eux                 | Parallèle                 |
+| Frontend consomme un nouvel endpoint Backend           | Backend → Frontend        |
+| Backend lit une nouvelle table ou colonne              | Data → Backend            |
+| Prompt IA modifié + UI du chat modifiée                | Parallèle                 |
 | Nouveau champ DB + route qui le lit + UI qui l'affiche | Data → Backend → Frontend |
-| Backend + IA sur des routes existantes indépendantes | Parallèle |
+| Backend + IA sur des routes existantes indépendantes   | Parallèle                 |
 
 ---
 
@@ -126,12 +131,14 @@ Chaque fichier est le system prompt de l'agent correspondant. Le Chef de Projet 
 **Demande** : "Ajouter une page de statistiques de progression (volume par semaine, TSS, comparatif disciplines)"
 
 **Analyse** :
+
 - Data : nouvelle vue SQL agrégeant les sessions par semaine
-- Backend : nouvelle route `GET /api/stats`  
+- Backend : nouvelle route `GET /api/stats`
 - Frontend : nouvelle page `/stats` avec graphes
 - IA : enrichir `buildChatContext()` avec les stats récentes
 
 **Plan d'exécution** :
+
 ```
 Étape 1 (parallèle) :
   - Dev Data  → migration vue stats_progression

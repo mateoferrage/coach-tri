@@ -11,75 +11,111 @@ import { ACCENT, withAlpha } from '@/lib/theme'
 export const metadata = { title: 'Séance — Coach Tri' }
 
 const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: '🏊', bike: '🚴', run: '🏃', brick: '⚡', strength: '💪', rest: '😴',
+  swim: '🏊',
+  bike: '🚴',
+  run: '🏃',
+  brick: '⚡',
+  strength: '💪',
+  rest: '😴',
 }
 const DISCIPLINE_LABEL: Record<string, string> = {
-  swim: 'Natation', bike: 'Vélo', run: 'Course à pied',
-  brick: 'Enchaînement', strength: 'Renforcement', rest: 'Récupération',
+  swim: 'Natation',
+  bike: 'Vélo',
+  run: 'Course à pied',
+  brick: 'Enchaînement',
+  strength: 'Renforcement',
+  rest: 'Récupération',
 }
 const SESSION_TYPE_LABEL: Record<string, string> = {
-  easy: 'Endurance facile', tempo: 'Tempo', threshold: 'Seuil',
-  vo2: 'VO2max', race_pace: 'Allure course', technique: 'Technique',
-  long: 'Sortie longue', recovery: 'Récupération active', test: 'Test',
+  easy: 'Endurance facile',
+  tempo: 'Tempo',
+  threshold: 'Seuil',
+  vo2: 'VO2max',
+  race_pace: 'Allure course',
+  technique: 'Technique',
+  long: 'Sortie longue',
+  recovery: 'Récupération active',
+  test: 'Test',
 }
-const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
-  planned:  { label: 'Planifiée',   variant: 'outline' },
-  done:     { label: 'Complétée',   variant: 'default' },
-  skipped:  { label: 'Passée',      variant: 'secondary' },
-  modified: { label: 'Modifiée',    variant: 'secondary' },
+const STATUS_BADGE: Record<
+  string,
+  { label: string; variant: 'default' | 'secondary' | 'outline' }
+> = {
+  planned: { label: 'Planifiée', variant: 'outline' },
+  done: { label: 'Complétée', variant: 'default' },
+  skipped: { label: 'Passée', variant: 'secondary' },
+  modified: { label: 'Modifiée', variant: 'secondary' },
 }
 
 const RPE_LABELS: Record<number, string> = {
-  1: 'Très facile', 2: 'Facile', 3: 'Modéré', 4: 'Confortable',
-  5: 'Modérément difficile', 6: 'Difficile', 7: 'Très difficile',
-  8: 'Intense', 9: 'Très intense', 10: 'Maximal',
+  1: 'Très facile',
+  2: 'Facile',
+  3: 'Modéré',
+  4: 'Confortable',
+  5: 'Modérément difficile',
+  6: 'Difficile',
+  7: 'Très difficile',
+  8: 'Intense',
+  9: 'Très intense',
+  10: 'Maximal',
 }
 
-export default async function SessionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { id } = await params
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: session } = await (supabase as any)
+  const { data: session } = (await (supabase as any)
     .from('sessions')
-    .select('*, plan_week:plan_weeks(week_num, phase, start_date), linked_garmin:garmin_activity_id(id, activity_type, name, started_at, duration_s, distance_m)')
+    .select(
+      '*, plan_week:plan_weeks(week_num, phase, start_date), linked_garmin:garmin_activity_id(id, activity_type, name, started_at, duration_s, distance_m)',
+    )
     .eq('id', id)
     .eq('user_id', user.id)
-    .single() as { data: Record<string, unknown> | null }
+    .single()) as { data: Record<string, unknown> | null }
 
   if (!session) notFound()
 
   // Fetch Garmin activity candidates (same discipline, ±3 days)
   const sessionDate = session.session_date as string
   const disciplineToGarmin: Record<string, string[]> = {
-    swim: ['swim'], bike: ['bike'], run: ['run'],
-    brick: ['bike', 'run'], strength: ['strength'], rest: [],
+    swim: ['swim'],
+    bike: ['bike'],
+    run: ['run'],
+    brick: ['bike', 'run'],
+    strength: ['strength'],
+    rest: [],
   }
   const garminTypes = disciplineToGarmin[session.discipline as string] ?? []
-  const dateFrom = new Date(sessionDate); dateFrom.setDate(dateFrom.getDate() - 3)
-  const dateTo   = new Date(sessionDate); dateTo.setDate(dateTo.getDate() + 1)
+  const dateFrom = new Date(sessionDate)
+  dateFrom.setDate(dateFrom.getDate() - 3)
+  const dateTo = new Date(sessionDate)
+  dateTo.setDate(dateTo.getDate() + 1)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: garminCandidates } = garminTypes.length > 0
-    ? await (supabase as any)
-        .from('garmin_activities')
-        .select('id, activity_type, name, started_at, duration_s, distance_m')
-        .eq('user_id', user.id)
-        .in('activity_type', garminTypes)
-        .gte('started_at', dateFrom.toISOString())
-        .lte('started_at', dateTo.toISOString())
-        .order('started_at', { ascending: false })
-    : { data: [] }
+  const { data: garminCandidates } =
+    garminTypes.length > 0
+      ? await (supabase as any)
+          .from('garmin_activities')
+          .select('id, activity_type, name, started_at, duration_s, distance_m')
+          .eq('user_id', user.id)
+          .in('activity_type', garminTypes)
+          .gte('started_at', dateFrom.toISOString())
+          .lte('started_at', dateTo.toISOString())
+          .order('started_at', { ascending: false })
+      : { data: [] }
 
   const date = parseISO(session.session_date as string)
-  const structure = session.structure as { warmup?: string; main?: string; cooldown?: string } | null
+  const structure = session.structure as {
+    warmup?: string
+    main?: string
+    cooldown?: string
+  } | null
   const targetValues = session.target_values as Record<string, unknown> | null
   const badge = STATUS_BADGE[session.status as string] ?? STATUS_BADGE.planned
   const rpe = session.expected_rpe as number | null
@@ -112,19 +148,27 @@ export default async function SessionPage({
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{session.duration_min as number}<span className="text-sm font-normal ml-1">min</span></div>
+            <div className="text-2xl font-bold">
+              {session.duration_min as number}
+              <span className="text-sm font-normal ml-1">min</span>
+            </div>
             <div className="text-xs text-muted-foreground mt-1">Durée prévue</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{(session.planned_tss as number | null) ?? '—'}</div>
+            <div className="text-2xl font-bold">
+              {(session.planned_tss as number | null) ?? '—'}
+            </div>
             <div className="text-xs text-muted-foreground mt-1">TSS estimé</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{rpe ?? '—'}<span className="text-sm font-normal">/10</span></div>
+            <div className="text-2xl font-bold">
+              {rpe ?? '—'}
+              <span className="text-sm font-normal">/10</span>
+            </div>
             <div className="text-xs text-muted-foreground mt-1">RPE cible</div>
             {rpe && <div className="text-xs text-muted-foreground">{RPE_LABELS[rpe]}</div>}
           </CardContent>
@@ -135,22 +179,31 @@ export default async function SessionPage({
       {(session.target_zone as string | null | undefined) && (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Zone cible :</span>
-          <Badge variant="outline" className="font-mono">{session.target_zone as string}</Badge>
-          {targetValues && Object.entries(targetValues).map(([key, val]) => {
-            let label = ''
-            if (key === 'hr') label = `FC ${(val as number[]).join('–')} bpm`
-            if (key === 'watts') label = `${(val as number[]).join('–')} W`
-            if (key === 'pace') label = `Allure ${String(val)}/km`
-            if (!label) return null
-            return <span key={key} className="text-muted-foreground text-xs">{label}</span>
-          })}
+          <Badge variant="outline" className="font-mono">
+            {session.target_zone as string}
+          </Badge>
+          {targetValues &&
+            Object.entries(targetValues).map(([key, val]) => {
+              let label = ''
+              if (key === 'hr') label = `FC ${(val as number[]).join('–')} bpm`
+              if (key === 'watts') label = `${(val as number[]).join('–')} W`
+              if (key === 'pace') label = `Allure ${String(val)}/km`
+              if (!label) return null
+              return (
+                <span key={key} className="text-muted-foreground text-xs">
+                  {label}
+                </span>
+              )
+            })}
         </div>
       )}
 
       {/* Structure de séance */}
       {structure && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Déroulé de la séance</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Déroulé de la séance</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {structure.warmup && (
               <div>
@@ -161,7 +214,9 @@ export default async function SessionPage({
             {structure.main && (
               <div>
                 <p className="font-medium text-foreground mb-1">⚡ Bloc principal</p>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{structure.main}</p>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {structure.main}
+                </p>
               </div>
             )}
             {structure.cooldown && (
@@ -178,7 +233,13 @@ export default async function SessionPage({
       {(session.coaching_note as string | null | undefined) && (
         <Card style={{ backgroundColor: withAlpha(ACCENT, 8), borderColor: withAlpha(ACCENT, 25) }}>
           <CardContent className="pt-4 text-sm italic" style={{ color: 'oklch(0.92 0 0)' }}>
-            💡 <span style={{ color: ACCENT }} className="font-semibold not-italic uppercase tracking-widest text-xs mr-1">Note du coach</span>
+            💡{' '}
+            <span
+              style={{ color: ACCENT }}
+              className="font-semibold not-italic uppercase tracking-widest text-xs mr-1"
+            >
+              Note du coach
+            </span>
             {session.coaching_note as string}
           </CardContent>
         </Card>
@@ -188,14 +249,22 @@ export default async function SessionPage({
       {(session.discipline as string) !== 'rest' && (
         <GarminLinker
           sessionId={id}
-          linkedActivity={(session.linked_garmin as Record<string, unknown> | null) as Parameters<typeof GarminLinker>[0]['linkedActivity']}
+          linkedActivity={
+            session.linked_garmin as Record<string, unknown> | null as Parameters<
+              typeof GarminLinker
+            >[0]['linkedActivity']
+          }
           candidates={(garminCandidates ?? []) as Parameters<typeof GarminLinker>[0]['candidates']}
-          initialReview={(session.garmin_review as Parameters<typeof GarminLinker>[0]['initialReview']) ?? null}
+          initialReview={
+            (session.garmin_review as Parameters<typeof GarminLinker>[0]['initialReview']) ?? null
+          }
         />
       )}
 
       {/* Actions */}
-      <SessionActions session={session as unknown as Parameters<typeof SessionActions>[0]['session']} />
+      <SessionActions
+        session={session as unknown as Parameters<typeof SessionActions>[0]['session']}
+      />
     </div>
   )
 }

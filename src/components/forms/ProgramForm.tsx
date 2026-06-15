@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { GoalSchema, RACE_DISTANCES } from '@/lib/schemas/goal'
 import { format } from 'date-fns'
@@ -40,9 +46,21 @@ const RACE_TYPES = [
 ]
 
 const METHODOLOGIES = [
-  { value: 'polarized', label: 'Polarisé', desc: '80% basse intensité / 20% haute intensité — recommandé pour la plupart des athlètes' },
-  { value: 'pyramidal', label: 'Pyramidal', desc: '70% Z1-Z2 / 20% Z3 / 10% Z4-Z5 — bon équilibre' },
-  { value: 'threshold', label: 'Seuil', desc: 'Focus sur la Zone 3-4 — pour athlètes expérimentés avec moins de temps' },
+  {
+    value: 'polarized',
+    label: 'Polarisé',
+    desc: '80% basse intensité / 20% haute intensité — recommandé pour la plupart des athlètes',
+  },
+  {
+    value: 'pyramidal',
+    label: 'Pyramidal',
+    desc: '70% Z1-Z2 / 20% Z3 / 10% Z4-Z5 — bon équilibre',
+  },
+  {
+    value: 'threshold',
+    label: 'Seuil',
+    desc: 'Focus sur la Zone 3-4 — pour athlètes expérimentés avec moins de temps',
+  },
 ]
 
 function TimeInput({
@@ -60,10 +78,13 @@ function TimeInput({
   const [m, setM] = useState(valueSeconds != null ? Math.floor((valueSeconds % 3600) / 60) : 0)
   const [s, setS] = useState(valueSeconds != null ? valueSeconds % 60 : 0)
 
-  const fire = useCallback((nh: number, nm: number, ns: number) => {
-    const total = nh * 3600 + nm * 60 + ns
-    onChange(total > 0 ? total : undefined)
-  }, [onChange])
+  const fire = useCallback(
+    (nh: number, nm: number, ns: number) => {
+      const total = nh * 3600 + nm * 60 + ns
+      onChange(total > 0 ? total : undefined)
+    },
+    [onChange],
+  )
 
   return (
     <div className="space-y-1">
@@ -72,25 +93,43 @@ function TimeInput({
         {showHours && (
           <>
             <Input
-              type="number" min={0} max={23}
+              type="number"
+              min={0}
+              max={23}
               value={h}
-              onChange={e => { const n = Math.max(0, Math.min(23, parseInt(e.target.value) || 0)); setH(n); fire(n, m, s) }}
+              onChange={(e) => {
+                const n = Math.max(0, Math.min(23, parseInt(e.target.value) || 0))
+                setH(n)
+                fire(n, m, s)
+              }}
               className="w-14 text-center px-1"
             />
             <span className="text-muted-foreground text-xs">h</span>
           </>
         )}
         <Input
-          type="number" min={0} max={59}
+          type="number"
+          min={0}
+          max={59}
           value={m}
-          onChange={e => { const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0)); setM(n); fire(h, n, s) }}
+          onChange={(e) => {
+            const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+            setM(n)
+            fire(h, n, s)
+          }}
           className="w-14 text-center px-1"
         />
         <span className="text-muted-foreground text-xs">min</span>
         <Input
-          type="number" min={0} max={59}
+          type="number"
+          min={0}
+          max={59}
           value={s}
-          onChange={e => { const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0)); setS(n); fire(h, m, n) }}
+          onChange={(e) => {
+            const n = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+            setS(n)
+            fire(h, m, n)
+          }}
           className="w-14 text-center px-1"
         />
         <span className="text-muted-foreground text-xs">s</span>
@@ -133,7 +172,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
     const distances = RACE_DISTANCES[type as keyof typeof RACE_DISTANCES]
     if (distances.swim) goalForm.setValue('swim_distance_m', distances.swim)
     if (distances.bike) goalForm.setValue('bike_distance_m', distances.bike)
-    if (distances.run)  goalForm.setValue('run_distance_m',  distances.run)
+    if (distances.run) goalForm.setValue('run_distance_m', distances.run)
   }
 
   async function createGoalAndGenerate(settings: ProgramSettings) {
@@ -164,7 +203,9 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
       }
 
       // Generate program
-      toast.info('Génération du programme par l\'IA… (peut prendre 10-20 secondes)', { duration: 20000 })
+      toast.info("Génération du programme par l'IA… (peut prendre 10-20 secondes)", {
+        duration: 20000,
+      })
 
       const genRes = await fetch('/api/plans/generate', {
         method: 'POST',
@@ -193,10 +234,14 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
   return (
     <div className="space-y-6">
       {/* Mode selector */}
-      <Tabs value={mode} onValueChange={v => setMode(v as 'race' | 'maintenance')}>
+      <Tabs value={mode} onValueChange={(v) => setMode(v as 'race' | 'maintenance')}>
         <TabsList className="w-full">
-          <TabsTrigger value="race" className="flex-1">Préparation course</TabsTrigger>
-          <TabsTrigger value="maintenance" className="flex-1">Maintien de forme</TabsTrigger>
+          <TabsTrigger value="race" className="flex-1">
+            Préparation course
+          </TabsTrigger>
+          <TabsTrigger value="maintenance" className="flex-1">
+            Maintien de forme
+          </TabsTrigger>
         </TabsList>
 
         {/* Race mode */}
@@ -207,10 +252,16 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 <CardTitle className="text-base">Utiliser une course existante</CardTitle>
               </CardHeader>
               <CardContent>
-                <Select onValueChange={v => settingsForm.setValue('existing_goal_id', v != null ? String(v) : undefined)}>
-                  <SelectTrigger><SelectValue placeholder="Choisir une course..." /></SelectTrigger>
+                <Select
+                  onValueChange={(v) =>
+                    settingsForm.setValue('existing_goal_id', v != null ? String(v) : undefined)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir une course..." />
+                  </SelectTrigger>
                   <SelectContent>
-                    {goals.map(g => (
+                    {goals.map((g) => (
                       <SelectItem key={g.id} value={g.id}>
                         {g.race_name} — {g.race_date}
                       </SelectItem>
@@ -233,7 +284,9 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 <Label>Nom de la course</Label>
                 <Input placeholder="Ex: Ironman 70.3 Nice" {...goalForm.register('race_name')} />
                 {goalForm.formState.errors.race_name && (
-                  <p className="text-xs text-red-500">{goalForm.formState.errors.race_name.message}</p>
+                  <p className="text-xs text-red-500">
+                    {goalForm.formState.errors.race_name.message}
+                  </p>
                 )}
               </div>
 
@@ -245,10 +298,14 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 <div className="space-y-2">
                   <Label>Type</Label>
                   <Select defaultValue="olympic" onValueChange={onRaceTypeChange}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {RACE_TYPES.map(t => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      {RACE_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -259,15 +316,24 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Nage (m)</Label>
-                    <Input type="number" {...goalForm.register('swim_distance_m', { valueAsNumber: true })} />
+                    <Input
+                      type="number"
+                      {...goalForm.register('swim_distance_m', { valueAsNumber: true })}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Vélo (m)</Label>
-                    <Input type="number" {...goalForm.register('bike_distance_m', { valueAsNumber: true })} />
+                    <Input
+                      type="number"
+                      {...goalForm.register('bike_distance_m', { valueAsNumber: true })}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Course (m)</Label>
-                    <Input type="number" {...goalForm.register('run_distance_m', { valueAsNumber: true })} />
+                    <Input
+                      type="number"
+                      {...goalForm.register('run_distance_m', { valueAsNumber: true })}
+                    />
                   </div>
                 </div>
               )}
@@ -275,8 +341,14 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Terrain vélo/course</Label>
-                  <Select onValueChange={v => goalForm.setValue('terrain', (v ?? undefined) as GoalFormData['terrain'])}>
-                    <SelectTrigger><SelectValue placeholder="Terrain..." /></SelectTrigger>
+                  <Select
+                    onValueChange={(v) =>
+                      goalForm.setValue('terrain', (v ?? undefined) as GoalFormData['terrain'])
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Terrain..." />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="flat">Plat</SelectItem>
                       <SelectItem value="hilly">Vallonné</SelectItem>
@@ -286,8 +358,18 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 </div>
                 <div className="space-y-2">
                   <Label>Objectif</Label>
-                  <Select defaultValue="finish" onValueChange={v => goalForm.setValue('target_type', (v ?? undefined) as GoalFormData['target_type'])}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    defaultValue="finish"
+                    onValueChange={(v) =>
+                      goalForm.setValue(
+                        'target_type',
+                        (v ?? undefined) as GoalFormData['target_type'],
+                      )
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="finish">Terminer</SelectItem>
                       <SelectItem value="time">Chrono cible</SelectItem>
@@ -304,42 +386,45 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                     <TimeInput
                       label=""
                       valueSeconds={goalForm.getValues('target_time_seconds')}
-                      onChange={v => goalForm.setValue('target_time_seconds', v)}
+                      onChange={(v) => goalForm.setValue('target_time_seconds', v)}
                       showHours
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">Détail par discipline <span className="font-normal text-muted-foreground">(optionnel)</span></p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Détail par discipline{' '}
+                      <span className="font-normal text-muted-foreground">(optionnel)</span>
+                    </p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       <TimeInput
                         label="Natation"
                         valueSeconds={goalForm.getValues('swim_target_time_s')}
-                        onChange={v => goalForm.setValue('swim_target_time_s', v)}
+                        onChange={(v) => goalForm.setValue('swim_target_time_s', v)}
                         showHours={false}
                       />
                       <TimeInput
                         label="T1"
                         valueSeconds={goalForm.getValues('t1_target_time_s')}
-                        onChange={v => goalForm.setValue('t1_target_time_s', v)}
+                        onChange={(v) => goalForm.setValue('t1_target_time_s', v)}
                         showHours={false}
                       />
                       <TimeInput
                         label="Vélo"
                         valueSeconds={goalForm.getValues('bike_target_time_s')}
-                        onChange={v => goalForm.setValue('bike_target_time_s', v)}
+                        onChange={(v) => goalForm.setValue('bike_target_time_s', v)}
                         showHours
                       />
                       <TimeInput
                         label="T2"
                         valueSeconds={goalForm.getValues('t2_target_time_s')}
-                        onChange={v => goalForm.setValue('t2_target_time_s', v)}
+                        onChange={(v) => goalForm.setValue('t2_target_time_s', v)}
                         showHours={false}
                       />
                       <TimeInput
                         label="Course à pied"
                         valueSeconds={goalForm.getValues('run_target_time_s')}
-                        onChange={v => goalForm.setValue('run_target_time_s', v)}
+                        onChange={(v) => goalForm.setValue('run_target_time_s', v)}
                         showHours
                       />
                     </div>
@@ -376,11 +461,13 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
 
           <div className="space-y-3">
             <Label>Méthodologie</Label>
-            {METHODOLOGIES.map(m => (
+            {METHODOLOGIES.map((m) => (
               <button
                 key={m.value}
                 type="button"
-                onClick={() => settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])}
+                onClick={() =>
+                  settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])
+                }
                 className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
                   settingsForm.watch('methodology') === m.value
                     ? 'border-primary bg-primary/10'
@@ -401,7 +488,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
         disabled={loading}
         onClick={settingsForm.handleSubmit(createGoalAndGenerate)}
       >
-        {loading ? '✨ Génération en cours…' : '✨ Générer mon programme avec l\'IA'}
+        {loading ? '✨ Génération en cours…' : "✨ Générer mon programme avec l'IA"}
       </Button>
     </div>
   )

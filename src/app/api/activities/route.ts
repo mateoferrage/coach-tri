@@ -15,33 +15,41 @@ const CreateSchema = z.object({
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const body = await request.json()
   const parsed = CreateSchema.safeParse(body)
   if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-  const { discipline, name, started_at, duration_min, distance_m, avg_hr, elevation_gain_m } = parsed.data
+  const { discipline, name, started_at, duration_min, distance_m, avg_hr, elevation_gain_m } =
+    parsed.data
   const admin = createAdminClient()
 
   const duration_s = Math.round(duration_min * 60)
   const avg_speed_ms = distance_m && duration_s ? distance_m / duration_s : null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any).from('garmin_activities').insert({
-    user_id: user.id,
-    garmin_activity_id: -Date.now(), // negative = manual; Garmin IDs are always positive
-    activity_type: discipline,
-    name: name ?? null,
-    started_at,
-    duration_s,
-    distance_m: distance_m ?? null,
-    avg_speed_ms,
-    avg_hr: avg_hr ?? null,
-    elevation_gain_m: elevation_gain_m ?? null,
-    raw_data: { source: 'manual' },
-  }).select('id').single()
+  const { data, error } = await (admin as any)
+    .from('garmin_activities')
+    .insert({
+      user_id: user.id,
+      garmin_activity_id: -Date.now(), // negative = manual; Garmin IDs are always positive
+      activity_type: discipline,
+      name: name ?? null,
+      started_at,
+      duration_s,
+      distance_m: distance_m ?? null,
+      avg_speed_ms,
+      avg_hr: avg_hr ?? null,
+      elevation_gain_m: elevation_gain_m ?? null,
+      raw_data: { source: 'manual' },
+    })
+    .select('id')
+    .single()
 
   if (error) return apiError(error.message)
   return apiSuccess(data, 201)

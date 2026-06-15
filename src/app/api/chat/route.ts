@@ -23,7 +23,10 @@ interface ChatResponse {
 
 export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
   if (error || !user) return apiError('Non authentifié', 401)
 
   const { searchParams } = new URL(request.url)
@@ -44,7 +47,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const body = await request.json()
@@ -86,7 +92,9 @@ export async function POST(request: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('sessions')
-      .select('id, title, discipline, session_type, duration_min, session_date, status, expected_rpe')
+      .select(
+        'id, title, discipline, session_type, duration_min, session_date, status, expected_rpe',
+      )
       .eq('user_id', user.id)
       .gte('session_date', weekStartStr)
       .lte('session_date', weekEndStr)
@@ -109,12 +117,34 @@ export async function POST(request: Request) {
       .maybeSingle(),
   ])
 
-  const profile = profileRes.data as { first_name: string | null; level: string | null; weekly_hours_avg: number | null } | null
-  const plan = planRes.data as { id: string; name: string | null; start_date: string; plan_weeks: Array<{ week_num: number; phase: string }>; goal: { race_name: string; race_date: string } | null } | null
-  const weekSessions = (weekSessionsRes.data ?? []) as Array<{ id: string; discipline: string; session_type: string; title: string | null; duration_min: number; session_date: string; status: string; expected_rpe: number | null }>
+  const profile = profileRes.data as {
+    first_name: string | null
+    level: string | null
+    weekly_hours_avg: number | null
+  } | null
+  const plan = planRes.data as {
+    id: string
+    name: string | null
+    start_date: string
+    plan_weeks: Array<{ week_num: number; phase: string }>
+    goal: { race_name: string; race_date: string } | null
+  } | null
+  const weekSessions = (weekSessionsRes.data ?? []) as Array<{
+    id: string
+    discipline: string
+    session_type: string
+    title: string | null
+    duration_min: number
+    session_date: string
+    status: string
+    expected_rpe: number | null
+  }>
   const history = ((historyRes.data ?? []) as Array<{ role: string; content: string }>).reverse()
   const stravaCreds = stravaCredsRes.data as {
-    athlete_id: number; access_token: string; refresh_token: string; expires_at: number
+    athlete_id: number
+    access_token: string
+    refresh_token: string
+    expires_at: number
   } | null
 
   // Resolve current week
@@ -122,8 +152,11 @@ export async function POST(request: Request) {
   let currentPhase: string | null = null
   if (plan) {
     const startDate = parseISO(plan.start_date)
-    currentWeekNum = Math.min(Math.max(1, differenceInWeeks(now, startDate) + 1), plan.plan_weeks?.length ?? 1)
-    currentPhase = plan.plan_weeks?.find(w => w.week_num === currentWeekNum)?.phase ?? null
+    currentWeekNum = Math.min(
+      Math.max(1, differenceInWeeks(now, startDate) + 1),
+      plan.plan_weeks?.length ?? 1,
+    )
+    currentPhase = plan.plan_weeks?.find((w) => w.week_num === currentWeekNum)?.phase ?? null
   }
 
   // Strava live context (Scenario C) — silently skip on error
@@ -131,10 +164,10 @@ export async function POST(request: Request) {
   if (stravaCreds) {
     try {
       const tokens: StravaTokens = {
-        access_token:  stravaCreds.access_token,
+        access_token: stravaCreds.access_token,
         refresh_token: stravaCreds.refresh_token,
-        expires_at:    stravaCreds.expires_at,
-        athlete_id:    stravaCreds.athlete_id,
+        expires_at: stravaCreds.expires_at,
+        athlete_id: stravaCreds.athlete_id,
       }
       const refreshed = await refreshIfNeeded(tokens)
       if (refreshed.access_token !== stravaCreds.access_token) {
@@ -143,9 +176,9 @@ export async function POST(request: Request) {
         await (admin as any)
           .from('strava_credentials')
           .update({
-            access_token:  refreshed.access_token,
+            access_token: refreshed.access_token,
             refresh_token: refreshed.refresh_token,
-            expires_at:    refreshed.expires_at,
+            expires_at: refreshed.expires_at,
           })
           .eq('user_id', user.id)
       }
@@ -180,7 +213,9 @@ export async function POST(request: Request) {
 
   let aiResponse: ChatResponse
   try {
-    aiResponse = await generateJSON<ChatResponse>(COACH_CHAT_SYSTEM, fullPrompt, { temperature: 0.85 })
+    aiResponse = await generateJSON<ChatResponse>(COACH_CHAT_SYSTEM, fullPrompt, {
+      temperature: 0.85,
+    })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erreur IA'
     return apiError(`Erreur IA : ${msg}`, 500)
@@ -207,7 +242,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(_request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
   if (error || !user) return apiError('Non authentifié', 401)
 
   const admin = createAdminClient()

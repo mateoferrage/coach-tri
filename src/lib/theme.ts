@@ -7,36 +7,36 @@
  */
 
 // ── Surfaces ───────────────────────────────────────────────
-export const SLATE = "oklch(0.15 0 0)"; // noir profond (fond)
-export const SURFACE = "oklch(0.19 0 0)"; // panneau gris très sombre
-export const SURFACE_DEEP = "oklch(0.12 0 0)"; // pied de carte (quasi noir)
-export const DIVIDER = "oklch(1 0 0 / 8%)"; // séparateur sur sombre
+export const SLATE = 'oklch(0.15 0 0)' // noir profond (fond)
+export const SURFACE = 'oklch(0.19 0 0)' // panneau gris très sombre
+export const SURFACE_DEEP = 'oklch(0.12 0 0)' // pied de carte (quasi noir)
+export const DIVIDER = 'oklch(1 0 0 / 8%)' // séparateur sur sombre
 
 // ── Texte ──────────────────────────────────────────────────
-export const TEXT = "oklch(0.95 0 0)"; // blanc
-export const TEXT_MUTED = "oklch(0.72 0 0)"; // gris atténué
-export const TEXT_FAINT = "oklch(1 0 0 / 40%)"; // blanc estompé (labels secondaires)
+export const TEXT = 'oklch(0.95 0 0)' // blanc
+export const TEXT_MUTED = 'oklch(0.72 0 0)' // gris atténué
+export const TEXT_FAINT = 'oklch(1 0 0 / 40%)' // blanc estompé (labels secondaires)
 
 // ── Accents ────────────────────────────────────────────────
-export const ACCENT = "oklch(0.843 0.165 157)"; // vert menthe — accent triathlon
-export const ACCENT_FG = "oklch(0.12 0 0)"; // texte sur menthe (noir)
-export const GLACIER = "oklch(0.79 0.13 182)"; // teal froid (2nd)
+export const ACCENT = 'oklch(0.843 0.165 157)' // vert menthe — accent triathlon
+export const ACCENT_FG = 'oklch(0.12 0 0)' // texte sur menthe (noir)
+export const GLACIER = 'oklch(0.79 0.13 182)' // teal froid (2nd)
 
 /**
  * Système couleur + picto par discipline.
  * `icon` = emoji conservé comme repli ; `color` = teinte de la pastille/liseré.
  */
 export const DISCIPLINE: Record<string, { label: string; color: string; icon: string }> = {
-  swim:     { label: "Natation",      color: "oklch(0.74 0.13 233)", icon: "🏊" }, // bleu glacier
-  bike:     { label: "Vélo",          color: "oklch(0.843 0.165 157)", icon: "🚴" }, // vert menthe (accent)
-  run:      { label: "Course à pied", color: "oklch(0.82 0.15 78)",  icon: "🏃" }, // ambre
-  brick:    { label: "Enchaînement",  color: "oklch(0.79 0.13 182)", icon: "⚡" }, // glacier
-  strength: { label: "Renforcement",  color: "oklch(0.72 0.04 252)", icon: "💪" }, // acier
-  rest:     { label: "Récupération",  color: "oklch(0.60 0.02 252)", icon: "😴" }, // muet
-};
+  swim: { label: 'Natation', color: 'oklch(0.74 0.13 233)', icon: '🏊' }, // bleu glacier
+  bike: { label: 'Vélo', color: 'oklch(0.843 0.165 157)', icon: '🚴' }, // vert menthe (accent)
+  run: { label: 'Course à pied', color: 'oklch(0.82 0.15 78)', icon: '🏃' }, // ambre
+  brick: { label: 'Enchaînement', color: 'oklch(0.79 0.13 182)', icon: '⚡' }, // glacier
+  strength: { label: 'Renforcement', color: 'oklch(0.72 0.04 252)', icon: '💪' }, // acier
+  rest: { label: 'Récupération', color: 'oklch(0.60 0.02 252)', icon: '😴' }, // muet
+}
 
 export function disciplineColor(d: string | null | undefined): string {
-  return DISCIPLINE[d ?? ""]?.color ?? ACCENT;
+  return DISCIPLINE[d ?? '']?.color ?? ACCENT
 }
 
 /**
@@ -44,5 +44,5 @@ export function disciplineColor(d: string | null | undefined): string {
  * Indispensable pour les teintes/liserés (la concat hex ne marche pas en oklch).
  */
 export function withAlpha(color: string, pct: number): string {
-  return color.replace(/\)\s*$/, ` / ${pct}%)`);
+  return color.replace(/\)\s*$/, ` / ${pct}%)`)
 }

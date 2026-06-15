@@ -12,20 +12,21 @@
 
 ## Fichiers touchés
 
-| Fichier | Action | Couche |
-|---|---|---|
-| `supabase/migrations/0021_equipment.sql` | Créer | Data |
-| `src/lib/schemas/profile.ts` | Modifier | Backend |
-| `src/lib/gemini/prompts.ts` | Modifier | IA |
-| `src/app/api/plans/[id]/regenerate-week/route.ts` | Modifier | Backend |
-| `src/components/profile/EquipmentSection.tsx` | Créer | Frontend |
-| `src/app/(app)/profile/page.tsx` | Modifier | Frontend |
+| Fichier                                           | Action   | Couche   |
+| ------------------------------------------------- | -------- | -------- |
+| `supabase/migrations/0021_equipment.sql`          | Créer    | Data     |
+| `src/lib/schemas/profile.ts`                      | Modifier | Backend  |
+| `src/lib/gemini/prompts.ts`                       | Modifier | IA       |
+| `src/app/api/plans/[id]/regenerate-week/route.ts` | Modifier | Backend  |
+| `src/components/profile/EquipmentSection.tsx`     | Créer    | Frontend |
+| `src/app/(app)/profile/page.tsx`                  | Modifier | Frontend |
 
 ---
 
 ## Task 1 — Migration SQL (dev-data)
 
 **Files:**
+
 - Create: `supabase/migrations/0021_equipment.sql`
 
 - [ ] **Créer la migration**
@@ -56,9 +57,11 @@ git commit -m "feat(data): add equipment JSONB column to profiles"
 ## Task 2 — Prompts IA (dev-ia) — parallèle avec Task 1
 
 **Files:**
+
 - Modify: `src/lib/gemini/prompts.ts`
 
 Ce fichier exporte déjà `buildMicroPrompt()` et `MicroContext`. On ajoute :
+
 1. Le type `EquipmentData` (partagé avec le schema Zod)
 2. La fonction `buildEquipmentBlock()`
 3. Le champ `equipment_block?: string` dans `MicroContext`
@@ -113,11 +116,17 @@ export function buildEquipmentBlock(eq: EquipmentData): string {
 
   const shoes = eq.run?.shoes
   if (shoes?.length) {
-    const USAGE_FR: Record<string, string> = { footing: 'footing', dynamic: 'dynamique', competition: 'compétition' }
+    const USAGE_FR: Record<string, string> = {
+      footing: 'footing',
+      dynamic: 'dynamique',
+      competition: 'compétition',
+    }
     const SURFACE_FR: Record<string, string> = { road: 'route', trail: 'trail' }
     lines.push('Course :')
     for (const s of shoes) {
-      lines.push(`  - ${s.name} (${USAGE_FR[s.usage] ?? s.usage} · ${SURFACE_FR[s.surface] ?? s.surface})`)
+      lines.push(
+        `  - ${s.name} (${USAGE_FR[s.usage] ?? s.usage} · ${SURFACE_FR[s.surface] ?? s.surface})`,
+      )
     }
   }
 
@@ -189,12 +198,14 @@ git commit -m "feat(ia): add buildEquipmentBlock and inject equipment into micro
 ## Task 3 — Schema Zod + Backend (dev-backend) — après Task 1
 
 **Files:**
+
 - Modify: `src/lib/schemas/profile.ts`
 - Modify: `src/app/api/plans/[id]/regenerate-week/route.ts`
 
-> Note : `src/app/api/profile/route.ts` n'a pas besoin de modification.  
-> - GET utilise `select('*')` → inclut automatiquement la colonne `equipment`  
-> - POST upsert `parsed.data` depuis `ProfileSchema` → inclura `equipment` une fois le schema étendu  
+> Note : `src/app/api/profile/route.ts` n'a pas besoin de modification.
+>
+> - GET utilise `select('*')` → inclut automatiquement la colonne `equipment`
+> - POST upsert `parsed.data` depuis `ProfileSchema` → inclura `equipment` une fois le schema étendu
 > - PATCH utilise `ProfileSchema.partial()` → idem
 
 - [ ] **Étendre ProfileSchema dans `src/lib/schemas/profile.ts`**
@@ -208,21 +219,29 @@ const ShoeSchema = z.object({
   surface: z.enum(['road', 'trail']),
 })
 
-const EquipmentSchema = z.object({
-  swim: z.object({
-    paddles:   z.boolean(),
-    fins:      z.boolean(),
-    pull_buoy: z.boolean(),
-    kickboard: z.boolean(),
-    snorkel:   z.boolean(),
-  }).optional(),
-  bike: z.object({
-    aero_bars: z.boolean(),
-  }).optional(),
-  run: z.object({
-    shoes: z.array(ShoeSchema),
-  }).optional(),
-}).optional()
+const EquipmentSchema = z
+  .object({
+    swim: z
+      .object({
+        paddles: z.boolean(),
+        fins: z.boolean(),
+        pull_buoy: z.boolean(),
+        kickboard: z.boolean(),
+        snorkel: z.boolean(),
+      })
+      .optional(),
+    bike: z
+      .object({
+        aero_bars: z.boolean(),
+      })
+      .optional(),
+    run: z
+      .object({
+        shoes: z.array(ShoeSchema),
+      })
+      .optional(),
+  })
+  .optional()
 
 export type EquipmentProfile = z.infer<typeof EquipmentSchema>
 ```
@@ -239,7 +258,9 @@ export const ProfileSchema = z.object({
   experience_years: z.number().min(0).max(50).int().optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced', 'elite']),
   weekly_hours_avg: z.number().min(1).max(40).optional(),
-  available_disciplines: z.array(z.enum(['swim', 'bike', 'run'])).min(1, 'Sélectionner au moins une discipline'),
+  available_disciplines: z
+    .array(z.enum(['swim', 'bike', 'run']))
+    .min(1, 'Sélectionner au moins une discipline'),
   notes: z.string().max(1000).optional(),
   equipment: EquipmentSchema,
 })
@@ -250,7 +271,15 @@ export const ProfileSchema = z.object({
 Étape 1 — Ajouter l'import de `buildEquipmentBlock` et `EquipmentData` en haut du fichier, avec les autres imports de prompts :
 
 ```ts
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildEquipmentBlock, buildStravaStatsBlock, type PriorWeek, type PlanWeekOverview, type EquipmentData } from '@/lib/gemini/prompts'
+import {
+  TRIATHLON_COACH_SYSTEM,
+  buildMicroPrompt,
+  buildEquipmentBlock,
+  buildStravaStatsBlock,
+  type PriorWeek,
+  type PlanWeekOverview,
+  type EquipmentData,
+} from '@/lib/gemini/prompts'
 ```
 
 Étape 2 — Dans le `select` du profil (ligne ~62), ajouter `equipment` :
@@ -267,9 +296,10 @@ import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildEquipmentBlock, buildStr
 
 ```ts
 const equipmentRaw = profile?.equipment as EquipmentData | null
-const equipmentBlock = equipmentRaw && Object.keys(equipmentRaw).length > 0
-  ? buildEquipmentBlock(equipmentRaw)
-  : undefined
+const equipmentBlock =
+  equipmentRaw && Object.keys(equipmentRaw).length > 0
+    ? buildEquipmentBlock(equipmentRaw)
+    : undefined
 ```
 
 Étape 4 — Dans l'appel à `buildMicroPrompt({...})`, ajouter le champ (à la fin, juste avant `})`) :
@@ -290,6 +320,7 @@ git commit -m "feat(backend): extend ProfileSchema with equipment and inject int
 ## Task 4 — Frontend (dev-frontend) — après Task 3
 
 **Files:**
+
 - Create: `src/components/profile/EquipmentSection.tsx`
 - Modify: `src/app/(app)/profile/page.tsx`
 
@@ -307,12 +338,18 @@ import { useRouter } from 'next/navigation'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-const MINT   = 'oklch(0.843 0.165 157)'
-const DARK   = 'oklch(0.116 0.022 155)'
+const MINT = 'oklch(0.843 0.165 157)'
+const DARK = 'oklch(0.116 0.022 155)'
 const DARKER = 'oklch(0.09 0.018 155)'
-const DIV    = 'oklch(1 0 0 / 8%)'
+const DIV = 'oklch(1 0 0 / 8%)'
 
 interface Shoe {
   name: string
@@ -321,7 +358,13 @@ interface Shoe {
 }
 
 interface EquipmentData {
-  swim?: { paddles?: boolean; fins?: boolean; pull_buoy?: boolean; kickboard?: boolean; snorkel?: boolean }
+  swim?: {
+    paddles?: boolean
+    fins?: boolean
+    pull_buoy?: boolean
+    kickboard?: boolean
+    snorkel?: boolean
+  }
   bike?: { aero_bars?: boolean }
   run?: { shoes?: Shoe[] }
 }
@@ -331,11 +374,11 @@ interface Props {
 }
 
 const SWIM_ITEMS: { key: keyof NonNullable<EquipmentData['swim']>; label: string }[] = [
-  { key: 'paddles',   label: 'Plaquettes mains' },
-  { key: 'fins',      label: 'Palmes' },
+  { key: 'paddles', label: 'Plaquettes mains' },
+  { key: 'fins', label: 'Palmes' },
   { key: 'pull_buoy', label: 'Pullbuoy' },
   { key: 'kickboard', label: 'Planche' },
-  { key: 'snorkel',   label: 'Tuba frontal' },
+  { key: 'snorkel', label: 'Tuba frontal' },
 ]
 
 const USAGE_LABELS: Record<Shoe['usage'], string> = {
@@ -349,7 +392,15 @@ const SURFACE_LABELS: Record<Shoe['surface'], string> = {
   trail: 'Trail',
 }
 
-function ToggleChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function ToggleChip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
@@ -373,35 +424,35 @@ export function EquipmentSection({ initial }: Props) {
   const [data, setData] = useState<EquipmentData>(initial ?? {})
 
   function toggleSwim(key: keyof NonNullable<EquipmentData['swim']>) {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       swim: { ...prev.swim, [key]: !prev.swim?.[key] },
     }))
   }
 
   function toggleAeroBars() {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       bike: { aero_bars: !prev.bike?.aero_bars },
     }))
   }
 
   function addShoe() {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       run: { shoes: [...(prev.run?.shoes ?? []), { name: '', usage: 'footing', surface: 'road' }] },
     }))
   }
 
   function removeShoe(i: number) {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       run: { shoes: (prev.run?.shoes ?? []).filter((_, idx) => idx !== i) },
     }))
   }
 
   function updateShoe(i: number, field: keyof Shoe, value: string) {
-    setData(prev => {
+    setData((prev) => {
       const shoes = [...(prev.run?.shoes ?? [])]
       shoes[i] = { ...shoes[i], [field]: value }
       return { ...prev, run: { shoes } }
@@ -435,7 +486,10 @@ export function EquipmentSection({ initial }: Props) {
           className="px-5 py-4 flex items-center justify-between"
           style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+          <p
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: 'oklch(1 0 0 / 40%)' }}
+          >
             Matériel
           </p>
           <button
@@ -459,15 +513,22 @@ export function EquipmentSection({ initial }: Props) {
           <div className="px-5 py-4 space-y-4">
             {Object.values(data.swim ?? {}).some(Boolean) && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Natation
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {SWIM_ITEMS.filter(item => data.swim?.[item.key]).map(item => (
+                  {SWIM_ITEMS.filter((item) => data.swim?.[item.key]).map((item) => (
                     <span
                       key={item.key}
                       className="px-3 py-1 rounded-lg text-xs font-bold"
-                      style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+                      style={{
+                        backgroundColor: `${MINT}18`,
+                        color: MINT,
+                        border: `1px solid ${MINT}30`,
+                      }}
                     >
                       {item.label}
                     </span>
@@ -478,12 +539,19 @@ export function EquipmentSection({ initial }: Props) {
 
             {data.bike?.aero_bars && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Vélo
                 </p>
                 <span
                   className="px-3 py-1 rounded-lg text-xs font-bold"
-                  style={{ backgroundColor: `${MINT}18`, color: MINT, border: `1px solid ${MINT}30` }}
+                  style={{
+                    backgroundColor: `${MINT}18`,
+                    color: MINT,
+                    border: `1px solid ${MINT}30`,
+                  }}
                 >
                   Prolongateurs
                 </span>
@@ -492,7 +560,10 @@ export function EquipmentSection({ initial }: Props) {
 
             {(data.run?.shoes?.length ?? 0) > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Course
                 </p>
                 <div className="space-y-1.5">
@@ -522,7 +593,10 @@ export function EquipmentSection({ initial }: Props) {
         className="px-5 py-4"
         style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
       >
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+        <p
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: 'oklch(1 0 0 / 40%)' }}
+        >
           Modifier le matériel
         </p>
       </div>
@@ -530,11 +604,14 @@ export function EquipmentSection({ initial }: Props) {
       <div className="px-5 py-5 space-y-6">
         {/* ── Natation ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Natation
           </p>
           <div className="flex flex-wrap gap-2">
-            {SWIM_ITEMS.map(item => (
+            {SWIM_ITEMS.map((item) => (
               <ToggleChip
                 key={item.key}
                 label={item.label}
@@ -547,7 +624,10 @@ export function EquipmentSection({ initial }: Props) {
 
         {/* ── Vélo ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Vélo
           </p>
           <ToggleChip
@@ -559,7 +639,10 @@ export function EquipmentSection({ initial }: Props) {
 
         {/* ── Course ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Course
           </p>
           <div className="space-y-3">
@@ -573,7 +656,7 @@ export function EquipmentSection({ initial }: Props) {
                   <Input
                     placeholder="Nom de la chaussure"
                     value={shoe.name}
-                    onChange={e => updateShoe(i, 'name', e.target.value)}
+                    onChange={(e) => updateShoe(i, 'name', e.target.value)}
                     className="flex-1 text-sm"
                   />
                   <button
@@ -586,7 +669,7 @@ export function EquipmentSection({ initial }: Props) {
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <Select value={shoe.usage} onValueChange={v => updateShoe(i, 'usage', v)}>
+                  <Select value={shoe.usage} onValueChange={(v) => updateShoe(i, 'usage', v)}>
                     <SelectTrigger className="flex-1 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -596,7 +679,7 @@ export function EquipmentSection({ initial }: Props) {
                       <SelectItem value="competition">Compétition</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={shoe.surface} onValueChange={v => updateShoe(i, 'surface', v)}>
+                  <Select value={shoe.surface} onValueChange={(v) => updateShoe(i, 'surface', v)}>
                     <SelectTrigger className="flex-1 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -625,7 +708,10 @@ export function EquipmentSection({ initial }: Props) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => { setData(initial ?? {}); setEditing(false) }}
+            onClick={() => {
+              setData(initial ?? {})
+              setEditing(false)
+            }}
             className="flex-1"
           >
             Annuler
@@ -651,11 +737,13 @@ export function EquipmentSection({ initial }: Props) {
 - [ ] **Ajouter `equipment` au select du profil**
 
 Localiser la ligne (environ ligne 162) :
+
 ```ts
 .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date")
 ```
 
 Remplacer par :
+
 ```ts
 .select("first_name, level, weight_kg, weekly_hours_avg, available_disciplines, birth_date, equipment")
 ```
@@ -663,25 +751,36 @@ Remplacer par :
 - [ ] **Étendre le type `profile` avec `equipment`**
 
 Localiser le cast de type du profil (environ ligne 191) :
+
 ```ts
 const profile = profileRes.data as {
-  first_name: string | null; level: string | null; weight_kg: number | null;
-  weekly_hours_avg: number | null; available_disciplines: string[] | null; birth_date: string | null;
-} | null;
+  first_name: string | null
+  level: string | null
+  weight_kg: number | null
+  weekly_hours_avg: number | null
+  available_disciplines: string[] | null
+  birth_date: string | null
+} | null
 ```
 
 Remplacer par :
+
 ```ts
 const profile = profileRes.data as {
-  first_name: string | null; level: string | null; weight_kg: number | null;
-  weekly_hours_avg: number | null; available_disciplines: string[] | null; birth_date: string | null;
-  equipment: Record<string, unknown> | null;
-} | null;
+  first_name: string | null
+  level: string | null
+  weight_kg: number | null
+  weekly_hours_avg: number | null
+  available_disciplines: string[] | null
+  birth_date: string | null
+  equipment: Record<string, unknown> | null
+} | null
 ```
 
 - [ ] **Importer EquipmentSection**
 
 Ajouter en haut du fichier, avec les autres imports :
+
 ```ts
 import { EquipmentSection } from '@/components/profile/EquipmentSection'
 ```
@@ -691,8 +790,10 @@ import { EquipmentSection } from '@/components/profile/EquipmentSection'
 Localiser dans le JSX de la page la section `{/* ── Informations personnelles ── */}` (environ ligne 397). Insérer **avant** elle :
 
 ```tsx
-{/* ── Matériel ── */}
-<section>
+{
+  /* ── Matériel ── */
+}
+;<section>
   <SectionTitle>Matériel</SectionTitle>
   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
   <EquipmentSection initial={(profile?.equipment ?? {}) as any} />

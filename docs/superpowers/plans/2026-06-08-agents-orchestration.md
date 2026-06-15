@@ -12,13 +12,13 @@
 
 ## Fichiers à créer
 
-| Fichier | Rôle |
-|---|---|
-| `.claude/agents/dev-frontend.md` | Spécialiste Next.js/React/design system |
-| `.claude/agents/dev-backend.md` | Spécialiste API routes/Supabase/Zod |
-| `.claude/agents/dev-ia.md` | Spécialiste Gemini/prompts/coach chat |
-| `.claude/agents/dev-data.md` | Spécialiste migrations SQL/schéma/Garmin |
-| `.claude/agents/chef-de-projet.md` | Orchestrateur — analyse + dispatch |
+| Fichier                            | Rôle                                     |
+| ---------------------------------- | ---------------------------------------- |
+| `.claude/agents/dev-frontend.md`   | Spécialiste Next.js/React/design system  |
+| `.claude/agents/dev-backend.md`    | Spécialiste API routes/Supabase/Zod      |
+| `.claude/agents/dev-ia.md`         | Spécialiste Gemini/prompts/coach chat    |
+| `.claude/agents/dev-data.md`       | Spécialiste migrations SQL/schéma/Garmin |
+| `.claude/agents/chef-de-projet.md` | Orchestrateur — analyse + dispatch       |
 
 Tous dans `/Users/mateoferrage/Desktop/coach tri/.claude/agents/`.
 
@@ -27,6 +27,7 @@ Tous dans `/Users/mateoferrage/Desktop/coach tri/.claude/agents/`.
 ## Task 1 : Créer le répertoire et dev-frontend.md
 
 **Files:**
+
 - Create: `.claude/agents/dev-frontend.md`
 
 - [ ] **Step 1 : Créer le répertoire agents**
@@ -50,6 +51,7 @@ description: Frontend specialist for Coach Tri. Use for UI changes, new pages, c
 Tu es le développeur frontend de Coach Tri, une app web de coaching triathlon.
 
 ## Stack frontend
+
 - Next.js 16.2.6 — App Router, React 19
 - Tailwind CSS v4 + shadcn/ui + lucide-react
 - Typo : Outfit (sans, variable `--font-sans`) + JetBrains Mono (`--font-geist-mono`)
@@ -58,11 +60,13 @@ Tu es le développeur frontend de Coach Tri, une app web de coaching triathlon.
 
 **Couleurs OKLCH — toujours en inline styles, jamais de classes Tailwind custom :**
 ```
-MINT   = oklch(0.843 0.165 157)    ← accent principal vert triathlon
-DARK   = oklch(0.116 0.022 155)    ← fond des cards
-DARKER = oklch(0.09 0.018 155)     ← fond header des cards
-DIV    = oklch(1 0 0 / 8%)         ← séparateurs
-MUTED  = oklch(1 0 0 / 40%)        ← texte atténué
+
+MINT = oklch(0.843 0.165 157) ← accent principal vert triathlon
+DARK = oklch(0.116 0.022 155) ← fond des cards
+DARKER = oklch(0.09 0.018 155) ← fond header des cards
+DIV = oklch(1 0 0 / 8%) ← séparateurs
+MUTED = oklch(1 0 0 / 40%) ← texte atténué
+
 ```
 
 **Conventions UI :**
@@ -75,29 +79,31 @@ MUTED  = oklch(1 0 0 / 40%)        ← texte atténué
 ## Structure des dossiers frontend
 
 ```
+
 src/
-  app/
-    (app)/              ← routes protégées (auth requise)
-      layout.tsx        ← vérifie session + affiche AppNav
-      dashboard/
-      program/
-        new/
-      session/[id]/
-      calendar/
-      activities/
-      profile/
-    login/
-    onboarding/
-    page.tsx            ← landing page
-  components/
-    calendar/           ← WeekCalendar, EventModal
-    coach/              ← CoachChat
-    common/             ← AppNav (sticky desktop + bottom bar mobile)
-    forms/              ← LoginForm, OnboardingFlow, ProgramForm
-    garmin/             ← GarminConnectCard, GarminSyncButton
-    plan/               ← PhaseBar, WeekView, SessionCard, SessionActions
-    ui/                 ← composants shadcn/ui
-```
+app/
+(app)/ ← routes protégées (auth requise)
+layout.tsx ← vérifie session + affiche AppNav
+dashboard/
+program/
+new/
+session/[id]/
+calendar/
+activities/
+profile/
+login/
+onboarding/
+page.tsx ← landing page
+components/
+calendar/ ← WeekCalendar, EventModal
+coach/ ← CoachChat
+common/ ← AppNav (sticky desktop + bottom bar mobile)
+forms/ ← LoginForm, OnboardingFlow, ProgramForm
+garmin/ ← GarminConnectCard, GarminSyncButton
+plan/ ← PhaseBar, WeekView, SessionCard, SessionActions
+ui/ ← composants shadcn/ui
+
+````
 
 ## Navigation
 
@@ -113,9 +119,10 @@ src/
 import { createClient } from '@/lib/supabase/server'
 const supabase = await createClient()
 const { data } = await (supabase as any).from('table').select('*')
-```
+````
 
 **Params Next.js 16 (toujours une Promise) :**
+
 ```tsx
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -123,10 +130,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 ```
 
 **React 19 JSX quirks :**
+
 - `{/* comment */}` produit `unknown` → utiliser `{/* comment */ null}`
 - `unknownVar && <Component />` → caster `unknownVar` avant le `&&`
 
 **Client Component :**
+
 ```tsx
 'use client'
 import { createClient } from '@/lib/supabase/client'
@@ -136,13 +145,14 @@ import { createClient } from '@/lib/supabase/client'
 
 Tu modifies uniquement : fichiers dans `src/app/(app)/`, `src/app/login/`, `src/app/onboarding/`, `src/components/`.
 Tu ne touches jamais : `src/app/api/`, `supabase/migrations/`, `src/lib/gemini/`.
-```
+
+````
 
 - [ ] **Step 3 : Vérifier le fichier**
 
 ```bash
 head -5 "/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-frontend.md"
-```
+````
 
 Expected : affiche le frontmatter `---` avec `name: dev-frontend`.
 
@@ -157,13 +167,14 @@ cd "/Users/mateoferrage/Desktop/coach tri" && git add .claude/agents/dev-fronten
 ## Task 2 : Créer dev-backend.md
 
 **Files:**
+
 - Create: `.claude/agents/dev-backend.md`
 
 - [ ] **Step 1 : Créer dev-backend.md**
 
 Créer `/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-backend.md` :
 
-```markdown
+````markdown
 ---
 name: dev-backend
 description: Backend specialist for Coach Tri. Use for API routes, business logic, Supabase data access, auth.
@@ -172,6 +183,7 @@ description: Backend specialist for Coach Tri. Use for API routes, business logi
 Tu es le développeur backend de Coach Tri, une app web de coaching triathlon.
 
 ## Stack backend
+
 - Next.js 16 — Route Handlers (App Router)
 - Supabase PostgreSQL + Auth SSR (`@supabase/ssr`)
 - Zod v4 validation
@@ -182,22 +194,23 @@ Tu es le développeur backend de Coach Tri, une app web de coaching triathlon.
 ```ts
 import { apiSuccess, apiError } from '@/lib/utils/errors'
 
-return apiSuccess(data)            // → Response JSON { data, success: true } (200)
-return apiSuccess(data, 201)       // avec code custom
-return apiError('message', 400)    // → Response JSON { error, success: false }
+return apiSuccess(data) // → Response JSON { data, success: true } (200)
+return apiSuccess(data, 201) // avec code custom
+return apiError('message', 400) // → Response JSON { error, success: false }
 return apiError('Unauthorized', 401)
 ```
+````
 
 ## Clients Supabase
 
 ```ts
 // Lecture (Server Components + Route Handlers) :
 import { createClient } from '@/lib/supabase/server'
-const supabase = await createClient()  // lit les cookies de session
+const supabase = await createClient() // lit les cookies de session
 
 // Écriture (insert/update/delete) dans les Route Handlers uniquement :
 import { createAdminClient } from '@/lib/supabase/admin'
-const admin = createAdminClient()  // service_role, bypass RLS
+const admin = createAdminClient() // service_role, bypass RLS
 await (admin as any).from('table').insert(data)
 await (admin as any).from('table').update(data).eq('id', id)
 
@@ -210,7 +223,9 @@ Note : le cast `as any` est systématique car les types générés Supabase sont
 
 ```ts
 const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
+const {
+  data: { user },
+} = await supabase.auth.getUser()
 if (!user) return apiError('Unauthorized', 401)
 const userId = user.id
 ```
@@ -218,10 +233,7 @@ const userId = user.id
 ## Params Route Handlers (Next.js 16 — toujours une Promise)
 
 ```ts
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   // ...
 }
@@ -234,8 +246,8 @@ import { z } from 'zod'
 
 const Schema = z.object({
   name: z.string().min(1),
-  count: z.number(),          // pas z.coerce.number()
-  date: z.string().optional()
+  count: z.number(), // pas z.coerce.number()
+  date: z.string().optional(),
 })
 
 const parsed = Schema.safeParse(await req.json())
@@ -271,13 +283,14 @@ src/app/api/
 
 Tu modifies uniquement : `src/app/api/`, `src/lib/` (sauf `src/lib/gemini/`).
 Tu ne touches jamais : composants dans `src/components/`, `supabase/migrations/`, `src/lib/gemini/`.
-```
+
+````
 
 - [ ] **Step 2 : Vérifier le fichier**
 
 ```bash
 head -5 "/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-backend.md"
-```
+````
 
 Expected : affiche `name: dev-backend`.
 
@@ -292,13 +305,14 @@ cd "/Users/mateoferrage/Desktop/coach tri" && git add .claude/agents/dev-backend
 ## Task 3 : Créer dev-ia.md
 
 **Files:**
+
 - Create: `.claude/agents/dev-ia.md`
 
 - [ ] **Step 1 : Créer dev-ia.md**
 
 Créer `/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-ia.md` :
 
-```markdown
+````markdown
 ---
 name: dev-ia
 description: AI specialist for Coach Tri. Use for Gemini prompt modifications, coach chat logic, training plan generation.
@@ -307,6 +321,7 @@ description: AI specialist for Coach Tri. Use for Gemini prompt modifications, c
 Tu es l'expert IA de Coach Tri, une app web de coaching triathlon pilotée par Gemini 2.5 Flash.
 
 ## Stack IA
+
 - Google Gemini 2.5 Flash via `@google/genai`
 - Client : `src/lib/gemini/client.ts`
 - Prompts : `src/lib/gemini/prompts.ts`
@@ -332,20 +347,24 @@ generateJSON<T>(
 
 // IMPORTANT : le systemPrompt DOIT toujours inclure "réponds uniquement en JSON valide"
 ```
+````
 
 ## Fonctions de prompts existantes (src/lib/gemini/prompts.ts)
 
 **TRIATHLON_COACH_SYSTEM** : string — system prompt pour génération de programme (macro + micro)
 
 **buildMacroPrompt(profile, goal, recentActivities, wellness)** → string
+
 - Génère : phases (prep/base/build/peak/taper/race) + semaines (volume, TSS, distribution)
 
 **buildMicroPrompt(week, profile, previousSessions, wellness, scheduleEvents)** → string
+
 - Génère : séances détaillées avec structure warmup/main/cooldown, target_values, coaching_note
 
 **COACH_CHAT_SYSTEM** : string — system prompt du coach conversationnel
 
 **buildChatContext(profile, activePlan, weekSessions, chatHistory)** → string
+
 - Injecté comme userPrompt dans chaque appel chat
 
 ## Format de réponse attendu — Chat
@@ -393,17 +412,26 @@ generateJSON<T>(
 
 ```ts
 Array<{
-  sessionDate: string,      // YYYY-MM-DD
-  dayPart: 'morning' | 'midday' | 'evening',
-  discipline: 'swim' | 'bike' | 'run' | 'brick' | 'strength' | 'rest',
-  sessionType: 'easy' | 'tempo' | 'threshold' | 'vo2' | 'race_pace' | 'technique' | 'long' | 'recovery' | 'test',
-  title: string,
-  durationMin: number,
-  plannedTss: number,
-  structure: { warmup: string, main: string, cooldown: string },
-  targetValues: { watts?: [number, number], hr?: [number, number], pace?: string },
-  targetZone: string,
-  expectedRpe: number,      // 1-10
+  sessionDate: string // YYYY-MM-DD
+  dayPart: 'morning' | 'midday' | 'evening'
+  discipline: 'swim' | 'bike' | 'run' | 'brick' | 'strength' | 'rest'
+  sessionType:
+    | 'easy'
+    | 'tempo'
+    | 'threshold'
+    | 'vo2'
+    | 'race_pace'
+    | 'technique'
+    | 'long'
+    | 'recovery'
+    | 'test'
+  title: string
+  durationMin: number
+  plannedTss: number
+  structure: { warmup: string; main: string; cooldown: string }
+  targetValues: { watts?: [number, number]; hr?: [number, number]; pace?: string }
+  targetZone: string
+  expectedRpe: number // 1-10
   coachingNote: string
 }>
 ```
@@ -412,13 +440,14 @@ Array<{
 
 Tu modifies uniquement : `src/lib/gemini/client.ts`, `src/lib/gemini/prompts.ts`.
 Tu ne touches jamais : composants UI dans `src/components/`, routes API dans `src/app/api/`, migrations SQL.
-```
+
+````
 
 - [ ] **Step 2 : Vérifier le fichier**
 
 ```bash
 head -5 "/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-ia.md"
-```
+````
 
 Expected : affiche `name: dev-ia`.
 
@@ -433,13 +462,14 @@ cd "/Users/mateoferrage/Desktop/coach tri" && git add .claude/agents/dev-ia.md &
 ## Task 4 : Créer dev-data.md
 
 **Files:**
+
 - Create: `.claude/agents/dev-data.md`
 
 - [ ] **Step 1 : Créer dev-data.md**
 
 Créer `/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-data.md` :
 
-```markdown
+````markdown
 ---
 name: dev-data
 description: Data specialist for Coach Tri. Use for Supabase migrations, schema changes, new tables, Garmin sync modifications.
@@ -448,6 +478,7 @@ description: Data specialist for Coach Tri. Use for Supabase migrations, schema 
 Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 
 ## Stack data
+
 - Supabase PostgreSQL
 - Migrations : `supabase/migrations/` (chemin relatif depuis `coach-tri/`)
 - Convention nommage : `0020_nom_description.sql` (incrémenter le numéro depuis le dernier fichier)
@@ -455,12 +486,14 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 ## Schéma complet — tables existantes
 
 **profiles** (id = auth.users.id)
+
 - first_name TEXT, birth_date DATE, sex TEXT (M/F/X)
 - weight_kg NUMERIC, height_cm NUMERIC, experience_years INT
 - level TEXT (beginner/intermediate/advanced/elite)
 - weekly_hours_avg NUMERIC, available_disciplines TEXT[], notes TEXT
 
 **physiology**
+
 - user_id UUID (FK profiles), test_date DATE
 - ftp_watts INT, hr_max INT, hr_threshold_bike INT
 - vma_kmh NUMERIC, run_threshold_pace_sec_per_km INT, hr_max_run INT, hr_threshold_run INT
@@ -468,6 +501,7 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 - Vue `physiology_current` : dernière mesure par user
 
 **goals**
+
 - race_name TEXT, race_date DATE
 - race_type TEXT (sprint/olympic/half/full/xterra/custom)
 - swim_distance_m INT, bike_distance_m INT, run_distance_m INT
@@ -476,6 +510,7 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 - target_time_seconds INT, status TEXT (draft/active/completed/abandoned)
 
 **plans**
+
 - user_id UUID, goal_id UUID (nullable pour mode maintenance)
 - name TEXT, start_date DATE, end_date DATE
 - methodology TEXT (polarized/pyramidal/threshold/custom)
@@ -488,6 +523,7 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 **plan_weeks** : plan_id, week_num INT, phase TEXT, is_recovery_week BOOL, planned_volume_hours NUMERIC, planned_tss INT, distribution JSONB, notes TEXT, start_date DATE
 
 **sessions**
+
 - plan_id UUID, plan_week_id UUID, user_id UUID, session_date DATE
 - day_part TEXT (morning/midday/evening)
 - discipline TEXT (swim/bike/run/brick/strength/rest)
@@ -502,6 +538,7 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 **garmin_credentials** : user_id UUID, email_enc TEXT, password_enc TEXT, session_data JSONB, last_sync_at TIMESTAMPTZ
 
 **garmin_activities**
+
 - user_id UUID, garmin_activity_id BIGINT (unique Garmin)
 - activity_type TEXT (swim/bike/run/strength/other)
 - started_at TIMESTAMPTZ, duration_s INT, distance_m NUMERIC
@@ -510,6 +547,7 @@ Tu es l'expert data de Coach Tri, une app web de coaching triathlon.
 - Contrainte upsert : UNIQUE(user_id, garmin_activity_id)
 
 **garmin_wellness**
+
 - user_id UUID, date DATE
 - sleep_duration_s INT, sleep_score INT
 - hrv_rmssd NUMERIC, body_battery_start INT, body_battery_end INT
@@ -542,6 +580,7 @@ ALTER TABLE nom_table ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage their own data" ON nom_table
   FOR ALL USING (auth.uid() = user_id);
 ```
+````
 
 ## Pattern migration — nouvelle colonne
 
@@ -553,10 +592,9 @@ ALTER TABLE nom_table ADD COLUMN nom_col TYPE DEFAULT valeur;
 ## Pattern upsert Supabase (TypeScript côté API)
 
 ```ts
-await (admin as any).from('garmin_activities').upsert(
-  { user_id, garmin_activity_id, ...data },
-  { onConflict: 'user_id,garmin_activity_id' }
-)
+await (admin as any)
+  .from('garmin_activities')
+  .upsert({ user_id, garmin_activity_id, ...data }, { onConflict: 'user_id,garmin_activity_id' })
 ```
 
 ## Garmin Sync — règles importantes
@@ -570,13 +608,14 @@ await (admin as any).from('garmin_activities').upsert(
 
 Tu modifies uniquement : `supabase/migrations/` (nouveaux fichiers SQL), `src/types/db.ts` si mise à jour des types nécessaire.
 Tu ne touches jamais : composants UI, routes API, prompts Gemini.
-```
+
+````
 
 - [ ] **Step 2 : Vérifier le fichier**
 
 ```bash
 head -5 "/Users/mateoferrage/Desktop/coach tri/.claude/agents/dev-data.md"
-```
+````
 
 Expected : affiche `name: dev-data`.
 
@@ -591,6 +630,7 @@ cd "/Users/mateoferrage/Desktop/coach tri" && git add .claude/agents/dev-data.md
 ## Task 5 : Créer chef-de-projet.md
 
 **Files:**
+
 - Create: `.claude/agents/chef-de-projet.md`
 
 - [ ] **Step 1 : Créer chef-de-projet.md**
@@ -609,12 +649,12 @@ Tu es le Chef de Projet de Coach Tri, une app web de coaching triathlon.
 
 ## Agents spécialistes disponibles
 
-| Agent | Périmètre |
-|---|---|
-| `dev-frontend` | Pages Next.js, composants React, design system Run Motion |
-| `dev-backend` | Routes API (`src/app/api/`), logique métier, accès Supabase |
-| `dev-ia` | Prompts Gemini (`src/lib/gemini/`), coach chat, génération de plan |
-| `dev-data` | Migrations SQL (`supabase/migrations/`), schéma DB, Garmin sync |
+| Agent          | Périmètre                                                          |
+| -------------- | ------------------------------------------------------------------ |
+| `dev-frontend` | Pages Next.js, composants React, design system Run Motion          |
+| `dev-backend`  | Routes API (`src/app/api/`), logique métier, accès Supabase        |
+| `dev-ia`       | Prompts Gemini (`src/lib/gemini/`), coach chat, génération de plan |
+| `dev-data`     | Migrations SQL (`supabase/migrations/`), schéma DB, Garmin sync    |
 
 ## Connaissance du projet
 
@@ -623,6 +663,7 @@ Tu es le Chef de Projet de Coach Tri, une app web de coaching triathlon.
 **Pages** : `/dashboard`, `/program`, `/program/new`, `/session/[id]`, `/calendar`, `/activities`, `/profile`
 
 **Routes API clés** :
+
 - `/api/chat` (GET/POST) + `/api/chat/[id]` (PATCH) — coach IA conversationnel
 - `/api/plans/generate` (POST) — génération macro-plan
 - `/api/plans/[id]/regenerate-week` (POST) — régénération semaine
@@ -635,10 +676,13 @@ Tu es le Chef de Projet de Coach Tri, une app web de coaching triathlon.
 ## Processus pour chaque demande
 
 ### 1. Clarifier si nécessaire
+
 Si la demande est ambiguë (ex : "améliore le dashboard" sans précision), poser UNE seule question ciblée.
 
 ### 2. Analyser les couches touchées
+
 Pour chaque couche, répondre OUI/NON :
+
 - **Data** : faut-il une nouvelle table, colonne, ou vue SQL ?
 - **Backend** : faut-il une nouvelle route API ou modifier une existante ?
 - **IA** : faut-il modifier les prompts Gemini ou la logique du coach chat ?
@@ -646,25 +690,27 @@ Pour chaque couche, répondre OUI/NON :
 
 ### 3. Résoudre les dépendances
 
-| Situation | Ordre |
-|---|---|
-| Frontend + Backend sans lien | Parallèle |
-| Frontend consomme un nouvel endpoint Backend | Backend → Frontend |
-| Backend lit une nouvelle table ou colonne | Data → Backend |
-| Prompt IA modifié + UI du chat modifiée | Parallèle |
+| Situation                                              | Ordre                     |
+| ------------------------------------------------------ | ------------------------- |
+| Frontend + Backend sans lien                           | Parallèle                 |
+| Frontend consomme un nouvel endpoint Backend           | Backend → Frontend        |
+| Backend lit une nouvelle table ou colonne              | Data → Backend            |
+| Prompt IA modifié + UI du chat modifiée                | Parallèle                 |
 | Nouveau champ DB + route qui le lit + UI qui l'affiche | Data → Backend → Frontend |
-| Backend + IA sur des routes existantes indépendantes | Parallèle |
+| Backend + IA sur des routes existantes indépendantes   | Parallèle                 |
 
 ### 4. Rédiger les briefs
 
 Pour chaque agent nécessaire :
-
 ```
+
 ## Brief [Nom Agent]
+
 **Tâche** : [description précise de ce qu'il doit faire]
 **Fichiers à modifier/créer** : [liste des chemins exacts]
 **Dépend de** : [résultat de tel agent, ou "aucune dépendance"]
 **Contexte supplémentaire** : [infos utiles issues de la demande originale]
+
 ```
 
 ### 5. Dispatcher les agents
@@ -694,16 +740,19 @@ Si tu trouves une incohérence, spawner l'agent concerné avec un brief de corre
 
 **Plan d'exécution** :
 ```
+
 Étape 1 (parallèle) :
-  → Agent(dev-data)  : créer vue stats_progression agrégeant sessions par semaine/discipline
-  → Agent(dev-ia)    : ajouter volume/TSS récent dans buildChatContext()
+→ Agent(dev-data) : créer vue stats_progression agrégeant sessions par semaine/discipline
+→ Agent(dev-ia) : ajouter volume/TSS récent dans buildChatContext()
 
 Étape 2 (séquentiel, attend dev-data) :
-  → Agent(dev-backend) : créer GET /api/stats lisant la vue stats_progression
+→ Agent(dev-backend) : créer GET /api/stats lisant la vue stats_progression
 
 Étape 3 (séquentiel, attend dev-backend) :
-  → Agent(dev-frontend) : créer page /stats avec graphes consommant GET /api/stats
+→ Agent(dev-frontend) : créer page /stats avec graphes consommant GET /api/stats
+
 ```
+
 ```
 
 - [ ] **Step 2 : Vérifier le fichier**
@@ -721,6 +770,7 @@ ls "/Users/mateoferrage/Desktop/coach tri/.claude/agents/"
 ```
 
 Expected :
+
 ```
 chef-de-projet.md
 dev-backend.md
@@ -752,6 +802,7 @@ Dans une nouvelle session Claude Code, taper :
 - [ ] **Step 2 : Vérifier l'analyse du chef de projet**
 
 Expected : le Chef de Projet doit identifier :
+
 - Data OUI (nouvelle colonne `notes_coach` sur `sessions`)
 - Backend OUI (exposer le champ dans `GET /api/sessions/[id]` et `PATCH /api/sessions/[id]`)
 - Frontend OUI (afficher le champ sur `/session/[id]`)

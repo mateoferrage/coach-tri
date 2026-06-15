@@ -13,13 +13,16 @@ interface Props {
   lastSyncAt: string | null
 }
 
-export function GarminConnectCard({ connected: initialConnected, lastSyncAt: initialLastSync }: Props) {
+export function GarminConnectCard({
+  connected: initialConnected,
+  lastSyncAt: initialLastSync,
+}: Props) {
   const router = useRouter()
-  const [connected, setConnected]   = useState(initialConnected)
-  const [lastSync, setLastSync]     = useState(initialLastSync)
-  const [loading, setLoading]       = useState<'connect' | 'sync' | 'disconnect' | null>(null)
-  const [email, setEmail]           = useState('')
-  const [password, setPassword]     = useState('')
+  const [connected, setConnected] = useState(initialConnected)
+  const [lastSync, setLastSync] = useState(initialLastSync)
+  const [loading, setLoading] = useState<'connect' | 'sync' | 'disconnect' | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   /* ── Connect ────────────────────────────────────────────────────────────── */
   async function handleConnect(e: React.FormEvent) {
@@ -55,7 +58,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
       const now = new Date().toISOString()
       setLastSync(now)
       toast.success(
-        `✅ Sync réussie — ${data.activities_synced ?? 0} activité(s), ${data.wellness_synced ?? 0} jour(s) de forme importés.`
+        `✅ Sync réussie — ${data.activities_synced ?? 0} activité(s), ${data.wellness_synced ?? 0} jour(s) de forme importés.`,
       )
       router.refresh()
     } catch (err) {
@@ -89,9 +92,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              Garmin Connect
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">Garmin Connect</CardTitle>
             <CardDescription className="mt-1">
               Activités, HRV, Body Battery, sommeil
             </CardDescription>
@@ -113,17 +114,17 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
           <div className="space-y-4">
             {/* Last sync info */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary text-sm">
-              <div
-                className="h-2 w-2 rounded-full shrink-0"
-                style={{ backgroundColor: MINT }}
-              />
+              <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: MINT }} />
               <div>
                 <span className="text-muted-foreground text-xs">Dernière synchronisation</span>
                 <p className="font-semibold text-sm">
                   {lastSync
                     ? new Date(lastSync).toLocaleDateString('fr-FR', {
-                        day: 'numeric', month: 'long', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
                       })
                     : 'Jamais — lance une première synchronisation'}
                 </p>
@@ -132,11 +133,13 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
 
             {/* What gets imported */}
             <ul className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              {['Activités (14j)', 'HRV (RMSSD)', 'Body Battery', 'Sommeil & stress'].map(item => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <span style={{ color: MINT }}>✓</span> {item}
-                </li>
-              ))}
+              {['Activités (14j)', 'HRV (RMSSD)', 'Body Battery', 'Sommeil & stress'].map(
+                (item) => (
+                  <li key={item} className="flex items-center gap-1.5">
+                    <span style={{ color: MINT }}>✓</span> {item}
+                  </li>
+                ),
+              )}
             </ul>
 
             {/* Actions */}
@@ -162,8 +165,8 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
           /* ── Connect form ───────────────────────────────────────────────── */
           <form onSubmit={handleConnect} className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Connecte ton compte Garmin Connect pour importer automatiquement
-              tes activités et données de forme dans Coach Tri.
+              Connecte ton compte Garmin Connect pour importer automatiquement tes activités et
+              données de forme dans Coach Tri.
             </p>
 
             <div className="space-y-1.5">
@@ -174,7 +177,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
                 type="email"
                 placeholder="vous@exemple.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
               />
@@ -188,7 +191,7 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
               />
@@ -197,8 +200,8 @@ export function GarminConnectCard({ connected: initialConnected, lastSyncAt: ini
             <p className="text-xs text-muted-foreground flex items-start gap-1.5">
               <span>🔒</span>
               <span>
-                Identifiants chiffrés AES-256 côté serveur. Jamais stockés en clair,
-                jamais partagés avec des tiers.
+                Identifiants chiffrés AES-256 côté serveur. Jamais stockés en clair, jamais partagés
+                avec des tiers.
               </span>
             </p>
 

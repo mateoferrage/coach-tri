@@ -16,7 +16,7 @@ function getClient() {
 export async function generateJSON<T>(
   systemPrompt: string,
   userPrompt: string,
-  options?: { temperature?: number }
+  options?: { temperature?: number },
 ): Promise<T> {
   const ai = getClient()
 
@@ -32,10 +32,11 @@ export async function generateJSON<T>(
   })
 
   // Filter out thinking parts (thought === true) and collect text
-  const text = response.candidates?.[0]?.content?.parts
-    ?.filter((p) => !p.thought)
-    ?.map((p) => p.text ?? '')
-    ?.join('') ?? ''
+  const text =
+    response.candidates?.[0]?.content?.parts
+      ?.filter((p) => !p.thought)
+      ?.map((p) => p.text ?? '')
+      ?.join('') ?? ''
 
   if (!text) throw new Error('Gemini returned empty response')
 

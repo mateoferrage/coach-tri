@@ -65,18 +65,37 @@ import { mergeActivities } from './unify'
 
 function g(over: Partial<GarminRow>): GarminRow {
   return {
-    id: 'g', garmin_activity_id: 1, activity_type: 'run', name: null,
-    started_at: '2026-06-10T06:00:00+00:00', duration_s: 3600, distance_m: 10000,
-    avg_hr: 140, max_hr: 160, avg_speed_ms: 2.78, elevation_gain_m: 0,
-    aerobic_te: 3, ...over,
+    id: 'g',
+    garmin_activity_id: 1,
+    activity_type: 'run',
+    name: null,
+    started_at: '2026-06-10T06:00:00+00:00',
+    duration_s: 3600,
+    distance_m: 10000,
+    avg_hr: 140,
+    max_hr: 160,
+    avg_speed_ms: 2.78,
+    elevation_gain_m: 0,
+    aerobic_te: 3,
+    ...over,
   }
 }
 function s(over: Partial<StravaRow>): StravaRow {
   return {
-    id: 's', strava_activity_id: 2, activity_type: 'run', name: null,
-    started_at: '2026-06-10T06:00:00+00:00', duration_s: 3600, distance_m: 10000,
-    avg_hr: 140, max_hr: 160, avg_speed_ms: 2.78, elevation_gain_m: 0,
-    avg_watts: 200, suffer_score: 80, ...over,
+    id: 's',
+    strava_activity_id: 2,
+    activity_type: 'run',
+    name: null,
+    started_at: '2026-06-10T06:00:00+00:00',
+    duration_s: 3600,
+    distance_m: 10000,
+    avg_hr: 140,
+    max_hr: 160,
+    avg_speed_ms: 2.78,
+    elevation_gain_m: 0,
+    avg_watts: 200,
+    suffer_score: 80,
+    ...over,
   }
 }
 
@@ -128,14 +147,11 @@ describe('mergeActivities', () => {
   })
 
   it("n'apparie jamais une activité manuelle Garmin", () => {
-    const out = mergeActivities(
-      [g({ id: 'g1', garmin_activity_id: -3 })],
-      [s({ id: 's1' })],
-    )
+    const out = mergeActivities([g({ id: 'g1', garmin_activity_id: -3 })], [s({ id: 's1' })])
     expect(out).toHaveLength(2)
   })
 
-  it("ne dédoublonne pas les disciplines hors run/bike/swim", () => {
+  it('ne dédoublonne pas les disciplines hors run/bike/swim', () => {
     const out = mergeActivities(
       [g({ id: 'g1', activity_type: 'strength' })],
       [s({ id: 's1', activity_type: 'other' })],
@@ -151,6 +167,6 @@ describe('mergeActivities', () => {
       ],
       [],
     )
-    expect(out.map(a => a.id)).toEqual(['new', 'old'])
+    expect(out.map((a) => a.id)).toEqual(['new', 'old'])
   })
 })

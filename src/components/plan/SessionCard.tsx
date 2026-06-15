@@ -17,20 +17,34 @@ interface Session {
 }
 
 const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: '🏊', bike: '🚴', run: '🏃', brick: '⚡', strength: '💪', rest: '😴',
+  swim: '🏊',
+  bike: '🚴',
+  run: '🏃',
+  brick: '⚡',
+  strength: '💪',
+  rest: '😴',
 }
 
 const AMBER = 'oklch(0.82 0.15 78)' // ambre du design system (--chart-3)
 
 const STATUS_STYLES: Record<string, { className: string; style?: React.CSSProperties }> = {
-  planned:  { className: 'border-border bg-card hover:border-primary/50' },
-  done:     { className: '', style: { borderColor: withAlpha(ACCENT, 19), backgroundColor: withAlpha(ACCENT, 6) } },
-  skipped:  { className: 'border-border bg-muted opacity-60' },
-  modified: { className: '', style: { borderColor: withAlpha(AMBER, 19), backgroundColor: withAlpha(AMBER, 6) } },
+  planned: { className: 'border-border bg-card hover:border-primary/50' },
+  done: {
+    className: '',
+    style: { borderColor: withAlpha(ACCENT, 19), backgroundColor: withAlpha(ACCENT, 6) },
+  },
+  skipped: { className: 'border-border bg-muted opacity-60' },
+  modified: {
+    className: '',
+    style: { borderColor: withAlpha(AMBER, 19), backgroundColor: withAlpha(AMBER, 6) },
+  },
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  planned: 'Planifiée', done: 'Complétée', skipped: 'Passée', modified: 'Modifiée',
+  planned: 'Planifiée',
+  done: 'Complétée',
+  skipped: 'Passée',
+  modified: 'Modifiée',
 }
 
 export function SessionCard({ session }: { session: Session }) {

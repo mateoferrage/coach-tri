@@ -13,12 +13,12 @@ interface ProposedAction {
   params: Record<string, unknown>
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { id } = await params
@@ -31,12 +31,18 @@ export async function PATCH(
 
   // Fetch the message with its action
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: msg } = await (supabase as any)
+  const { data: msg } = (await (supabase as any)
     .from('chat_messages')
     .select('id, proposed_action, action_status')
     .eq('id', id)
     .eq('user_id', user.id)
-    .single() as { data: { id: string; proposed_action: ProposedAction | null; action_status: string | null } | null }
+    .single()) as {
+    data: {
+      id: string
+      proposed_action: ProposedAction | null
+      action_status: string | null
+    } | null
+  }
 
   if (!msg) return apiError('Message introuvable', 404)
   if (msg.action_status !== 'pending') return apiError('Action déjà traitée', 409)
@@ -46,10 +52,7 @@ export async function PATCH(
 
   // Update status in DB
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
-    .from('chat_messages')
-    .update({ action_status })
-    .eq('id', id)
+  await (supabase as any).from('chat_messages').update({ action_status }).eq('id', id)
 
   if (action_status === 'rejected') {
     return apiSuccess({ action_status: 'rejected' })
@@ -96,20 +99,27 @@ export async function PATCH(
       .eq('user_id', user.id)
 
     if (fetchError || !sessions || sessions.length !== 2) {
-      return apiError('Séances introuvables pour l\'échange', 404)
+      return apiError("Séances introuvables pour l'échange", 404)
     }
 
-    const [sesA, sesB] = sessions[0].id === sessionIdA
-      ? [sessions[0], sessions[1]]
-      : [sessions[1], sessions[0]]
+    const [sesA, sesB] =
+      sessions[0].id === sessionIdA ? [sessions[0], sessions[1]] : [sessions[1], sessions[0]]
 
     const dateA = sesA.session_date
     const dateB = sesB.session_date
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [resA, resB] = await Promise.all([
-      (admin as any).from('sessions').update({ session_date: dateB }).eq('id', sessionIdA).eq('user_id', user.id),
-      (admin as any).from('sessions').update({ session_date: dateA }).eq('id', sessionIdB).eq('user_id', user.id),
+      (admin as any)
+        .from('sessions')
+        .update({ session_date: dateB })
+        .eq('id', sessionIdA)
+        .eq('user_id', user.id),
+      (admin as any)
+        .from('sessions')
+        .update({ session_date: dateA })
+        .eq('id', sessionIdB)
+        .eq('user_id', user.id),
     ])
 
     if (resA.error) return apiError(resA.error.message)
@@ -147,5 +157,5 @@ export async function PATCH(
     })
   }
 
-  return apiError('Type d\'action inconnu', 400)
+  return apiError("Type d'action inconnu", 400)
 }

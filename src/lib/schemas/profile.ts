@@ -6,21 +6,29 @@ const ShoeSchema = z.object({
   surface: z.enum(['road', 'trail']),
 })
 
-const EquipmentSchema = z.object({
-  swim: z.object({
-    paddles:   z.boolean().optional(),
-    fins:      z.boolean().optional(),
-    pull_buoy: z.boolean().optional(),
-    kickboard: z.boolean().optional(),
-    snorkel:   z.boolean().optional(),
-  }).optional(),
-  bike: z.object({
-    aero_bars: z.boolean().optional(),
-  }).optional(),
-  run: z.object({
-    shoes: z.array(ShoeSchema),
-  }).optional(),
-}).optional()
+const EquipmentSchema = z
+  .object({
+    swim: z
+      .object({
+        paddles: z.boolean().optional(),
+        fins: z.boolean().optional(),
+        pull_buoy: z.boolean().optional(),
+        kickboard: z.boolean().optional(),
+        snorkel: z.boolean().optional(),
+      })
+      .optional(),
+    bike: z
+      .object({
+        aero_bars: z.boolean().optional(),
+      })
+      .optional(),
+    run: z
+      .object({
+        shoes: z.array(ShoeSchema),
+      })
+      .optional(),
+  })
+  .optional()
 
 export type EquipmentProfile = z.infer<typeof EquipmentSchema>
 
@@ -34,7 +42,9 @@ export const ProfileSchema = z.object({
   experience_years: z.number().min(0).max(50).int().optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced', 'elite']),
   weekly_hours_avg: z.number().min(1).max(40).optional(),
-  available_disciplines: z.array(z.enum(['swim', 'bike', 'run'])).min(1, 'Sélectionner au moins une discipline'),
+  available_disciplines: z
+    .array(z.enum(['swim', 'bike', 'run']))
+    .min(1, 'Sélectionner au moins une discipline'),
   notes: z.string().max(1000).optional(),
   equipment: EquipmentSchema,
 })

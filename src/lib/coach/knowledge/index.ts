@@ -19,21 +19,12 @@ export const KNOWLEDGE_BASE = [
 ].join('\n\n---\n\n')
 
 /** Lightweight subset for prompts where token budget is a concern. */
-export const KNOWLEDGE_BASE_CORE = [
-  METHODOLOGIES,
-  ZONES_REF,
-].join('\n\n---\n\n')
+export const KNOWLEDGE_BASE_CORE = [METHODOLOGIES, ZONES_REF].join('\n\n---\n\n')
 
 /** Sessions + zones reference — most relevant for micro-generation. */
-export const KNOWLEDGE_BASE_MICRO = [
-  ZONES_REF,
-  SESSIONS_LIB,
-].join('\n\n---\n\n')
+export const KNOWLEDGE_BASE_MICRO = [ZONES_REF, SESSIONS_LIB].join('\n\n---\n\n')
 
 /** Methodologies + maintenance — most relevant for chat and macro-generation. */
-export const KNOWLEDGE_BASE_CHAT = [
-  METHODOLOGIES,
-  MAINTENANCE,
-].join('\n\n---\n\n')
+export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, MAINTENANCE].join('\n\n---\n\n')
 
 export { METHODOLOGIES, ZONES_REF, SESSIONS_LIB, NUTRITION, SWIM_TECHNIQUE, MAINTENANCE }

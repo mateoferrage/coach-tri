@@ -5,8 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ACCENT as MINT, ACCENT_FG, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, withAlpha } from '@/lib/theme'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  ACCENT as MINT,
+  ACCENT_FG,
+  SURFACE as DARK,
+  SURFACE_DEEP as DARKER,
+  DIVIDER as DIV,
+  withAlpha,
+} from '@/lib/theme'
 
 interface Shoe {
   name: string
@@ -16,7 +29,13 @@ interface Shoe {
 }
 
 interface EquipmentData {
-  swim?: { paddles?: boolean; fins?: boolean; pull_buoy?: boolean; kickboard?: boolean; snorkel?: boolean }
+  swim?: {
+    paddles?: boolean
+    fins?: boolean
+    pull_buoy?: boolean
+    kickboard?: boolean
+    snorkel?: boolean
+  }
   bike?: { aero_bars?: boolean }
   run?: { shoes?: Shoe[] }
 }
@@ -26,11 +45,11 @@ interface Props {
 }
 
 const SWIM_ITEMS: { key: keyof NonNullable<EquipmentData['swim']>; label: string }[] = [
-  { key: 'paddles',   label: 'Plaquettes mains' },
-  { key: 'fins',      label: 'Palmes' },
+  { key: 'paddles', label: 'Plaquettes mains' },
+  { key: 'fins', label: 'Palmes' },
   { key: 'pull_buoy', label: 'Pullbuoy' },
   { key: 'kickboard', label: 'Planche' },
-  { key: 'snorkel',   label: 'Tuba frontal' },
+  { key: 'snorkel', label: 'Tuba frontal' },
 ]
 
 const USAGE_LABELS: Record<Shoe['usage'], string> = {
@@ -44,7 +63,15 @@ const SURFACE_LABELS: Record<Shoe['surface'], string> = {
   trail: 'Trail',
 }
 
-function ToggleChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function ToggleChip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
@@ -69,35 +96,40 @@ export function EquipmentSection({ initial }: Props) {
   const [data, setData] = useState<EquipmentData>(initial ?? {})
 
   function toggleSwim(key: keyof NonNullable<EquipmentData['swim']>) {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       swim: { ...prev.swim, [key]: !prev.swim?.[key] },
     }))
   }
 
   function toggleAeroBars() {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       bike: { aero_bars: !prev.bike?.aero_bars },
     }))
   }
 
   function addShoe() {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
-      run: { shoes: [...(prev.run?.shoes ?? []), { name: '', usage: 'footing', surface: 'road', _key: Date.now() }] },
+      run: {
+        shoes: [
+          ...(prev.run?.shoes ?? []),
+          { name: '', usage: 'footing', surface: 'road', _key: Date.now() },
+        ],
+      },
     }))
   }
 
   function removeShoe(i: number) {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       run: { shoes: (prev.run?.shoes ?? []).filter((_, idx) => idx !== i) },
     }))
   }
 
   function updateShoe(i: number, field: keyof Shoe, value: string) {
-    setData(prev => {
+    setData((prev) => {
       const shoes = [...(prev.run?.shoes ?? [])]
       shoes[i] = { ...shoes[i], [field]: value }
       return { ...prev, run: { shoes } }
@@ -137,7 +169,10 @@ export function EquipmentSection({ initial }: Props) {
           className="px-5 py-4 flex items-center justify-between"
           style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+          <p
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: 'oklch(1 0 0 / 40%)' }}
+          >
             Matériel
           </p>
           <button
@@ -161,15 +196,22 @@ export function EquipmentSection({ initial }: Props) {
           <div className="px-5 py-4 space-y-4">
             {Object.values(data.swim ?? {}).some(Boolean) && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Natation
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {SWIM_ITEMS.filter(item => data.swim?.[item.key]).map(item => (
+                  {SWIM_ITEMS.filter((item) => data.swim?.[item.key]).map((item) => (
                     <span
                       key={item.key}
                       className="px-3 py-1 rounded-lg text-xs font-bold"
-                      style={{ backgroundColor: withAlpha(MINT, 9), color: MINT, border: `1px solid ${withAlpha(MINT, 19)}` }}
+                      style={{
+                        backgroundColor: withAlpha(MINT, 9),
+                        color: MINT,
+                        border: `1px solid ${withAlpha(MINT, 19)}`,
+                      }}
                     >
                       {item.label}
                     </span>
@@ -180,12 +222,19 @@ export function EquipmentSection({ initial }: Props) {
 
             {data.bike?.aero_bars && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Vélo
                 </p>
                 <span
                   className="px-3 py-1 rounded-lg text-xs font-bold"
-                  style={{ backgroundColor: withAlpha(MINT, 9), color: MINT, border: `1px solid ${withAlpha(MINT, 19)}` }}
+                  style={{
+                    backgroundColor: withAlpha(MINT, 9),
+                    color: MINT,
+                    border: `1px solid ${withAlpha(MINT, 19)}`,
+                  }}
                 >
                   Prolongateurs
                 </span>
@@ -194,13 +243,18 @@ export function EquipmentSection({ initial }: Props) {
 
             {(data.run?.shoes?.length ?? 0) > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                >
                   Course
                 </p>
                 <div className="space-y-1.5">
                   {data.run!.shoes!.map((shoe, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-sm font-bold" style={{ color: 'oklch(1 0 0 / 90%)' }}>{shoe.name}</span>
+                      <span className="text-sm font-bold" style={{ color: 'oklch(1 0 0 / 90%)' }}>
+                        {shoe.name}
+                      </span>
                       <span className="text-xs" style={{ color: 'oklch(1 0 0 / 40%)' }}>
                         {USAGE_LABELS[shoe.usage]} · {SURFACE_LABELS[shoe.surface]}
                       </span>
@@ -215,7 +269,7 @@ export function EquipmentSection({ initial }: Props) {
     )
   }
 
-  const hasEmptyShoe = (data.run?.shoes ?? []).some(s => !s.name.trim())
+  const hasEmptyShoe = (data.run?.shoes ?? []).some((s) => !s.name.trim())
 
   return (
     <div
@@ -226,7 +280,10 @@ export function EquipmentSection({ initial }: Props) {
         className="px-5 py-4"
         style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
       >
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+        <p
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: 'oklch(1 0 0 / 40%)' }}
+        >
           Modifier le matériel
         </p>
       </div>
@@ -234,11 +291,14 @@ export function EquipmentSection({ initial }: Props) {
       <div className="px-5 py-5 space-y-6">
         {/* ── Natation ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Natation
           </p>
           <div className="flex flex-wrap gap-2">
-            {SWIM_ITEMS.map(item => (
+            {SWIM_ITEMS.map((item) => (
               <ToggleChip
                 key={item.key}
                 label={item.label}
@@ -251,7 +311,10 @@ export function EquipmentSection({ initial }: Props) {
 
         {/* ── Vélo ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Vélo
           </p>
           <ToggleChip
@@ -263,7 +326,10 @@ export function EquipmentSection({ initial }: Props) {
 
         {/* ── Course ── */}
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'oklch(1 0 0 / 38%)' }}>
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: 'oklch(1 0 0 / 38%)' }}
+          >
             Course
           </p>
           <div className="space-y-3">
@@ -277,7 +343,7 @@ export function EquipmentSection({ initial }: Props) {
                   <Input
                     placeholder="Nom de la chaussure"
                     value={shoe.name}
-                    onChange={e => updateShoe(i, 'name', e.target.value)}
+                    onChange={(e) => updateShoe(i, 'name', e.target.value)}
                     className="flex-1 text-sm"
                     style={{ color: 'oklch(1 0 0 / 90%)' }}
                   />
@@ -291,8 +357,16 @@ export function EquipmentSection({ initial }: Props) {
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <Select value={shoe.usage} onValueChange={v => { if (v) updateShoe(i, 'usage', v) }}>
-                    <SelectTrigger className="flex-1 text-xs" style={{ color: 'oklch(1 0 0 / 90%)' }}>
+                  <Select
+                    value={shoe.usage}
+                    onValueChange={(v) => {
+                      if (v) updateShoe(i, 'usage', v)
+                    }}
+                  >
+                    <SelectTrigger
+                      className="flex-1 text-xs"
+                      style={{ color: 'oklch(1 0 0 / 90%)' }}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -301,8 +375,16 @@ export function EquipmentSection({ initial }: Props) {
                       <SelectItem value="competition">Compétition</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={shoe.surface} onValueChange={v => { if (v) updateShoe(i, 'surface', v) }}>
-                    <SelectTrigger className="flex-1 text-xs" style={{ color: 'oklch(1 0 0 / 90%)' }}>
+                  <Select
+                    value={shoe.surface}
+                    onValueChange={(v) => {
+                      if (v) updateShoe(i, 'surface', v)
+                    }}
+                  >
+                    <SelectTrigger
+                      className="flex-1 text-xs"
+                      style={{ color: 'oklch(1 0 0 / 90%)' }}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -317,7 +399,11 @@ export function EquipmentSection({ initial }: Props) {
               type="button"
               onClick={addShoe}
               className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-xl border transition-opacity hover:opacity-70 w-full justify-center"
-              style={{ color: MINT, borderColor: withAlpha(MINT, 19), backgroundColor: withAlpha(MINT, 3) }}
+              style={{
+                color: MINT,
+                borderColor: withAlpha(MINT, 19),
+                backgroundColor: withAlpha(MINT, 3),
+              }}
             >
               <Plus size={13} />
               Ajouter une paire
@@ -330,7 +416,10 @@ export function EquipmentSection({ initial }: Props) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => { setData(initial ?? {}); setEditing(false) }}
+            onClick={() => {
+              setData(initial ?? {})
+              setEditing(false)
+            }}
             className="flex-1"
           >
             Annuler

@@ -4,10 +4,15 @@ const { GarminConnect } = require('garmin-connect')
 export interface StoredTokens {
   oauth1: { token: string; token_secret: string }
   oauth2: {
-    scope: string; jti: string; token_type: string
-    access_token: string; refresh_token: string
-    expires_in: number; expires_at: number
-    refresh_token_expires_in: number; refresh_token_expires_at: number
+    scope: string
+    jti: string
+    token_type: string
+    access_token: string
+    refresh_token: string
+    expires_in: number
+    expires_at: number
+    refresh_token_expires_in: number
+    refresh_token_expires_at: number
   }
 }
 

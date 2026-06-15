@@ -15,12 +15,12 @@ Les athlètes ont du matériel spécifique par discipline. Gemini ne sait pas ce
 
 4 catégories déclarées, 3 actives maintenant :
 
-| Catégorie | Contenu |
-|---|---|
-| Natation | Plaquettes mains, palmes, pullbuoy, planche, tuba frontal (oui/non chacun) |
-| Vélo | Prolongateurs (oui/non) |
-| Course | Plusieurs paires de chaussures (nom, usage, surface) |
-| Entrainement | Vide pour l'instant — prévu pour plus tard |
+| Catégorie    | Contenu                                                                    |
+| ------------ | -------------------------------------------------------------------------- |
+| Natation     | Plaquettes mains, palmes, pullbuoy, planche, tuba frontal (oui/non chacun) |
+| Vélo         | Prolongateurs (oui/non)                                                    |
+| Course       | Plusieurs paires de chaussures (nom, usage, surface)                       |
+| Entrainement | Vide pour l'instant — prévu pour plus tard                                 |
 
 ---
 
@@ -107,6 +107,7 @@ Charger `equipment` depuis `profiles` et le passer à `buildMicroPrompt()`.
 Nouvelle section "Matériel" dans la page `/profile`, entre "Informations personnelles" et "Données physiologiques".
 
 `EquipmentSection` est un Client Component (interactions utilisateur) qui :
+
 1. Affiche l'équipement actuel en lecture (chips/badges)
 2. Propose un bouton "Modifier" qui ouvre un formulaire inline (pas de modal) avec :
    - **Natation** : 5 toggles (Switch shadcn/ui) labelisés
@@ -138,9 +139,9 @@ Gemini reçoit le bloc matériel dans le prompt
 
 ## Agents dispatched
 
-| Ordre | Agent | Tâche |
-|---|---|---|
-| 1 (parallèle) | `dev-data` | Migration `0021_equipment.sql` |
-| 1 (parallèle) | `dev-ia` | `buildEquipmentBlock()` + injection dans `buildMicroPrompt()` |
-| 2 (séquentiel, attend dev-data) | `dev-backend` | Étendre `ProfileSchema` + GET/POST `/api/profile` + charger equipment dans `regenerate-week` |
-| 3 (séquentiel, attend dev-backend) | `dev-frontend` | `EquipmentSection` composant + intégration page profil |
+| Ordre                              | Agent          | Tâche                                                                                        |
+| ---------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| 1 (parallèle)                      | `dev-data`     | Migration `0021_equipment.sql`                                                               |
+| 1 (parallèle)                      | `dev-ia`       | `buildEquipmentBlock()` + injection dans `buildMicroPrompt()`                                |
+| 2 (séquentiel, attend dev-data)    | `dev-backend`  | Étendre `ProfileSchema` + GET/POST `/api/profile` + charger equipment dans `regenerate-week` |
+| 3 (séquentiel, attend dev-backend) | `dev-frontend` | `EquipmentSection` composant + intégration page profil                                       |

@@ -2,19 +2,24 @@ import { ACCENT, GLACIER } from '@/lib/theme'
 
 // Palette oklch alignée sur le design system (cf. theme.ts / globals.css --chart-*)
 const PHASE_COLORS: Record<string, string> = {
-  prep:  'oklch(0.72 0.04 252)',  // acier
-  base:  'oklch(0.74 0.13 233)',  // bleu glacier
-  build: 'oklch(0.82 0.15 78)',   // ambre
-  peak:  'oklch(0.65 0.20 25)',   // rouge effort
-  taper: ACCENT,                  // vert menthe
-  race:  'oklch(0.78 0.18 300)',  // violet course
-  maintenance: GLACIER,           // teal
+  prep: 'oklch(0.72 0.04 252)', // acier
+  base: 'oklch(0.74 0.13 233)', // bleu glacier
+  build: 'oklch(0.82 0.15 78)', // ambre
+  peak: 'oklch(0.65 0.20 25)', // rouge effort
+  taper: ACCENT, // vert menthe
+  race: 'oklch(0.78 0.18 300)', // violet course
+  maintenance: GLACIER, // teal
 }
 const PHASE_FALLBACK = 'oklch(0.60 0.02 252)'
 
 const PHASE_LABELS: Record<string, string> = {
-  prep: 'Prépa', base: 'Base', build: 'Construction',
-  peak: 'Pic', taper: 'Affûtage', race: 'Course', maintenance: 'Maintien',
+  prep: 'Prépa',
+  base: 'Base',
+  build: 'Construction',
+  peak: 'Pic',
+  taper: 'Affûtage',
+  race: 'Course',
+  maintenance: 'Maintien',
 }
 
 interface Phase {

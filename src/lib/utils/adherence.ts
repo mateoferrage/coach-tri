@@ -1,11 +1,11 @@
 export interface SessionForAdherence {
   id: string
-  session_date: string         // YYYY-MM-DD
-  session_type: string         // 'rest' sessions are excluded from counts
+  session_date: string // YYYY-MM-DD
+  session_type: string // 'rest' sessions are excluded from counts
   duration_min: number
   status: 'planned' | 'done' | 'skipped' | 'modified'
   actual_duration_min: number | null
-  target_zone: string | null   // 'Z1'–'Z5' — used as fallback for intensity distribution
+  target_zone: string | null // 'Z1'–'Z5' — used as fallback for intensity distribution
   garmin_activity_id: string | null
 }
 
@@ -64,16 +64,14 @@ export function computeWeeklyAdherence(
 ): AdherenceResult {
   const todayStr = (today ?? new Date()).toISOString().split('T')[0]
 
-  const active   = sessions.filter(s => s.session_type !== 'rest')
-  const due      = active.filter(s => s.session_date <= todayStr)
-  const upcoming = active.filter(s => s.session_date > todayStr)
+  const active = sessions.filter((s) => s.session_type !== 'rest')
+  const due = active.filter((s) => s.session_date <= todayStr)
+  const upcoming = active.filter((s) => s.session_date > todayStr)
 
-  const completed = due.filter(s => s.status === 'done' || s.status === 'modified')
-  const skipped   = due.filter(s => s.status === 'skipped')
+  const completed = due.filter((s) => s.status === 'done' || s.status === 'modified')
+  const skipped = due.filter((s) => s.status === 'skipped')
 
-  const completionRate = due.length > 0
-    ? Math.round(completed.length / due.length * 100)
-    : 100
+  const completionRate = due.length > 0 ? Math.round((completed.length / due.length) * 100) : 100
 
   // ── Volume ──────────────────────────────────────────────────────────────────
   const plannedDurationMin = due.reduce((acc, s) => acc + s.duration_min, 0)
@@ -87,9 +85,10 @@ export function computeWeeklyAdherence(
     }
   }
 
-  const volumeDeltaPct = plannedDurationMin > 0
-    ? Math.round((actualDurationMin - plannedDurationMin) / plannedDurationMin * 100)
-    : 0
+  const volumeDeltaPct =
+    plannedDurationMin > 0
+      ? Math.round(((actualDurationMin - plannedDurationMin) / plannedDurationMin) * 100)
+      : 0
 
   // ── Intensity distribution ───────────────────────────────────────────────────
   const zoneTotals: Record<string, number> = { Z1: 0, Z2: 0, Z3: 0, Z4: 0, Z5: 0 }
@@ -118,7 +117,7 @@ export function computeWeeklyAdherence(
   if (totalZoneTime > 0) {
     for (const [z, time] of Object.entries(zoneTotals)) {
       if (time > 0) {
-        intensityDistribution[z as 'Z1'] = Math.round(time / totalZoneTime * 1000) / 10
+        intensityDistribution[z as 'Z1'] = Math.round((time / totalZoneTime) * 1000) / 10
       }
     }
   }
@@ -126,36 +125,35 @@ export function computeWeeklyAdherence(
   // ── 80/20 compliance ─────────────────────────────────────────────────────────
   let rule8020: AdherenceResult['rule8020'] = null
   if (totalZoneTime > 0) {
-    const easyPct = Math.round((zoneTotals.Z1 + zoneTotals.Z2) / totalZoneTime * 1000) / 10
-    const hardPct = Math.round((zoneTotals.Z4 + zoneTotals.Z5) / totalZoneTime * 1000) / 10
+    const easyPct = Math.round(((zoneTotals.Z1 + zoneTotals.Z2) / totalZoneTime) * 1000) / 10
+    const hardPct = Math.round(((zoneTotals.Z4 + zoneTotals.Z5) / totalZoneTime) * 1000) / 10
     rule8020 = { easyPct, hardPct, compliant: easyPct >= 75 }
   }
 
   // ── Cumulative progress ───────────────────────────────────────────────────────
-  const allActive    = allSessions.filter(s => s.session_type !== 'rest')
-  const allCompleted = allActive.filter(s => s.status === 'done' || s.status === 'modified')
-  const overallRate  = allActive.length > 0
-    ? Math.round(allCompleted.length / allActive.length * 100)
-    : 0
+  const allActive = allSessions.filter((s) => s.session_type !== 'rest')
+  const allCompleted = allActive.filter((s) => s.status === 'done' || s.status === 'modified')
+  const overallRate =
+    allActive.length > 0 ? Math.round((allCompleted.length / allActive.length) * 100) : 0
 
   return {
-    weekInProgress:    upcoming.length > 0,
-    sessionsTotal:     active.length,
-    sessionsDue:       due.length,
-    sessionsUpcoming:  upcoming.length,
+    weekInProgress: upcoming.length > 0,
+    sessionsTotal: active.length,
+    sessionsDue: due.length,
+    sessionsUpcoming: upcoming.length,
     sessionsCompleted: completed.length,
-    sessionsSkipped:   skipped.length,
+    sessionsSkipped: skipped.length,
     completionRate,
     plannedDurationMin: Math.round(plannedDurationMin),
-    actualDurationMin:  Math.round(actualDurationMin),
+    actualDurationMin: Math.round(actualDurationMin),
     volumeDeltaPct,
     intensityDistribution,
     rule8020,
     cumulativeProgress: {
       totalCompleted: allCompleted.length,
-      totalPlanned:   allActive.length,
-      weeksElapsed:   weekNumber,
-      weeksTotal:     programDurationWeeks,
+      totalPlanned: allActive.length,
+      weeksElapsed: weekNumber,
+      weeksTotal: programDurationWeeks,
       overallRate,
     },
   }
@@ -174,23 +172,31 @@ export function formatAdherenceForPrompt(a: AdherenceResult): string {
 
   lines.push('Suivi hebdomadaire :')
   const progressStr = a.weekInProgress ? ' (semaine en cours)' : ''
-  lines.push(`  Séances réalisées : ${a.sessionsCompleted}/${a.sessionsDue} (${a.completionRate}%)${progressStr}`)
+  lines.push(
+    `  Séances réalisées : ${a.sessionsCompleted}/${a.sessionsDue} (${a.completionRate}%)${progressStr}`,
+  )
   if (a.sessionsSkipped > 0) lines.push(`  Séances sautées : ${a.sessionsSkipped}`)
 
-  lines.push(`Volume : prévu ${a.plannedDurationMin} min — réel ${a.actualDurationMin} min (${a.volumeDeltaPct > 0 ? '+' : ''}${a.volumeDeltaPct}%)`)
+  lines.push(
+    `Volume : prévu ${a.plannedDurationMin} min — réel ${a.actualDurationMin} min (${a.volumeDeltaPct > 0 ? '+' : ''}${a.volumeDeltaPct}%)`,
+  )
 
   const zones = Object.entries(a.intensityDistribution)
   if (zones.length > 0) {
-    lines.push('Distribution d\'intensité réelle :')
+    lines.push("Distribution d'intensité réelle :")
     for (const [z, pct] of zones) lines.push(`  ${z} : ${pct}%`)
     if (a.rule8020) {
       const { easyPct, hardPct, compliant } = a.rule8020
-      lines.push(`  Règle 80/20 : ${easyPct}% facile / ${hardPct}% dur — ${compliant ? '✓ conforme' : '⚠ trop d\'intensité en zone médiane'}`)
+      lines.push(
+        `  Règle 80/20 : ${easyPct}% facile / ${hardPct}% dur — ${compliant ? '✓ conforme' : "⚠ trop d'intensité en zone médiane"}`,
+      )
     }
   }
 
   const c = a.cumulativeProgress
-  lines.push(`Progression globale : ${c.totalCompleted}/${c.totalPlanned} séances sur ${c.weeksElapsed}/${c.weeksTotal} semaines (${c.overallRate}%)`)
+  lines.push(
+    `Progression globale : ${c.totalCompleted}/${c.totalPlanned} séances sur ${c.weeksElapsed}/${c.weeksTotal} semaines (${c.overallRate}%)`,
+  )
 
   return lines.join('\n')
 }

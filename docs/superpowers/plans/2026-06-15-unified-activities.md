@@ -26,15 +26,18 @@
 ## Task 1: Installer et configurer Vitest
 
 **Files:**
+
 - Modify: `package.json`
 - Create: `vitest.config.ts`
 
 - [ ] **Step 1: Installer vitest**
 
 Run:
+
 ```bash
 cd "/Users/mateoferrage/Desktop/Projets/coach tri/coach-tri" && npm install -D vitest
 ```
+
 Expected: vitest ajouté à `devDependencies`, installation sans erreur.
 
 - [ ] **Step 2: Ajouter les scripts de test à `package.json`**
@@ -79,6 +82,7 @@ git commit -m "chore: add vitest for unit tests"
 Garmin stocke `started_at` en UTC ; Strava stocke aujourd'hui l'heure locale (`start_date_local`). Pour que le dédoublonnage par proximité d'heure fonctionne, Strava doit aussi stocker l'UTC (`start_date`).
 
 **Files:**
+
 - Modify: `src/lib/strava/client.ts`
 
 - [ ] **Step 1: Ajouter `start_date` au type brut Strava**
@@ -87,19 +91,19 @@ Dans `interface StravaRawActivity`, ajouter le champ `start_date` à côté de `
 
 ```ts
 interface StravaRawActivity {
-  id:                    number
-  name:                  string
-  type:                  string
-  start_date:            string
-  start_date_local:      string
-  elapsed_time:          number
-  distance:              number
-  average_heartrate?:    number
-  max_heartrate?:        number
-  average_speed?:        number
-  average_watts?:        number
+  id: number
+  name: string
+  type: string
+  start_date: string
+  start_date_local: string
+  elapsed_time: number
+  distance: number
+  average_heartrate?: number
+  max_heartrate?: number
+  average_speed?: number
+  average_watts?: number
   total_elevation_gain?: number
-  suffer_score?:         number
+  suffer_score?: number
 }
 ```
 
@@ -132,6 +136,7 @@ git commit -m "fix: store Strava activity start in UTC for dedup matching"
 ## Task 3: Module `unify.ts` — types et normaliseurs (TDD)
 
 **Files:**
+
 - Create: `src/lib/activities/unify.ts`
 - Test: `src/lib/activities/unify.test.ts`
 
@@ -227,9 +232,9 @@ export type UnifiedActivity = {
   max_hr: number | null
   avg_speed_ms: number | null
   elevation_gain_m: number | null
-  aerobic_te: number | null      // Garmin uniquement
-  avg_watts: number | null       // Strava uniquement
-  suffer_score: number | null    // Strava uniquement
+  aerobic_te: number | null // Garmin uniquement
+  avg_watts: number | null // Strava uniquement
+  suffer_score: number | null // Strava uniquement
   is_manual: boolean
   sources: ActivitySource[]
 }
@@ -325,6 +330,7 @@ git commit -m "feat: unify.ts normalizers for Garmin/Strava activities"
 Règle (cf. spec) : deux activités sont la même séance si même discipline normalisée ∈ {run,bike,swim}, heures de début ≤ 10 min d'écart, et (si les deux durées sont connues) durées ≤ 25 % d'écart. Base = Garmin, enrichie de `avg_watts`/`suffer_score` Strava. Manuelles jamais appariées. Tri final par `started_at` desc.
 
 **Files:**
+
 - Modify: `src/lib/activities/unify.ts`
 - Test: `src/lib/activities/unify.test.ts`
 
@@ -337,18 +343,37 @@ import { mergeActivities } from './unify'
 
 function g(over: Partial<GarminRow>): GarminRow {
   return {
-    id: 'g', garmin_activity_id: 1, activity_type: 'run', name: null,
-    started_at: '2026-06-10T06:00:00+00:00', duration_s: 3600, distance_m: 10000,
-    avg_hr: 140, max_hr: 160, avg_speed_ms: 2.78, elevation_gain_m: 0,
-    aerobic_te: 3, ...over,
+    id: 'g',
+    garmin_activity_id: 1,
+    activity_type: 'run',
+    name: null,
+    started_at: '2026-06-10T06:00:00+00:00',
+    duration_s: 3600,
+    distance_m: 10000,
+    avg_hr: 140,
+    max_hr: 160,
+    avg_speed_ms: 2.78,
+    elevation_gain_m: 0,
+    aerobic_te: 3,
+    ...over,
   }
 }
 function s(over: Partial<StravaRow>): StravaRow {
   return {
-    id: 's', strava_activity_id: 2, activity_type: 'run', name: null,
-    started_at: '2026-06-10T06:00:00+00:00', duration_s: 3600, distance_m: 10000,
-    avg_hr: 140, max_hr: 160, avg_speed_ms: 2.78, elevation_gain_m: 0,
-    avg_watts: 200, suffer_score: 80, ...over,
+    id: 's',
+    strava_activity_id: 2,
+    activity_type: 'run',
+    name: null,
+    started_at: '2026-06-10T06:00:00+00:00',
+    duration_s: 3600,
+    distance_m: 10000,
+    avg_hr: 140,
+    max_hr: 160,
+    avg_speed_ms: 2.78,
+    elevation_gain_m: 0,
+    avg_watts: 200,
+    suffer_score: 80,
+    ...over,
   }
 }
 
@@ -397,14 +422,11 @@ describe('mergeActivities', () => {
   })
 
   it("n'apparie jamais une activité manuelle Garmin", () => {
-    const out = mergeActivities(
-      [g({ id: 'g1', garmin_activity_id: -3 })],
-      [s({ id: 's1' })],
-    )
+    const out = mergeActivities([g({ id: 'g1', garmin_activity_id: -3 })], [s({ id: 's1' })])
     expect(out).toHaveLength(2)
   })
 
-  it("ne dédoublonne pas les disciplines hors run/bike/swim", () => {
+  it('ne dédoublonne pas les disciplines hors run/bike/swim', () => {
     const out = mergeActivities(
       [g({ id: 'g1', activity_type: 'strength' })],
       [s({ id: 's1', activity_type: 'other' })],
@@ -420,7 +442,7 @@ describe('mergeActivities', () => {
       ],
       [],
     )
-    expect(out.map(a => a.id)).toEqual(['new', 'old'])
+    expect(out.map((a) => a.id)).toEqual(['new', 'old'])
   })
 })
 ```
@@ -435,8 +457,8 @@ Expected: FAIL — `mergeActivities` n'est pas exporté.
 Ajouter à `src/lib/activities/unify.ts` :
 
 ```ts
-const DEDUP_WINDOW_MS = 10 * 60 * 1000   // ±10 min
-const DURATION_TOLERANCE = 0.25          // ±25 %
+const DEDUP_WINDOW_MS = 10 * 60 * 1000 // ±10 min
+const DURATION_TOLERANCE = 0.25 // ±25 %
 const DEDUP_DISCIPLINES = new Set(['run', 'bike', 'swim'])
 
 function canDedup(a: UnifiedActivity): boolean {
@@ -444,7 +466,7 @@ function canDedup(a: UnifiedActivity): boolean {
 }
 
 function durationsCompatible(a: number | null, b: number | null): boolean {
-  if (a == null || b == null) return true   // pas de garde-fou si durée inconnue
+  if (a == null || b == null) return true // pas de garde-fou si durée inconnue
   if (a === 0 || b === 0) return a === b
   return Math.abs(a - b) / Math.max(a, b) <= DURATION_TOLERANCE
 }
@@ -512,6 +534,7 @@ git commit -m "feat: mergeActivities dedup + Strava enrichment"
 ## Task 5: Intégrer la fusion dans `/activities` + UI
 
 **Files:**
+
 - Modify: `src/app/(app)/activities/page.tsx`
 
 - [ ] **Step 1: Remplacer le type local et les imports**
@@ -521,7 +544,12 @@ En haut de `page.tsx`, remplacer l'import de thème par un import incluant aussi
 Ajouter après les imports existants :
 
 ```ts
-import { mergeActivities, type UnifiedActivity, type GarminRow, type StravaRow } from "@/lib/activities/unify";
+import {
+  mergeActivities,
+  type UnifiedActivity,
+  type GarminRow,
+  type StravaRow,
+} from '@/lib/activities/unify'
 ```
 
 Supprimer le bloc `type Activity = { ... }` (lignes 8-21) — on utilise `UnifiedActivity`.
@@ -531,9 +559,9 @@ Supprimer le bloc `type Activity = { ... }` (lignes 8-21) — on utilise `Unifie
 Remplacer la signature et le corps pertinent de `ActivityCard` :
 
 ```tsx
-function SourceChip({ source }: { source: "garmin" | "strava" }) {
-  const color = source === "strava" ? "oklch(0.70 0.17 35)" : "oklch(0.72 0.12 230)";
-  const label = source === "strava" ? "Strava" : "Garmin";
+function SourceChip({ source }: { source: 'garmin' | 'strava' }) {
+  const color = source === 'strava' ? 'oklch(0.70 0.17 35)' : 'oklch(0.72 0.12 230)'
+  const label = source === 'strava' ? 'Strava' : 'Garmin'
   return (
     <span
       className="text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
@@ -541,36 +569,36 @@ function SourceChip({ source }: { source: "garmin" | "strava" }) {
     >
       {label}
     </span>
-  );
+  )
 }
 
 function ActivityCard({ activity }: { activity: UnifiedActivity }) {
-  const sport = getSport(activity.activity_type);
-  const isManual = activity.is_manual;
+  const sport = getSport(activity.activity_type)
+  const isManual = activity.is_manual
 
-  const hero = (!sport.isStrength && activity.distance_m)
-    ? heroDistance(activity.distance_m, sport.isSwim)
-    : heroDuration(activity.duration_s);
+  const hero =
+    !sport.isStrength && activity.distance_m
+      ? heroDistance(activity.distance_m, sport.isSwim)
+      : heroDuration(activity.duration_s)
 
-  const showDuration = !!(!sport.isStrength && activity.distance_m && activity.duration_s);
-  const pace         = formatPace(activity.avg_speed_ms, sport.isCycling, sport.isSwim);
-  const avgHr        = activity.avg_hr ? `${activity.avg_hr} bpm` : null;
-  const maxHr        = activity.max_hr ? `${activity.max_hr} bpm` : null;
-  const watts        = activity.avg_watts ? `${activity.avg_watts} W` : null;
-  const elevation    = (activity.elevation_gain_m ?? 0) > 0
-    ? `${Math.round(activity.elevation_gain_m!)} m`
-    : null;
-  const distSecondary = sport.isStrength ? formatDistance(activity.distance_m, sport.isSwim) : null;
+  const showDuration = !!(!sport.isStrength && activity.distance_m && activity.duration_s)
+  const pace = formatPace(activity.avg_speed_ms, sport.isCycling, sport.isSwim)
+  const avgHr = activity.avg_hr ? `${activity.avg_hr} bpm` : null
+  const maxHr = activity.max_hr ? `${activity.max_hr} bpm` : null
+  const watts = activity.avg_watts ? `${activity.avg_watts} W` : null
+  const elevation =
+    (activity.elevation_gain_m ?? 0) > 0 ? `${Math.round(activity.elevation_gain_m!)} m` : null
+  const distSecondary = sport.isStrength ? formatDistance(activity.distance_m, sport.isSwim) : null
 
   const stats: { label: string; value: string }[] = [
-    showDuration && { label: "Durée",     value: formatDuration(activity.duration_s)! },
-    pace         && { label: sport.isCycling ? "Vitesse" : "Allure",  value: pace },
-    watts        && { label: "Puissance", value: watts },
-    avgHr        && { label: "FC moy.",   value: avgHr },
-    elevation    && { label: "D+",        value: elevation },
-    maxHr        && { label: "FC max",    value: maxHr },
-    distSecondary && { label: "Distance", value: distSecondary },
-  ].filter(Boolean) as { label: string; value: string }[];
+    showDuration && { label: 'Durée', value: formatDuration(activity.duration_s)! },
+    pace && { label: sport.isCycling ? 'Vitesse' : 'Allure', value: pace },
+    watts && { label: 'Puissance', value: watts },
+    avgHr && { label: 'FC moy.', value: avgHr },
+    elevation && { label: 'D+', value: elevation },
+    maxHr && { label: 'FC max', value: maxHr },
+    distSecondary && { label: 'Distance', value: distSecondary },
+  ].filter(Boolean) as { label: string; value: string }[]
 
   return (
     <div
@@ -582,27 +610,38 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-              style={{ backgroundColor: withAlpha(MINT, 9), border: `1px solid ${withAlpha(MINT, 19)}` }}
+              style={{
+                backgroundColor: withAlpha(MINT, 9),
+                border: `1px solid ${withAlpha(MINT, 19)}`,
+              }}
             >
               {sport.icon}
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: MINT }}>
+              <p
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: MINT }}
+              >
                 {sport.label}
               </p>
               {activity.name && (
-                <p className="text-[12px] font-semibold leading-tight mt-0.5" style={{ color: "oklch(1 0 0 / 70%)" }}>
+                <p
+                  className="text-[12px] font-semibold leading-tight mt-0.5"
+                  style={{ color: 'oklch(1 0 0 / 70%)' }}
+                >
                   {activity.name}
                 </p>
               )}
-              <p className="text-[11px]" style={{ color: "oklch(1 0 0 / 40%)" }}>
+              <p className="text-[11px]" style={{ color: 'oklch(1 0 0 / 40%)' }}>
                 {formatTime(activity.started_at)}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex gap-1.5">
-              {activity.sources.map((src) => <SourceChip key={src} source={src} />)}
+              {activity.sources.map((src) => (
+                <SourceChip key={src} source={src} />
+              ))}
             </div>
             {isManual ? <ManualBadge /> : <TEBadge value={activity.aerobic_te} />}
           </div>
@@ -610,17 +649,20 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
 
         {hero ? (
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-semibold leading-none" style={{ color: "oklch(0.98 0 0)" }}>
+            <span
+              className="text-5xl font-semibold leading-none"
+              style={{ color: 'oklch(0.98 0 0)' }}
+            >
               {hero.value}
             </span>
             {hero.unit && (
-              <span className="text-lg font-bold" style={{ color: "oklch(1 0 0 / 45%)" }}>
+              <span className="text-lg font-bold" style={{ color: 'oklch(1 0 0 / 45%)' }}>
                 {hero.unit}
               </span>
             )}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: "oklch(1 0 0 / 30%)" }}>
+          <p className="text-sm" style={{ color: 'oklch(1 0 0 / 30%)' }}>
             Pas de données
           </p>
         )}
@@ -637,7 +679,7 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
         </div>
       )}
     </div>
-  );
+  )
 }
 ```
 
@@ -646,26 +688,30 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
 Dans `ActivitiesPage`, remplacer le bloc de fetch Garmin unique et la construction de `list` par :
 
 ```tsx
-  const [garminRes, stravaRes] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from("garmin_activities")
-      .select("id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te")
-      .eq("user_id", user!.id)
-      .order("started_at", { ascending: false })
-      .limit(100),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from("strava_activities")
-      .select("id, strava_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, avg_watts, suffer_score")
-      .eq("user_id", user!.id)
-      .order("started_at", { ascending: false })
-      .limit(100),
-  ]);
+const [garminRes, stravaRes] = await Promise.all([
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (supabase as any)
+    .from('garmin_activities')
+    .select(
+      'id, garmin_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, aerobic_te',
+    )
+    .eq('user_id', user!.id)
+    .order('started_at', { ascending: false })
+    .limit(100),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (supabase as any)
+    .from('strava_activities')
+    .select(
+      'id, strava_activity_id, activity_type, name, started_at, duration_s, distance_m, avg_hr, max_hr, avg_speed_ms, elevation_gain_m, avg_watts, suffer_score',
+    )
+    .eq('user_id', user!.id)
+    .order('started_at', { ascending: false })
+    .limit(100),
+])
 
-  const garminRows = (garminRes.data ?? []) as GarminRow[];
-  const stravaRows = (stravaRes.data ?? []) as StravaRow[];
-  const list: UnifiedActivity[] = mergeActivities(garminRows, stravaRows).slice(0, 50);
+const garminRows = (garminRes.data ?? []) as GarminRow[]
+const stravaRows = (stravaRes.data ?? []) as StravaRow[]
+const list: UnifiedActivity[] = mergeActivities(garminRows, stravaRows).slice(0, 50)
 ```
 
 - [ ] **Step 4: Adapter le groupement par jour au nouveau type**
@@ -673,16 +719,16 @@ Dans `ActivitiesPage`, remplacer le bloc de fetch Garmin unique et la constructi
 Le bloc de groupement utilise `Activity` ; le remplacer par `UnifiedActivity` :
 
 ```tsx
-  const groups: { dateKey: string; label: string; items: UnifiedActivity[] }[] = [];
-  for (const activity of list) {
-    const dateKey = activity.started_at.split("T")[0];
-    const last = groups[groups.length - 1];
-    if (last?.dateKey === dateKey) {
-      last.items.push(activity);
-    } else {
-      groups.push({ dateKey, label: formatDateHeader(activity.started_at), items: [activity] });
-    }
+const groups: { dateKey: string; label: string; items: UnifiedActivity[] }[] = []
+for (const activity of list) {
+  const dateKey = activity.started_at.split('T')[0]
+  const last = groups[groups.length - 1]
+  if (last?.dateKey === dateKey) {
+    last.items.push(activity)
+  } else {
+    groups.push({ dateKey, label: formatDateHeader(activity.started_at), items: [activity] })
   }
+}
 ```
 
 - [ ] **Step 5: Mettre à jour le texte de l'état vide**
@@ -690,22 +736,25 @@ Le bloc de groupement utilise `Activity` ; le remplacer par `UnifiedActivity` :
 Dans le bloc `list.length === 0`, remplacer le paragraphe d'aide :
 
 ```tsx
-          <p className="text-xs" style={{ color: "oklch(1 0 0 / 25%)" }}>
-            Connecte ton compte Garmin ou Strava et lance une synchronisation.
-          </p>
+<p className="text-xs" style={{ color: 'oklch(1 0 0 / 25%)' }}>
+  Connecte ton compte Garmin ou Strava et lance une synchronisation.
+</p>
 ```
 
 - [ ] **Step 6: Typecheck + lint + build**
 
 Run:
+
 ```bash
 npm run typecheck && npm run lint && npm run build
 ```
+
 Expected: typecheck PASS, lint sans nouvelle erreur, build PASS (route `/activities` générée).
 
 - [ ] **Step 7: Vérification manuelle**
 
 Lancer `npm run dev`, se connecter, ouvrir `/activities`. Vérifier :
+
 - Une séance présente sur Garmin **et** Strava apparaît **une seule fois**, avec les deux badges `Garmin`+`Strava`.
 - Une séance vélo avec puissance affiche le stat **« Puissance »** (W).
 - L'historique Garmin ancien (avant la connexion Strava) reste visible.

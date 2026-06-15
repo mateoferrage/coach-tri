@@ -5,7 +5,10 @@ import { refreshIfNeeded, getActivitiesForSync, type StravaTokens } from '@/lib/
 
 export async function POST() {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,10 +25,10 @@ export async function POST() {
   let tokens: StravaTokens
   try {
     tokens = await refreshIfNeeded({
-      access_token:  creds.access_token,
+      access_token: creds.access_token,
       refresh_token: creds.refresh_token,
-      expires_at:    creds.expires_at,
-      athlete_id:    creds.athlete_id,
+      expires_at: creds.expires_at,
+      athlete_id: creds.athlete_id,
     })
   } catch {
     return apiError('Token Strava expiré — reconnecte ton compte', 401)
@@ -36,9 +39,9 @@ export async function POST() {
     await (admin as any)
       .from('strava_credentials')
       .update({
-        access_token:  tokens.access_token,
+        access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        expires_at:    tokens.expires_at,
+        expires_at: tokens.expires_at,
       })
       .eq('user_id', user.id)
   }
@@ -55,7 +58,7 @@ export async function POST() {
     return apiSuccess({ activities_synced: 0 })
   }
 
-  const rows  = activities.map(a => ({ ...a, user_id: user.id }))
+  const rows = activities.map((a) => ({ ...a, user_id: user.id }))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: upsertError } = await (admin as any)
     .from('strava_activities')

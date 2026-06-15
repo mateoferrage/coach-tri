@@ -12,19 +12,20 @@
 
 ## Fichiers impactés
 
-| Fichier | Action |
-|---|---|
-| Migration Supabase SQL | Créer — `ALTER TABLE chat_messages ADD COLUMN archived_at` |
-| `src/app/api/chat/route.ts` | Modifier — filtre `archived_at IS NULL` sur GET + historique POST + handler DELETE |
-| `src/components/coach/CoachChat.tsx` | Modifier — bouton "Nouvelle conversation" |
-| `src/app/(app)/program/page.tsx` | Modifier — `force-dynamic` + tri des semaines |
-| `src/components/plan/SessionCard.tsx` | Modifier — retirer affichage RPE |
+| Fichier                               | Action                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------- |
+| Migration Supabase SQL                | Créer — `ALTER TABLE chat_messages ADD COLUMN archived_at`                         |
+| `src/app/api/chat/route.ts`           | Modifier — filtre `archived_at IS NULL` sur GET + historique POST + handler DELETE |
+| `src/components/coach/CoachChat.tsx`  | Modifier — bouton "Nouvelle conversation"                                          |
+| `src/app/(app)/program/page.tsx`      | Modifier — `force-dynamic` + tri des semaines                                      |
+| `src/components/plan/SessionCard.tsx` | Modifier — retirer affichage RPE                                                   |
 
 ---
 
 ## Task 1 : Migration Supabase — colonne `archived_at`
 
 **Files:**
+
 - Aucun fichier de code — migration à exécuter dans le dashboard Supabase
 
 - [ ] **Step 1 : Ouvrir le SQL Editor Supabase**
@@ -55,6 +56,7 @@
 ## Task 2 : Filtrer les messages archivés dans `/api/chat` (GET + historique POST)
 
 **Files:**
+
 - Modify: `src/app/api/chat/route.ts`
 
 - [ ] **Step 1 : Ouvrir le fichier**
@@ -64,6 +66,7 @@
 - [ ] **Step 2 : Ajouter `.is('archived_at', null)` dans le handler GET**
 
   Localiser (lignes 33–41) :
+
   ```ts
   const { data, error: fetchError } = await (supabase as any)
     .from('chat_messages')
@@ -74,6 +77,7 @@
   ```
 
   Remplacer par :
+
   ```ts
   const { data, error: fetchError } = await (supabase as any)
     .from('chat_messages')
@@ -87,6 +91,7 @@
 - [ ] **Step 3 : Ajouter `.is('archived_at', null)` dans la requête historique du handler POST**
 
   Localiser (vers la ligne 94–101, dans le `Promise.all`) la requête `chat_messages` pour l'historique :
+
   ```ts
   (supabase as any)
     .from('chat_messages')
@@ -97,6 +102,7 @@
   ```
 
   Remplacer par :
+
   ```ts
   (supabase as any)
     .from('chat_messages')
@@ -123,6 +129,7 @@
 ## Task 3 : Ajouter `DELETE /api/chat` — archiver les messages
 
 **Files:**
+
 - Modify: `src/app/api/chat/route.ts`
 
 - [ ] **Step 1 : Ajouter le handler DELETE à la fin du fichier**
@@ -132,7 +139,10 @@
   ```ts
   export async function DELETE(_request: Request) {
     const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
     if (error || !user) return apiError('Non authentifié', 401)
 
     const admin = createAdminClient()
@@ -153,10 +163,12 @@
 - [ ] **Step 2 : Vérification manuelle**
 
   Dans le terminal ou un client HTTP (ex. curl) :
+
   ```bash
   # Appel depuis le navigateur via DevTools console (sur l'app en dev) :
   # fetch('/api/chat', { method: 'DELETE' }).then(r => r.json()).then(console.log)
   ```
+
   Résultat attendu : `{ data: { archived: true }, success: true }`
 
   Vérifier dans Supabase que les lignes `chat_messages` ont bien un `archived_at` non NULL.
@@ -173,6 +185,7 @@
 ## Task 4 : Bouton "Nouvelle conversation" dans `CoachChat.tsx`
 
 **Files:**
+
 - Modify: `src/components/coach/CoachChat.tsx`
 
 - [ ] **Step 1 : Ajouter la fonction `resetConversation`**
@@ -189,6 +202,7 @@
 - [ ] **Step 2 : Ajouter le bouton dans le header**
 
   Localiser le header (autour de la ligne 127–152) :
+
   ```tsx
   <div
     className="px-5 py-3 flex items-center gap-2 flex-shrink-0"
@@ -205,15 +219,12 @@
         Coach IA
       </p>
     </div>
-    {sending && (
-      <div className="ml-auto flex gap-1">
-        ...
-      </div>
-    )}
+    {sending && <div className="ml-auto flex gap-1">...</div>}
   </div>
   ```
 
   Remplacer par :
+
   ```tsx
   <div
     className="px-5 py-3 flex items-center gap-2 flex-shrink-0"
@@ -233,7 +244,7 @@
     <div className="ml-auto flex items-center gap-3">
       {sending && (
         <div className="flex gap-1">
-          {[0, 1, 2].map(i => (
+          {[0, 1, 2].map((i) => (
             <div
               key={i}
               className="w-1.5 h-1.5 rounded-full animate-bounce"
@@ -273,6 +284,7 @@
 ## Task 5 : Programme — `force-dynamic` + données toujours fraîches
 
 **Files:**
+
 - Modify: `src/app/(app)/program/page.tsx`
 
 - [ ] **Step 1 : Ajouter `export const dynamic = 'force-dynamic'`**
@@ -284,6 +296,7 @@
   ```
 
   Le fichier doit commencer ainsi :
+
   ```ts
   import { createClient } from '@/lib/supabase/server'
   import { redirect } from 'next/navigation'
@@ -317,6 +330,7 @@
 ## Task 6 : Programme — Semaine actuelle en premier, passées en bas
 
 **Files:**
+
 - Modify: `src/app/(app)/program/page.tsx`
 
 - [ ] **Step 1 : Remplacer la section "Weeks" dans la page**
@@ -324,10 +338,12 @@
   Localiser le bloc `{/* Weeks */}` (vers la ligne 127–138) :
 
   ```tsx
-  {/* Weeks */}
-  <div className="space-y-3">
+  {
+    /* Weeks */
+  }
+  ;<div className="space-y-3">
     <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
-    {weeks.map(week => (
+    {weeks.map((week) => (
       <WeekView
         key={week.id as string}
         week={week as unknown as Parameters<typeof WeekView>[0]['week']}
@@ -341,56 +357,60 @@
   Remplacer par :
 
   ```tsx
-  {/* Weeks */}
-  {(() => {
-    const currentWeek = weeks.find(w => (w.week_num as number) === currentWeekNum) ?? null
-    const futureWeeks = weeks
-      .filter(w => (w.week_num as number) > currentWeekNum)
-      .sort((a, b) => (a.week_num as number) - (b.week_num as number))
-    const pastWeeks = weeks
-      .filter(w => (w.week_num as number) < currentWeekNum)
-      .sort((a, b) => (b.week_num as number) - (a.week_num as number))
+  {
+    /* Weeks */
+  }
+  {
+    ;(() => {
+      const currentWeek = weeks.find((w) => (w.week_num as number) === currentWeekNum) ?? null
+      const futureWeeks = weeks
+        .filter((w) => (w.week_num as number) > currentWeekNum)
+        .sort((a, b) => (a.week_num as number) - (b.week_num as number))
+      const pastWeeks = weeks
+        .filter((w) => (w.week_num as number) < currentWeekNum)
+        .sort((a, b) => (b.week_num as number) - (a.week_num as number))
 
-    return (
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
+      return (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">Semaines</h2>
 
-        {currentWeek && (
-          <WeekView
-            key={currentWeek.id as string}
-            week={currentWeek as unknown as Parameters<typeof WeekView>[0]['week']}
-            planId={plan.id as string}
-            isCurrentWeek={true}
-          />
-        )}
+          {currentWeek && (
+            <WeekView
+              key={currentWeek.id as string}
+              week={currentWeek as unknown as Parameters<typeof WeekView>[0]['week']}
+              planId={plan.id as string}
+              isCurrentWeek={true}
+            />
+          )}
 
-        {futureWeeks.map(week => (
-          <WeekView
-            key={week.id as string}
-            week={week as unknown as Parameters<typeof WeekView>[0]['week']}
-            planId={plan.id as string}
-            isCurrentWeek={false}
-          />
-        ))}
+          {futureWeeks.map((week) => (
+            <WeekView
+              key={week.id as string}
+              week={week as unknown as Parameters<typeof WeekView>[0]['week']}
+              planId={plan.id as string}
+              isCurrentWeek={false}
+            />
+          ))}
 
-        {pastWeeks.length > 0 && (
-          <>
-            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide pt-2">
-              Semaines passées
-            </h3>
-            {pastWeeks.map(week => (
-              <WeekView
-                key={week.id as string}
-                week={week as unknown as Parameters<typeof WeekView>[0]['week']}
-                planId={plan.id as string}
-                isCurrentWeek={false}
-              />
-            ))}
-          </>
-        )}
-      </div>
-    )
-  })()}
+          {pastWeeks.length > 0 && (
+            <>
+              <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide pt-2">
+                Semaines passées
+              </h3>
+              {pastWeeks.map((week) => (
+                <WeekView
+                  key={week.id as string}
+                  week={week as unknown as Parameters<typeof WeekView>[0]['week']}
+                  planId={plan.id as string}
+                  isCurrentWeek={false}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )
+    })()
+  }
   ```
 
 - [ ] **Step 2 : Vérification manuelle**
@@ -413,6 +433,7 @@
 ## Task 7 : Supprimer l'affichage du RPE dans `SessionCard`
 
 **Files:**
+
 - Modify: `src/components/plan/SessionCard.tsx`
 
 - [ ] **Step 1 : Retirer le fragment RPE**

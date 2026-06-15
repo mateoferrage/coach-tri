@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
-import { ScheduleEventSchema, type ScheduleEventRow, type CalendarEvent } from '@/lib/schemas/schedule'
+import {
+  ScheduleEventSchema,
+  type ScheduleEventRow,
+  type CalendarEvent,
+} from '@/lib/schemas/schedule'
 import { addDays, getISODay, format, parseISO } from 'date-fns'
 
 // Expand recurring events into concrete occurrences for a 7-day window
@@ -57,7 +61,10 @@ function expandEvents(rows: ScheduleEventRow[], weekStart: Date): CalendarEvent[
 
 export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { searchParams } = new URL(request.url)
@@ -72,15 +79,18 @@ export async function GET(request: Request) {
 
   // Fetch one-off events in the week + recurring events that overlap the week
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = (await (supabase as any)
     .from('schedule_events')
     .select('*')
     .eq('user_id', user.id)
     .or(
       `and(is_recurring.eq.false,event_date.gte.${weekStartParam},event_date.lte.${weekEndStr}),` +
-      `and(is_recurring.eq.true,event_date.lte.${weekEndStr},or(recurrence_end_date.is.null,recurrence_end_date.gte.${weekStartParam}))`
+        `and(is_recurring.eq.true,event_date.lte.${weekEndStr},or(recurrence_end_date.is.null,recurrence_end_date.gte.${weekStartParam}))`,
     )
-    .order('event_date', { ascending: true }) as { data: ScheduleEventRow[] | null; error: { message: string } | null }
+    .order('event_date', { ascending: true })) as {
+    data: ScheduleEventRow[] | null
+    error: { message: string } | null
+  }
 
   if (error) return apiError(error.message)
 
@@ -90,7 +100,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const body = await request.json()
@@ -100,7 +113,7 @@ export async function POST(request: Request) {
   const { is_recurring, recurrence_day, recurrence_end_date, ...rest } = parsed.data
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = (await (supabase as any)
     .from('schedule_events')
     .insert({
       user_id: user.id,
@@ -110,7 +123,7 @@ export async function POST(request: Request) {
       recurrence_end_date: is_recurring ? (recurrence_end_date ?? null) : null,
     })
     .select()
-    .single() as { data: ScheduleEventRow | null; error: { message: string } | null }
+    .single()) as { data: ScheduleEventRow | null; error: { message: string } | null }
 
   if (error) return apiError(error.message)
   return apiSuccess(data, 201)

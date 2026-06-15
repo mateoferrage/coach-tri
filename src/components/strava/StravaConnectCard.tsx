@@ -13,17 +13,22 @@ interface Props {
 
 const ORANGE = '#FC4C02' // couleur de marque Strava
 
-export function StravaConnectCard({ connected: initialConnected, lastSyncAt: initialLastSync }: Props) {
-  const router       = useRouter()
+export function StravaConnectCard({
+  connected: initialConnected,
+  lastSyncAt: initialLastSync,
+}: Props) {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [connected, setConnected] = useState(initialConnected)
-  const [lastSync, setLastSync]   = useState(initialLastSync)
-  const [loading, setLoading]     = useState<'sync' | 'disconnect' | null>(null)
+  const [lastSync, setLastSync] = useState(initialLastSync)
+  const [loading, setLoading] = useState<'sync' | 'disconnect' | null>(null)
 
   useEffect(() => {
     if (searchParams.get('strava_connected') === '1') {
       setConnected(true)
-      toast.success('Compte Strava connecté ! Lance une synchronisation pour importer tes activités.')
+      toast.success(
+        'Compte Strava connecté ! Lance une synchronisation pour importer tes activités.',
+      )
       router.replace('/profile')
     }
     if (searchParams.get('strava_error')) {
@@ -35,7 +40,7 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
   async function handleSync() {
     setLoading('sync')
     try {
-      const res  = await fetch('/api/strava/sync', { method: 'POST' })
+      const res = await fetch('/api/strava/sync', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erreur de synchronisation')
       setLastSync(new Date().toISOString())
@@ -98,8 +103,11 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
                 <p className="font-semibold text-sm">
                   {lastSync
                     ? new Date(lastSync).toLocaleDateString('fr-FR', {
-                        day: 'numeric', month: 'long', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
                       })
                     : 'Jamais — lance une première synchronisation'}
                 </p>
@@ -107,11 +115,13 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
             </div>
 
             <ul className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              {["Activités (30j)", "Coach enrichi", "Charge d'entraînement", "Stats YTD"].map(item => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <span style={{ color: MINT }}>✓</span> {item}
-                </li>
-              ))}
+              {['Activités (30j)', 'Coach enrichi', "Charge d'entraînement", 'Stats YTD'].map(
+                (item) => (
+                  <li key={item} className="flex items-center gap-1.5">
+                    <span style={{ color: MINT }}>✓</span> {item}
+                  </li>
+                ),
+              )}
             </ul>
 
             <div className="flex gap-2 pt-1">
@@ -135,7 +145,8 @@ export function StravaConnectCard({ connected: initialConnected, lastSyncAt: ini
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Connecte Strava pour enrichir le coach IA avec tes activités récentes et ta charge d&apos;entraînement.
+              Connecte Strava pour enrichir le coach IA avec tes activités récentes et ta charge
+              d&apos;entraînement.
             </p>
             <a
               href="/api/strava/connect"

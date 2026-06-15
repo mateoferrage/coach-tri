@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 ---
@@ -14,18 +16,18 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Stack technique
 
-| Couche | Technologie |
-|---|---|
-| Framework | Next.js 16.2.6 — App Router, React 19 |
-| Base de données / Auth | Supabase (PostgreSQL + Auth SSR) |
-| IA | Google Gemini 2.5 Flash (`@google/genai`) |
-| Montres / GPS | Garmin Connect (`garmin-connect`) — TypeScript/Node, **pas de pont Python** |
-| Activités | Strava (OAuth2, `STRAVA_CLIENT_ID`/`SECRET`) |
-| UI | Tailwind CSS v4 + shadcn/ui + lucide-react |
-| Validation | Zod v4 |
-| Dates | date-fns v4 |
-| Fonts | Outfit (sans) + JetBrains Mono |
-| Déploiement | Vercel |
+| Couche                 | Technologie                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| Framework              | Next.js 16.2.6 — App Router, React 19                                       |
+| Base de données / Auth | Supabase (PostgreSQL + Auth SSR)                                            |
+| IA                     | Google Gemini 2.5 Flash (`@google/genai`)                                   |
+| Montres / GPS          | Garmin Connect (`garmin-connect`) — TypeScript/Node, **pas de pont Python** |
+| Activités              | Strava (OAuth2, `STRAVA_CLIENT_ID`/`SECRET`)                                |
+| UI                     | Tailwind CSS v4 + shadcn/ui + lucide-react                                  |
+| Validation             | Zod v4                                                                      |
+| Dates                  | date-fns v4                                                                 |
+| Fonts                  | Outfit (sans) + JetBrains Mono                                              |
+| Déploiement            | Vercel                                                                      |
 
 ---
 
@@ -99,6 +101,7 @@ src/
 ### Tables principales
 
 **`profiles`** — un profil par utilisateur (id = auth.users.id)
+
 - `first_name`, `birth_date`, `sex` (M/F/X)
 - `weight_kg`, `height_cm`, `experience_years`
 - `level` : `beginner | intermediate | advanced | elite`
@@ -107,6 +110,7 @@ src/
 - `notes`
 
 **`physiology`** — données physiologiques (FTP, VMA, CSS, etc.)
+
 - `user_id`, `test_date`
 - `ftp_watts`, `hr_max`, `hr_threshold_bike`
 - `vma_kmh`, `run_threshold_pace_sec_per_km`, `hr_max_run`, `hr_threshold_run`
@@ -114,6 +118,7 @@ src/
 - Vue `physiology_current` : dernière mesure par user
 
 **`goals`** — objectifs de course
+
 - `race_name`, `race_date`
 - `race_type` : `sprint | olympic | half | full | xterra | custom`
 - `swim_distance_m`, `bike_distance_m`, `run_distance_m`
@@ -123,6 +128,7 @@ src/
 - `status` : `draft | active | completed | abandoned`
 
 **`plans`** — programmes d'entraînement
+
 - `user_id`, `goal_id` (nullable pour mode maintenance)
 - `name`, `start_date`, `end_date`
 - `methodology` : `polarized | pyramidal | threshold | custom`
@@ -131,16 +137,19 @@ src/
 - `params : Json`, `summary : Json`
 
 **`plan_phases`** — phases du plan (généré par Gemini macro)
+
 - `plan_id`, `phase` (prep/base/build/peak/taper/race)
 - `start_week_num`, `end_week_num`, `focus`
 
 **`plan_weeks`** — semaines du plan (généré par Gemini macro)
+
 - `plan_id`, `week_num`, `phase`
 - `is_recovery_week`, `planned_volume_hours`, `planned_tss`
 - `distribution : Json` (`{z1z2, z3, z4z5}`)
 - `notes`, `start_date`
 
 **`sessions`** — séances individuelles (généré par Gemini micro)
+
 - `plan_id`, `plan_week_id`, `user_id`, `session_date`
 - `day_part` : `morning | midday | evening`
 - `discipline` : `swim | bike | run | brick | strength | rest`
@@ -154,44 +163,52 @@ src/
 - `garmin_activity_id` (FK vers garmin_activities)
 
 **`garmin_credentials`** — identifiants Garmin chiffrés AES-256
+
 - `user_id`, `email_enc`, `password_enc`
 - `session_data : Json` (tokens OAuth1 + OAuth2 pour réutilisation)
 - `last_sync_at`
 
 **`garmin_activities`** — activités synchronisées
+
 - `garmin_activity_id` (unique Garmin), `activity_type` (swim/bike/run/strength/other)
 - `started_at`, `duration_s`, `distance_m`
 - `avg_hr`, `max_hr`, `avg_speed_ms`, `elevation_gain_m`
 - `aerobic_te`, `anaerobic_te`, `raw_data`
 
 **`garmin_wellness`** — données bien-être quotidiennes
+
 - `date` (unique par user/date)
 - `sleep_duration_s`, `sleep_score`
 - `hrv_rmssd`, `body_battery_start/end`
 - `stress_avg`, `resting_hr`, `steps`, `total_calories`
 
 **`garmin_stats`** — stats Garmin globales (1 ligne par user)
+
 - `vo2max_run`, `vo2max_bike`, `fitness_age`
 - `training_readiness`, `training_load_7d`, `training_load_28d`
 - `display_name`, `garmin_username`, `profile_image_url`
 - `personal_records : Json`
 
 **`availability_blocks`** — périodes d'indisponibilité
+
 - `start_date`, `end_date`, `reason`
 
 **`schedule_events`** — événements personnels (contraintes d'agenda)
+
 - `title`, `event_type`, `event_date`, `start_time`, `end_time`
 - `is_recurring` : bool
 - `recurrence_day` : ISO day (1=lun…7=dim)
 - `recurrence_end_date`
 
 **`chat_messages`** — historique du coach IA
+
 - `user_id`, `role` (user/assistant)
 - `content` : texte du message
 - `proposed_action : Json | null` — action proposée par l'IA
 - `action_status` : `pending | confirmed | rejected | null`
 
 **`plan_generations`** — log des appels Gemini
+
 - `plan_id`, `trigger` (initial/week_regenerate)
 - `scope`, `model`, `response_meta`
 
@@ -212,9 +229,11 @@ src/
 ## Système IA (Gemini)
 
 ### Client (`src/lib/gemini/client.ts`)
+
 ```ts
 generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 ```
+
 - Modèle : `gemini-2.5-flash`
 - `thinkingBudget: 0` (désactivé pour la vitesse)
 - `responseMimeType: 'application/json'`
@@ -223,6 +242,7 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 ### Génération de programme — 2 phases
 
 **Phase 1 — Macro** (`POST /api/plans/generate`)
+
 1. Récupère profil, goal, activités Garmin récentes (8 semaines), wellness (14 jours)
 2. `buildMacroPrompt()` → prompt décrivant l'athlète et l'objectif
 3. Gemini génère : phases (`prep/base/build/peak/taper/race`) + semaines (volume, TSS, distribution d'intensité)
@@ -230,12 +250,14 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 5. Archive les anciens plans actifs
 
 **Phase 2 — Micro** (`POST /api/plans/[id]/regenerate-week`)
+
 1. Récupère la semaine cible, profil, sessions semaine précédente, wellness récent, schedule_events
 2. `buildMicroPrompt()` → prompt avec contraintes d'agenda et séances précédentes
 3. Gemini génère : sessions détaillées (structure warmup/main/cooldown, target_values, coaching_note)
 4. Supprime les séances `planned` de la semaine, insère les nouvelles
 
 ### Coach Chat (`POST /api/chat`)
+
 - Récupère contexte : profil, plan actif, séances de la semaine, historique chat (10 messages)
 - Prompt : `COACH_CHAT_SYSTEM` + `buildChatContext()`
 - Réponse JSON : `{ message, proposedAction: null | { type, description, params } }`
@@ -247,9 +269,11 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 ## Intégration Garmin
 
 **Connexion** : `POST /api/garmin/connect`
+
 - Chiffre email + password (AES-256-CBC) → stocke dans `garmin_credentials`
 
 **Sync** : `POST /api/garmin/sync`
+
 - Déchiffre credentials, crée instance `GarminConnect`
 - Tente réutilisation des tokens OAuth (session_data), sinon login
 - En parallèle :
@@ -259,6 +283,7 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 - Met à jour `session_data` avec les nouveaux tokens exportés
 
 **Chiffrement** (`src/lib/utils/crypto.ts`) :
+
 - AES-256-CBC, IV aléatoire 16 bytes
 - Clé depuis `ENCRYPTION_KEY` (32 chars raw ou 64 hex)
 - Format stocké : `ivHex:encryptedHex`
@@ -273,7 +298,7 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 - `GET /api/strava/callback` : vérifie le `state`, échange le code (`exchangeCode`), upsert dans `strava_credentials` (tokens **en clair**, contrairement à Garmin qui chiffre).
 - `POST /api/strava/sync` : rafraîchit le token si besoin (`refreshIfNeeded`), récupère activités + stats, upsert `strava_activities`.
 - `POST /api/strava/disconnect` : supprime les credentials.
-- **Config Strava** : *Authorization Callback Domain* = le host de `NEXT_PUBLIC_APP_URL` (sans `https://`).
+- **Config Strava** : _Authorization Callback Domain_ = le host de `NEXT_PUBLIC_APP_URL` (sans `https://`).
 - Tables : `strava_credentials`, `strava_activities` (migration `0020_strava.sql`).
 
 ---
@@ -281,6 +306,7 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 ## Design System
 
 ### Couleurs (OKLCH)
+
 ```
 MINT   = oklch(0.843 0.165 157)   → accent vert triathlon
 DARK   = oklch(0.116 0.022 155)   → fond principal des cards
@@ -290,10 +316,12 @@ MUTED  = oklch(1 0 0 / 40%)       → texte atténué
 ```
 
 ### Typographie
+
 - Sans-serif : `Outfit` (variable `--font-sans`), weights 400-900
 - Mono : `JetBrains Mono` (variable `--font-geist-mono`)
 
 ### Conventions UI
+
 - Coins arrondis : `rounded-2xl` pour les cards majeures, `rounded-xl` pour boutons/chips
 - Font style répétitif : `font-black uppercase tracking-widest text-xs` → étiquettes sections
 - Bouton primaire : `backgroundColor: MINT, color: DARK`
@@ -305,31 +333,37 @@ MUTED  = oklch(1 0 0 / 40%)       → texte atténué
 ## Patterns de code importants
 
 ### Server Components → lecture directe Supabase
+
 ```tsx
 const supabase = await createClient() // @/lib/supabase/server
 const { data } = await (supabase as any).from('sessions').select('...')
 ```
+
 Le cast `as any` est utilisé partout car les types générés sont partiels.
 
 ### Route Handlers → toujours valider avec Zod d'abord
+
 ```ts
 const parsed = MySchema.safeParse(body)
 if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 ```
 
 ### Admin client — écriture depuis Route Handlers
+
 ```ts
 const admin = createAdminClient() // @/lib/supabase/admin (service_role)
 await (admin as any).from('sessions').insert(...)
 ```
 
 ### Helpers de réponse API
+
 ```ts
 apiSuccess(data, statusCode?)   // → Response JSON { data, success: true }
 apiError(message, statusCode?)  // → Response JSON { error, success: false }
 ```
 
 ### Params Route Handlers (Next.js 16)
+
 ```ts
 // Les params sont une Promise en Next.js 16 :
 const { id } = await params
@@ -357,18 +391,18 @@ NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-t
 
 ## Pages et navigation
 
-| Route | Description | Composants clés |
-|---|---|---|
-| `/` | Landing page | — |
-| `/login` | Connexion email/password | LoginForm |
-| `/onboarding` | Inscription 3 étapes | OnboardingFlow |
-| `/dashboard` | Tableau de bord + séance du jour + coach IA | CoachChat |
-| `/program` | Programme complet (phases + semaines) | PhaseBar, WeekView |
-| `/program/new` | Créer un programme | ProgramForm |
-| `/session/[id]` | Détail séance (structure, RPE, Garmin) | SessionActions, GarminLinker |
-| `/calendar` | Calendrier hebdomadaire + schedule events | WeekCalendar, EventModal |
-| `/activities` | Liste activités Garmin | — |
-| `/profile` | Profil + connexion/sync Garmin | GarminConnectCard, GarminSyncButton |
+| Route           | Description                                 | Composants clés                     |
+| --------------- | ------------------------------------------- | ----------------------------------- |
+| `/`             | Landing page                                | —                                   |
+| `/login`        | Connexion email/password                    | LoginForm                           |
+| `/onboarding`   | Inscription 3 étapes                        | OnboardingFlow                      |
+| `/dashboard`    | Tableau de bord + séance du jour + coach IA | CoachChat                           |
+| `/program`      | Programme complet (phases + semaines)       | PhaseBar, WeekView                  |
+| `/program/new`  | Créer un programme                          | ProgramForm                         |
+| `/session/[id]` | Détail séance (structure, RPE, Garmin)      | SessionActions, GarminLinker        |
+| `/calendar`     | Calendrier hebdomadaire + schedule events   | WeekCalendar, EventModal            |
+| `/activities`   | Liste activités Garmin                      | —                                   |
+| `/profile`      | Profil + connexion/sync Garmin              | GarminConnectCard, GarminSyncButton |
 
 **Navigation** : `AppNav` — sticky header desktop + bottom bar mobile (5 liens).
 

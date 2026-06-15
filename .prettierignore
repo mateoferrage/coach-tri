@@ -1,0 +1,9 @@
+.next
+out
+build
+coverage
+node_modules
+package-lock.json
+tsconfig.tsbuildinfo
+src/types/db.ts
+supabase/.temp

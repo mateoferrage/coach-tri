@@ -49,7 +49,8 @@ export function StopProgramButton({ planId }: { planId: string }) {
           <DialogHeader>
             <DialogTitle>Arrêter le programme ?</DialogTitle>
             <DialogDescription>
-              Le programme sera archivé et vous n'aurez plus de programme actif. Vos séances réalisées et données Garmin sont conservées.
+              Le programme sera archivé et vous n'aurez plus de programme actif. Vos séances
+              réalisées et données Garmin sont conservées.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">

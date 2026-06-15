@@ -1,4 +1,8 @@
-import { KNOWLEDGE_BASE_CORE, KNOWLEDGE_BASE_MICRO, KNOWLEDGE_BASE_CHAT } from '@/lib/coach/knowledge'
+import {
+  KNOWLEDGE_BASE_CORE,
+  KNOWLEDGE_BASE_MICRO,
+  KNOWLEDGE_BASE_CHAT,
+} from '@/lib/coach/knowledge'
 import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
 // ─── Equipment ─────────────────────────────────────────────────────────────────
@@ -23,14 +27,18 @@ export interface EquipmentData {
   }
 }
 
-const EQUIPMENT_USAGE_FR: Record<string, string> = { footing: 'footing', dynamic: 'dynamique', competition: 'compétition' }
+const EQUIPMENT_USAGE_FR: Record<string, string> = {
+  footing: 'footing',
+  dynamic: 'dynamique',
+  competition: 'compétition',
+}
 const EQUIPMENT_SURFACE_FR: Record<string, string> = { road: 'route', trail: 'trail' }
 
 export function buildEquipmentBlock(eq: EquipmentData): string {
   const lines: string[] = ['MATÉRIEL DISPONIBLE :']
 
   const swim = eq.swim
-  if (swim && Object.values(swim).some(v => v !== undefined)) {
+  if (swim && Object.values(swim).some((v) => v !== undefined)) {
     const items = [
       `plaquettes mains ${swim.paddles ? '✓' : '✗'}`,
       `palmes ${swim.fins ? '✓' : '✗'}`,
@@ -50,7 +58,9 @@ export function buildEquipmentBlock(eq: EquipmentData): string {
   if (shoes?.length) {
     lines.push('Course :')
     for (const s of shoes) {
-      lines.push(`  - ${s.name} (${EQUIPMENT_USAGE_FR[s.usage] ?? s.usage} · ${EQUIPMENT_SURFACE_FR[s.surface] ?? s.surface})`)
+      lines.push(
+        `  - ${s.name} (${EQUIPMENT_USAGE_FR[s.usage] ?? s.usage} · ${EQUIPMENT_SURFACE_FR[s.surface] ?? s.surface})`,
+      )
     }
   }
 
@@ -132,13 +142,20 @@ interface MacroContext {
 }
 
 export function buildMacroPrompt(ctx: MacroContext): string {
-  const disciplineLabels: Record<string, string> = { swim: 'natation', bike: 'vélo', run: 'course à pied' }
+  const disciplineLabels: Record<string, string> = {
+    swim: 'natation',
+    bike: 'vélo',
+    run: 'course à pied',
+  }
   const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
-    .map(d => disciplineLabels[d] ?? d).join(', ')
+    .map((d) => disciplineLabels[d] ?? d)
+    .join(', ')
 
   const levelLabels: Record<string, string> = {
-    beginner: 'Débutant', intermediate: 'Intermédiaire',
-    advanced: 'Avancé', elite: 'Élite',
+    beginner: 'Débutant',
+    intermediate: 'Intermédiaire',
+    advanced: 'Avancé',
+    elite: 'Élite',
   }
 
   const methodologyLabels: Record<string, string> = {
@@ -147,8 +164,9 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     threshold: 'Seuil (focus sur la Zone 3-4)',
   }
 
-  const goalSection = ctx.mode === 'race' && ctx.goal
-    ? `
+  const goalSection =
+    ctx.mode === 'race' && ctx.goal
+      ? `
 OBJECTIF DE COURSE :
 - Nom : ${ctx.goal.race_name}
 - Type : ${ctx.goal.race_type}
@@ -156,7 +174,7 @@ OBJECTIF DE COURSE :
 - Distances : ${ctx.goal.swim_distance_m ?? '?'}m nage / ${ctx.goal.bike_distance_m ?? '?'}m vélo / ${ctx.goal.run_distance_m ?? '?'}m course
 - Terrain : ${ctx.goal.terrain ?? 'non précisé'}
 `.trim()
-    : 'MODE : Maintien de forme (programme continu sans objectif de course)'
+      : 'MODE : Maintien de forme (programme continu sans objectif de course)'
 
   return `
 BASE DE CONNAISSANCES (méthodologies + zones de référence) :
@@ -265,7 +283,7 @@ interface MicroContext {
   week_start_date: string // YYYY-MM-DD (lundi)
   prior_weeks?: PriorWeek[]
   plan_overview?: PlanWeekOverview[]
-  athlete_zones?: string            // pre-formatted zone table from calculateZones()
+  athlete_zones?: string // pre-formatted zone table from calculateZones()
   recent_wellness_summary?: string
   schedule_constraints?: string
   strava_stats_block?: string
@@ -274,12 +292,21 @@ interface MicroContext {
 
 const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 const PHASE_LABELS: Record<string, string> = {
-  prep: 'Préparation', base: 'Base', build: 'Construction',
-  peak: 'Pic', taper: 'Affûtage', race: 'Course', maintenance: 'Maintien',
+  prep: 'Préparation',
+  base: 'Base',
+  build: 'Construction',
+  peak: 'Pic',
+  taper: 'Affûtage',
+  race: 'Course',
+  maintenance: 'Maintien',
 }
 const DISCIPLINE_FR: Record<string, string> = {
-  swim: 'Natation', bike: 'Vélo', run: 'Course', brick: 'Enchaînement',
-  strength: 'Renforcement', rest: 'Repos',
+  swim: 'Natation',
+  bike: 'Vélo',
+  run: 'Course',
+  brick: 'Enchaînement',
+  strength: 'Renforcement',
+  rest: 'Repos',
 }
 
 export function buildMicroPrompt(ctx: MicroContext): string {
@@ -289,24 +316,27 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   // Map available_days to actual dates (week_start = Monday)
   const weekStartMs = new Date(ctx.week_start_date).getTime()
   const dayDateMap: Record<number, string> = {}
-  ctx.available_days.forEach(dayOfWeek => {
+  ctx.available_days.forEach((dayOfWeek) => {
     const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const date = new Date(weekStartMs + offset * 86400000)
     dayDateMap[dayOfWeek] = date.toISOString().split('T')[0]
   })
 
-  const sessionsPerDay = ctx.available_days.map(d => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`).join('\n')
+  const sessionsPerDay = ctx.available_days
+    .map((d) => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`)
+    .join('\n')
   const disciplines = ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
 
   // ── Plan overview block ──────────────────────────────────────────────────────
   let planOverviewBlock = ''
   if (ctx.plan_overview?.length) {
-    const lines = ctx.plan_overview.map(w => {
-      const marker = w.week_num < ctx.week.week_num
-        ? ' ✓ déjà générée'
-        : w.week_num === ctx.week.week_num
-          ? ' ← SEMAINE EN COURS'
-          : ''
+    const lines = ctx.plan_overview.map((w) => {
+      const marker =
+        w.week_num < ctx.week.week_num
+          ? ' ✓ déjà générée'
+          : w.week_num === ctx.week.week_num
+            ? ' ← SEMAINE EN COURS'
+            : ''
       const label = `${w.is_recovery_week ? '[RÉCUP] ' : ''}${PHASE_LABELS[w.phase] ?? w.phase}`
       return `  Sem ${w.week_num} (${label}) : ${w.planned_volume_hours}h / ${w.planned_tss} TSS${marker}`
     })
@@ -316,13 +346,16 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   // ── Prior weeks detail block ─────────────────────────────────────────────────
   let priorWeeksBlock = ''
   if (ctx.prior_weeks?.length) {
-    const weekBlocks = ctx.prior_weeks.map(pw => {
-      const actualVolMin = pw.sessions.reduce((acc, s) => acc + (s.actual_duration_min ?? s.duration_min), 0)
+    const weekBlocks = ctx.prior_weeks.map((pw) => {
+      const actualVolMin = pw.sessions.reduce(
+        (acc, s) => acc + (s.actual_duration_min ?? s.duration_min),
+        0,
+      )
       const actualTSS = pw.sessions.reduce((acc, s) => acc + (s.planned_tss ?? 0), 0)
       const header = `=== SEMAINE ${pw.week_num} — ${PHASE_LABELS[pw.phase] ?? pw.phase}${pw.is_recovery_week ? ' (RÉCUP)' : ''} | Cible ${pw.planned_volume_hours}h / ${pw.planned_tss} TSS ===`
       const sessionLines = pw.sessions
         .sort((a, b) => a.session_date.localeCompare(b.session_date))
-        .map(s => {
+        .map((s) => {
           const dur = s.actual_duration_min ?? s.duration_min
           const rpe = s.actual_rpe ? ` | RPE réel: ${s.actual_rpe}` : ''
           const zone = s.target_zone ? ` | ${s.target_zone}` : ''
@@ -456,8 +489,16 @@ interface ChatSession {
 }
 
 interface ChatContext {
-  profile: { first_name: string | null; level: string | null; weekly_hours_avg: number | null } | null
-  plan: { id: string; name: string | null; goal: { race_name: string; race_date: string } | null } | null
+  profile: {
+    first_name: string | null
+    level: string | null
+    weekly_hours_avg: number | null
+  } | null
+  plan: {
+    id: string
+    name: string | null
+    goal: { race_name: string; race_date: string } | null
+  } | null
   currentWeekNum: number
   currentPhase: string | null
   weekSessions: ChatSession[]
@@ -467,24 +508,38 @@ interface ChatContext {
 }
 
 const STATUS_FR: Record<string, string> = {
-  planned: 'PLANIFIÉE', done: 'TERMINÉE', skipped: 'ANNULÉE', modified: 'MODIFIÉE',
+  planned: 'PLANIFIÉE',
+  done: 'TERMINÉE',
+  skipped: 'ANNULÉE',
+  modified: 'MODIFIÉE',
 }
 
 export function buildChatContext(ctx: ChatContext): string {
-  const planLabel = ctx.plan?.goal?.race_name ?? ctx.plan?.name ?? 'Programme d\'entraînement'
+  const planLabel = ctx.plan?.goal?.race_name ?? ctx.plan?.name ?? "Programme d'entraînement"
   const levelLabels: Record<string, string> = {
-    beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé', elite: 'Élite',
+    beginner: 'Débutant',
+    intermediate: 'Intermédiaire',
+    advanced: 'Avancé',
+    elite: 'Élite',
   }
 
   const sessionsBlock = ctx.weekSessions.length
-    ? ctx.weekSessions.map(s => {
-        const date = new Date(s.session_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-        return `  * ${date} [${s.id}] : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${s.duration_min}min — ${STATUS_FR[s.status] ?? s.status}`
-      }).join('\n')
+    ? ctx.weekSessions
+        .map((s) => {
+          const date = new Date(s.session_date + 'T00:00:00').toLocaleDateString('fr-FR', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          })
+          return `  * ${date} [${s.id}] : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${s.duration_min}min — ${STATUS_FR[s.status] ?? s.status}`
+        })
+        .join('\n')
     : '  (aucune séance cette semaine)'
 
   const historyBlock = ctx.history.length
-    ? ctx.history.map(m => `[${m.role === 'user' ? 'Athlète' : 'Coach'}]: ${m.content}`).join('\n')
+    ? ctx.history
+        .map((m) => `[${m.role === 'user' ? 'Athlète' : 'Coach'}]: ${m.content}`)
+        .join('\n')
     : '(début de conversation)'
 
   return `
@@ -513,15 +568,20 @@ export function buildStravaStatsBlock(stats: StravaStatsCompact): string {
 
 export function buildStravaActivitiesBlock(activities: StravaActivityCompact[]): string {
   if (!activities.length) return ''
-  const TYPE_FR: Record<string, string> = { run: 'Course', bike: 'Vélo', swim: 'Natation', other: 'Activité' }
-  const lines = activities.map(a => {
+  const TYPE_FR: Record<string, string> = {
+    run: 'Course',
+    bike: 'Vélo',
+    swim: 'Natation',
+    other: 'Activité',
+  }
+  const lines = activities.map((a) => {
     const parts: string[] = [`${a.date} · ${TYPE_FR[a.type] ?? a.type}`]
-    if (a.duration_min)     parts.push(`${a.duration_min}min`)
-    if (a.distance_km)      parts.push(`${a.distance_km}km`)
-    if (a.avg_hr)           parts.push(`FC ${a.avg_hr}bpm`)
-    if (a.avg_watts)        parts.push(`${a.avg_watts}W`)
+    if (a.duration_min) parts.push(`${a.duration_min}min`)
+    if (a.distance_km) parts.push(`${a.distance_km}km`)
+    if (a.avg_hr) parts.push(`FC ${a.avg_hr}bpm`)
+    if (a.avg_watts) parts.push(`${a.avg_watts}W`)
     if (a.elevation_gain_m) parts.push(`D+${a.elevation_gain_m}m`)
-    if (a.suffer_score)     parts.push(`suffer ${a.suffer_score}`)
+    if (a.suffer_score) parts.push(`suffer ${a.suffer_score}`)
     return `  - ${parts.join(' · ')}`
   })
   return `ACTIVITÉS STRAVA RÉCENTES :\n${lines.join('\n')}`
@@ -611,7 +671,8 @@ function formatPace(discipline: string, avg_speed_ms: number | null): string | n
   if (discipline === 'bike') {
     return `${(avg_speed_ms * 3.6).toFixed(1)} km/h`
   }
-  const totalSec = discipline === 'swim' ? Math.round(100 / avg_speed_ms) : Math.round(1000 / avg_speed_ms)
+  const totalSec =
+    discipline === 'swim' ? Math.round(100 / avg_speed_ms) : Math.round(1000 / avg_speed_ms)
   const min = Math.floor(totalSec / 60)
   const sec = totalSec % 60
   const unit = discipline === 'swim' ? '/100m' : '/km'
@@ -629,19 +690,30 @@ export function buildSessionReviewPrompt(ctx: SessionReviewContext): string {
   const pace = formatPace(session.discipline, activity.avg_speed_ms)
 
   const DISCIPLINE_FR: Record<string, string> = {
-    swim: 'Natation', bike: 'Vélo', run: 'Course à pied',
-    brick: 'Enchaînement', strength: 'Renforcement', rest: 'Repos',
+    swim: 'Natation',
+    bike: 'Vélo',
+    run: 'Course à pied',
+    brick: 'Enchaînement',
+    strength: 'Renforcement',
+    rest: 'Repos',
   }
   const SESSION_TYPE_FR: Record<string, string> = {
-    easy: 'Endurance facile', tempo: 'Tempo', threshold: 'Seuil',
-    vo2: 'VO2max', race_pace: 'Allure course', technique: 'Technique',
-    long: 'Sortie longue', recovery: 'Récupération active', test: 'Test',
+    easy: 'Endurance facile',
+    tempo: 'Tempo',
+    threshold: 'Seuil',
+    vo2: 'VO2max',
+    race_pace: 'Allure course',
+    technique: 'Technique',
+    long: 'Sortie longue',
+    recovery: 'Récupération active',
+    test: 'Test',
   }
 
   const targetHr = session.target_values?.hr as number[] | undefined
   const targetWatts = session.target_values?.watts as number[] | undefined
-  const targetPace = session.target_values?.pace_per_km as string | undefined
-    ?? session.target_values?.pace_per_100m as string | undefined
+  const targetPace =
+    (session.target_values?.pace_per_km as string | undefined) ??
+    (session.target_values?.pace_per_100m as string | undefined)
 
   return `
 SÉANCE PLANIFIÉE :

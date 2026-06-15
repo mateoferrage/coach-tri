@@ -11,9 +11,9 @@ export type UnifiedActivity = {
   max_hr: number | null
   avg_speed_ms: number | null
   elevation_gain_m: number | null
-  aerobic_te: number | null      // Garmin uniquement
-  avg_watts: number | null       // Strava uniquement
-  suffer_score: number | null    // Strava uniquement
+  aerobic_te: number | null // Garmin uniquement
+  avg_watts: number | null // Strava uniquement
+  suffer_score: number | null // Strava uniquement
   is_manual: boolean
   sources: ActivitySource[]
 }
@@ -89,7 +89,7 @@ export function normalizeStrava(row: StravaRow): UnifiedActivity {
   }
 }
 
-const DEDUP_WINDOW_MS = 10 * 60 * 1000   // ±10 min
+const DEDUP_WINDOW_MS = 10 * 60 * 1000 // ±10 min
 const DEDUP_DISCIPLINES = new Set(['run', 'bike', 'swim'])
 
 function canDedup(a: UnifiedActivity): boolean {

@@ -3,7 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ACCENT as MINT, SURFACE as DARK, SURFACE_DEEP as DARKER, DIVIDER as DIV, TEXT_FAINT as MUTED, withAlpha } from '@/lib/theme'
+import {
+  ACCENT as MINT,
+  SURFACE as DARK,
+  SURFACE_DEEP as DARKER,
+  DIVIDER as DIV,
+  TEXT_FAINT as MUTED,
+  withAlpha,
+} from '@/lib/theme'
 
 interface ProposedAction {
   type: 'cancel_session' | 'move_session' | 'adjust_session' | 'regenerate_week'
@@ -34,8 +41,8 @@ export default function CoachChat({ planId }: Props) {
 
   useEffect(() => {
     fetch('/api/chat?limit=20')
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         if (Array.isArray(data)) setMessages(data as Message[])
       })
       .catch(() => {})
@@ -52,11 +59,17 @@ export default function CoachChat({ planId }: Props) {
     setSending(true)
 
     const tempId = `tmp-${Date.now()}`
-    setMessages(prev => [...prev, {
-      id: tempId, role: 'user', content: msg,
-      proposed_action: null, action_status: null,
-      created_at: new Date().toISOString(),
-    }])
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        role: 'user',
+        content: msg,
+        proposed_action: null,
+        action_status: null,
+        created_at: new Date().toISOString(),
+      },
+    ])
 
     try {
       const res = await fetch('/api/chat', {
@@ -66,9 +79,11 @@ export default function CoachChat({ planId }: Props) {
       })
       const data = await res.json()
       if (res.ok && data) {
-        setMessages(prev => [...prev, data as Message])
+        setMessages((prev) => [...prev, data as Message])
       } else {
-        toast.error((data as { error?: string })?.error ?? 'Le coach n\'a pas pu répondre. Réessaie.')
+        toast.error(
+          (data as { error?: string })?.error ?? "Le coach n'a pas pu répondre. Réessaie.",
+        )
       }
     } catch {
       toast.error('Erreur réseau — message non envoyé.')
@@ -77,39 +92,42 @@ export default function CoachChat({ planId }: Props) {
     }
   }, [input, sending])
 
-  const handleAction = useCallback(async (msgId: string, status: 'confirmed' | 'rejected') => {
-    setConfirming(msgId)
-    try {
-      const res = await fetch(`/api/chat/${msgId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_status: status }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error((data as { error?: string })?.error ?? 'Impossible de traiter l\'action.')
-        return
-      }
-
-      setMessages(prev => prev.map(m =>
-        m.id === msgId ? { ...m, action_status: status } : m
-      ))
-
-      if (status === 'confirmed' && data.type === 'regenerate_week' && data.regenerateParams) {
-        const { plan_id, week_num, available_days } = data.regenerateParams
-        await fetch(`/api/plans/${plan_id}/regenerate-week`, {
-          method: 'POST',
+  const handleAction = useCallback(
+    async (msgId: string, status: 'confirmed' | 'rejected') => {
+      setConfirming(msgId)
+      try {
+        const res = await fetch(`/api/chat/${msgId}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ week_num, available_days }),
+          body: JSON.stringify({ action_status: status }),
         })
-        router.refresh()
-      } else if (status === 'confirmed') {
-        router.refresh()
+        const data = await res.json()
+        if (!res.ok) {
+          toast.error((data as { error?: string })?.error ?? "Impossible de traiter l'action.")
+          return
+        }
+
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, action_status: status } : m)),
+        )
+
+        if (status === 'confirmed' && data.type === 'regenerate_week' && data.regenerateParams) {
+          const { plan_id, week_num, available_days } = data.regenerateParams
+          await fetch(`/api/plans/${plan_id}/regenerate-week`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ week_num, available_days }),
+          })
+          router.refresh()
+        } else if (status === 'confirmed') {
+          router.refresh()
+        }
+      } finally {
+        setConfirming(null)
       }
-    } finally {
-      setConfirming(null)
-    }
-  }, [router])
+    },
+    [router],
+  )
 
   const resetConversation = useCallback(async () => {
     try {
@@ -140,7 +158,10 @@ export default function CoachChat({ planId }: Props) {
       >
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-          style={{ backgroundColor: `${withAlpha(MINT, 12)}`, border: `1px solid ${withAlpha(MINT, 30)}` }}
+          style={{
+            backgroundColor: `${withAlpha(MINT, 12)}`,
+            border: `1px solid ${withAlpha(MINT, 30)}`,
+          }}
         >
           🤖
         </div>
@@ -152,7 +173,7 @@ export default function CoachChat({ planId }: Props) {
         <div className="ml-auto flex items-center gap-3">
           {sending && (
             <div className="flex gap-1">
-              {[0, 1, 2].map(i => (
+              {[0, 1, 2].map((i) => (
                 <div
                   key={i}
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
@@ -180,13 +201,21 @@ export default function CoachChat({ planId }: Props) {
           </p>
         )}
 
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+          >
             <div
               className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-              style={msg.role === 'user'
-                ? { backgroundColor: `${withAlpha(MINT, 16)}`, color: 'oklch(0.97 0 0)', border: `1px solid ${withAlpha(MINT, 30)}` }
-                : { backgroundColor: DARKER, color: 'oklch(0.9 0 0)', border: `1px solid ${DIV}` }
+              style={
+                msg.role === 'user'
+                  ? {
+                      backgroundColor: `${withAlpha(MINT, 16)}`,
+                      color: 'oklch(0.97 0 0)',
+                      border: `1px solid ${withAlpha(MINT, 30)}`,
+                    }
+                  : { backgroundColor: DARKER, color: 'oklch(0.9 0 0)', border: `1px solid ${DIV}` }
               }
             >
               {msg.content}
@@ -196,14 +225,15 @@ export default function CoachChat({ planId }: Props) {
             {msg.role === 'assistant' && msg.proposed_action && (
               <div
                 className="max-w-[85%] rounded-xl px-3 py-2 text-xs space-y-2"
-                style={{ backgroundColor: `${withAlpha(MINT, 8)}`, border: `1px solid ${withAlpha(MINT, 22)}` }}
+                style={{
+                  backgroundColor: `${withAlpha(MINT, 8)}`,
+                  border: `1px solid ${withAlpha(MINT, 22)}`,
+                }}
               >
                 <p className="font-bold" style={{ color: MINT }}>
                   Action proposée
                 </p>
-                <p style={{ color: 'oklch(0.85 0 0)' }}>
-                  {msg.proposed_action.description}
-                </p>
+                <p style={{ color: 'oklch(0.85 0 0)' }}>{msg.proposed_action.description}</p>
 
                 {msg.action_status === 'pending' && (
                   <div className="flex gap-2 pt-1">
@@ -219,7 +249,11 @@ export default function CoachChat({ planId }: Props) {
                       onClick={() => handleAction(msg.id, 'rejected')}
                       disabled={confirming === msg.id}
                       className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: `${DIV}`, color: 'oklch(0.7 0 0)', border: `1px solid ${DIV}` }}
+                      style={{
+                        backgroundColor: `${DIV}`,
+                        color: 'oklch(0.7 0 0)',
+                        border: `1px solid ${DIV}`,
+                      }}
                     >
                       Refuser
                     </button>
@@ -227,10 +261,14 @@ export default function CoachChat({ planId }: Props) {
                 )}
 
                 {msg.action_status === 'confirmed' && (
-                  <p className="text-xs font-bold" style={{ color: MINT }}>✓ Action effectuée</p>
+                  <p className="text-xs font-bold" style={{ color: MINT }}>
+                    ✓ Action effectuée
+                  </p>
                 )}
                 {msg.action_status === 'rejected' && (
-                  <p className="text-xs" style={{ color: MUTED }}>Refusée</p>
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    Refusée
+                  </p>
                 )}
               </div>
             )}
@@ -246,7 +284,7 @@ export default function CoachChat({ planId }: Props) {
       >
         <textarea
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="Comment tu te sens ? Un empêchement ?"
           rows={1}
@@ -266,7 +304,16 @@ export default function CoachChat({ planId }: Props) {
           style={{ backgroundColor: MINT, color: DARK }}
           aria-label="Envoyer"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>

@@ -13,27 +13,36 @@ const PhysiologySchema = z.object({
   hr_max: z.number().int().min(100).max(230).nullable().optional(),
   hr_threshold_bike: z.number().int().min(80).max(210).nullable().optional(),
   css_pace_sec_per_100m: z.number().min(60).max(240).nullable().optional(),
-  test_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  test_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 })
 
 export async function GET() {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = (await (supabase as any)
     .from('physiology_current')
     .select('*')
     .eq('user_id', user.id)
-    .maybeSingle() as { data: Record<string, unknown> | null }
+    .maybeSingle()) as { data: Record<string, unknown> | null }
 
   return apiSuccess(data)
 }
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const body = await request.json()
@@ -44,7 +53,7 @@ export async function POST(request: Request) {
   const today = new Date().toISOString().split('T')[0]
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any)
+  const { data, error } = (await (admin as any)
     .from('physiology')
     .insert({
       user_id: user.id,
@@ -60,7 +69,7 @@ export async function POST(request: Request) {
       css_pace_sec_per_100m: parsed.data.css_pace_sec_per_100m ?? null,
     })
     .select()
-    .single() as { data: Record<string, unknown> | null; error: { message: string } | null }
+    .single()) as { data: Record<string, unknown> | null; error: { message: string } | null }
 
   if (error) return apiError(error.message)
   return apiSuccess(data, 201)

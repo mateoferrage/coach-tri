@@ -10,28 +10,35 @@ const UpdateSchema = z.object({
   actual_notes: z.string().max(2000).optional(),
   completed_at: z.string().optional(),
   // Rescheduling via drag-and-drop
-  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  session_time: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  session_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  session_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .optional(),
   day_part: z.enum(['morning', 'midday', 'evening']).nullable().optional(),
 })
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { id } = await params
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = (await (supabase as any)
     .from('sessions')
     .select('*, plan_week:plan_weeks(week_num, phase, start_date)')
     .eq('id', id)
     .eq('user_id', user.id)
-    .single() as { data: Record<string, unknown> | null; error: { message: string } | null }
+    .single()) as { data: Record<string, unknown> | null; error: { message: string } | null }
 
   if (error) return apiError(error.message)
   if (!data) return apiError('Séance introuvable', 404)
@@ -39,12 +46,12 @@ export async function GET(
   return apiSuccess(data)
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { id } = await params
@@ -60,13 +67,13 @@ export async function PATCH(
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = (await (supabase as any)
     .from('sessions')
     .update(updates)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
-    .single() as { data: Record<string, unknown> | null; error: { message: string } | null }
+    .single()) as { data: Record<string, unknown> | null; error: { message: string } | null }
 
   if (error) return apiError(error.message)
   revalidatePath('/program')

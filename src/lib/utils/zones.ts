@@ -15,11 +15,11 @@ interface PhysiologyInput {
 
 // Karvonen bounds per zone (% of heart rate reserve)
 const KARVONEN_BOUNDS = [
-  { lo: 0.50, hi: 0.60 }, // Z1
-  { lo: 0.60, hi: 0.70 }, // Z2
-  { lo: 0.70, hi: 0.80 }, // Z3
-  { lo: 0.80, hi: 0.90 }, // Z4
-  { lo: 0.90, hi: 1.00 }, // Z5
+  { lo: 0.5, hi: 0.6 }, // Z1
+  { lo: 0.6, hi: 0.7 }, // Z2
+  { lo: 0.7, hi: 0.8 }, // Z3
+  { lo: 0.8, hi: 0.9 }, // Z4
+  { lo: 0.9, hi: 1.0 }, // Z5
 ]
 
 /**
@@ -50,13 +50,13 @@ function secToMinSec(totalSec: number): string {
 
 // VMA (km/h) from VO2max using standard linear approximation
 function vmaFromVo2max(vo2max: number): number {
-  return (vo2max - 3.5) / 0.2 * 60 / 1000
+  return (((vo2max - 3.5) / 0.2) * 60) / 1000
 }
 
 export interface ZoneRow {
   label: string
-  pace_min?: string  // min pace boundary (faster end) as "m:ss"
-  pace_max?: string  // max pace boundary (slower end) as "m:ss"
+  pace_min?: string // min pace boundary (faster end) as "m:ss"
+  pace_max?: string // max pace boundary (slower end) as "m:ss"
   watts_min?: number
   watts_max?: number
   hr_min?: number
@@ -82,42 +82,42 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
   }
   if (!threshPace && vma) {
     // Threshold pace ≈ pace at 90% VMA for well-trained athletes
-    threshPace = 3600 / (vma * 0.90)
+    threshPace = 3600 / (vma * 0.9)
   }
   if (!vma && threshPace) {
-    vma = 3600 / (threshPace * 0.90)
+    vma = 3600 / (threshPace * 0.9)
   }
 
   if (threshPace && vma) {
     // Zone boundaries as multipliers of threshold pace (higher = slower)
     const PACE_ZONES = [
-      { label: 'Z1 Récup',    slowMult: null, fastMult: 1.40 },
-      { label: 'Z2 Endurance',slowMult: 1.40, fastMult: 1.18 },
-      { label: 'Z3 Tempo',    slowMult: 1.18, fastMult: 1.07 },
-      { label: 'Z4 Seuil',    slowMult: 1.07, fastMult: 0.98 },
-      { label: 'Z5 VO2max',   slowMult: 0.98, fastMult: null },
+      { label: 'Z1 Récup', slowMult: null, fastMult: 1.4 },
+      { label: 'Z2 Endurance', slowMult: 1.4, fastMult: 1.18 },
+      { label: 'Z3 Tempo', slowMult: 1.18, fastMult: 1.07 },
+      { label: 'Z4 Seuil', slowMult: 1.07, fastMult: 0.98 },
+      { label: 'Z5 VO2max', slowMult: 0.98, fastMult: null },
     ]
 
     // HR zone method priority:
     // 1. Test-measured LTHR (hr_threshold_run)
     // 2. Karvonen when FCmax + resting_hr are both known
     // 3. Estimated LTHR = FCmax × 0.92 (fallback)
-    const lthr      = p.hr_threshold_run ?? null
-    const hrFcMax   = p.hr_max_run ?? null
+    const lthr = p.hr_threshold_run ?? null
+    const hrFcMax = p.hr_max_run ?? null
     const hrResting = p.resting_hr ?? null
 
     type HrMethod = 'lthr' | 'karvonen' | 'pct_fcmax' | null
     let hrMethod: HrMethod = null
-    if (lthr)                        hrMethod = 'lthr'
-    else if (hrFcMax && hrResting)   hrMethod = 'karvonen'
-    else if (hrFcMax)                hrMethod = 'pct_fcmax'
+    if (lthr) hrMethod = 'lthr'
+    else if (hrFcMax && hrResting) hrMethod = 'karvonen'
+    else if (hrFcMax) hrMethod = 'pct_fcmax'
 
     const HR_ZONES = [
-      { loMult: 0.00, hiMult: 0.82 },
+      { loMult: 0.0, hiMult: 0.82 },
       { loMult: 0.82, hiMult: 0.89 },
       { loMult: 0.89, hiMult: 0.94 },
-      { loMult: 0.94, hiMult: 1.00 },
-      { loMult: 1.00, hiMult: 1.06 },
+      { loMult: 0.94, hiMult: 1.0 },
+      { loMult: 1.0, hiMult: 1.06 },
     ]
 
     const zones: ZoneRow[] = PACE_ZONES.map((z, i) => {
@@ -141,8 +141,9 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
     })
 
     const headerParts = [`VMA: ${vma.toFixed(1)} km/h`, `Seuil: ${secToMinSec(threshPace)}/km`]
-    if (hrMethod === 'lthr' && lthr)           headerParts.push(`FC seuil: ${lthr} bpm`)
-    else if (hrMethod === 'karvonen')          headerParts.push(`FC zones Karvonen (repos: ${hrResting} bpm)`)
+    if (hrMethod === 'lthr' && lthr) headerParts.push(`FC seuil: ${lthr} bpm`)
+    else if (hrMethod === 'karvonen')
+      headerParts.push(`FC zones Karvonen (repos: ${hrResting} bpm)`)
     else if (hrMethod === 'pct_fcmax' && hrFcMax) headerParts.push(`FCmax: ${hrFcMax} bpm`)
 
     result.run = { header: `Course à pied (${headerParts.join(' | ')})`, zones }
@@ -152,28 +153,28 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
   if (p.ftp_watts) {
     const ftp = p.ftp_watts
     const WATT_ZONES = [
-      { label: 'Z1 Récup',    loFtp: 0.00, hiFtp: 0.55 },
-      { label: 'Z2 Endurance',loFtp: 0.55, hiFtp: 0.75 },
-      { label: 'Z3 Tempo',    loFtp: 0.75, hiFtp: 0.90 },
-      { label: 'Z4 Seuil',    loFtp: 0.90, hiFtp: 1.05 },
-      { label: 'Z5 VO2max',   loFtp: 1.05, hiFtp: 1.20 },
+      { label: 'Z1 Récup', loFtp: 0.0, hiFtp: 0.55 },
+      { label: 'Z2 Endurance', loFtp: 0.55, hiFtp: 0.75 },
+      { label: 'Z3 Tempo', loFtp: 0.75, hiFtp: 0.9 },
+      { label: 'Z4 Seuil', loFtp: 0.9, hiFtp: 1.05 },
+      { label: 'Z5 VO2max', loFtp: 1.05, hiFtp: 1.2 },
     ]
-    const lthrBike     = p.hr_threshold_bike ?? null
-    const bikeHrFcMax  = p.hr_max ?? null
+    const lthrBike = p.hr_threshold_bike ?? null
+    const bikeHrFcMax = p.hr_max ?? null
     const bikeHrResting = p.resting_hr ?? null
 
     type BikHrMethod = 'lthr' | 'karvonen' | 'pct_fcmax' | null
     let bikeHrMethod: BikHrMethod = null
-    if (lthrBike)                              bikeHrMethod = 'lthr'
-    else if (bikeHrFcMax && bikeHrResting)     bikeHrMethod = 'karvonen'
-    else if (bikeHrFcMax)                      bikeHrMethod = 'pct_fcmax'
+    if (lthrBike) bikeHrMethod = 'lthr'
+    else if (bikeHrFcMax && bikeHrResting) bikeHrMethod = 'karvonen'
+    else if (bikeHrFcMax) bikeHrMethod = 'pct_fcmax'
 
     const HR_ZONES = [
-      { loMult: 0.00, hiMult: 0.82 },
+      { loMult: 0.0, hiMult: 0.82 },
       { loMult: 0.82, hiMult: 0.89 },
       { loMult: 0.89, hiMult: 0.94 },
-      { loMult: 0.94, hiMult: 1.00 },
-      { loMult: 1.00, hiMult: 1.06 },
+      { loMult: 0.94, hiMult: 1.0 },
+      { loMult: 1.0, hiMult: 1.06 },
     ]
 
     const zones: ZoneRow[] = WATT_ZONES.map((z, i) => {
@@ -198,9 +199,11 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
     })
 
     const headerParts = [`FTP: ${ftp}W`]
-    if (bikeHrMethod === 'lthr' && lthrBike)              headerParts.push(`FC seuil: ${lthrBike} bpm`)
-    else if (bikeHrMethod === 'karvonen')                 headerParts.push(`FC zones Karvonen (repos: ${bikeHrResting} bpm)`)
-    else if (bikeHrMethod === 'pct_fcmax' && bikeHrFcMax) headerParts.push(`FCmax: ${bikeHrFcMax} bpm`)
+    if (bikeHrMethod === 'lthr' && lthrBike) headerParts.push(`FC seuil: ${lthrBike} bpm`)
+    else if (bikeHrMethod === 'karvonen')
+      headerParts.push(`FC zones Karvonen (repos: ${bikeHrResting} bpm)`)
+    else if (bikeHrMethod === 'pct_fcmax' && bikeHrFcMax)
+      headerParts.push(`FCmax: ${bikeHrFcMax} bpm`)
 
     result.bike = { header: `Vélo (${headerParts.join(' | ')})`, zones }
   }
@@ -209,14 +212,14 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
   if (p.css_pace_sec_per_100m) {
     const css = p.css_pace_sec_per_100m
     const SWIM_ZONES = [
-      { label: 'Z1 Récup',    fastMult: null, slowMult: 1.35 },
-      { label: 'Z2 Endurance',fastMult: 1.35, slowMult: 1.18 },
-      { label: 'Z3 Tempo',    fastMult: 1.18, slowMult: 1.07 },
-      { label: 'Z4 CSS/Seuil',fastMult: 1.07, slowMult: 0.97 },
-      { label: 'Z5 Vitesse',  fastMult: 0.97, slowMult: null },
+      { label: 'Z1 Récup', fastMult: null, slowMult: 1.35 },
+      { label: 'Z2 Endurance', fastMult: 1.35, slowMult: 1.18 },
+      { label: 'Z3 Tempo', fastMult: 1.18, slowMult: 1.07 },
+      { label: 'Z4 CSS/Seuil', fastMult: 1.07, slowMult: 0.97 },
+      { label: 'Z5 Vitesse', fastMult: 0.97, slowMult: null },
     ]
 
-    const zones: ZoneRow[] = SWIM_ZONES.map(z => {
+    const zones: ZoneRow[] = SWIM_ZONES.map((z) => {
       const row: ZoneRow = { label: z.label }
       if (z.fastMult) row.pace_min = secToMinSec(css * z.fastMult) // faster = min
       if (z.slowMult) row.pace_max = secToMinSec(css * z.slowMult) // slower = max
@@ -232,7 +235,10 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
 export function formatZonesForPrompt(zones: AthleteZones): string {
   const sections: string[] = []
 
-  for (const [key, data] of Object.entries(zones) as [string, { header: string; zones: ZoneRow[] }][]) {
+  for (const [key, data] of Object.entries(zones) as [
+    string,
+    { header: string; zones: ZoneRow[] },
+  ][]) {
     const lines: string[] = [`${data.header}:`]
     for (const z of data.zones) {
       const parts: string[] = [`  ${z.label.padEnd(14)}`]

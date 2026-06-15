@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -54,35 +54,35 @@
   --font-display: var(--font-sans);
 
   /* ── DA Coach Tri — blanc / noir / vert (fond noir, accent menthe) ── */
-  --background: oklch(0.15 0 0);                      /* noir profond (fond) */
-  --foreground: oklch(0.95 0 0);                     /* blanc texte */
-  --card: oklch(0.19 0 0);                            /* panneau gris très sombre */
+  --background: oklch(0.15 0 0); /* noir profond (fond) */
+  --foreground: oklch(0.95 0 0); /* blanc texte */
+  --card: oklch(0.19 0 0); /* panneau gris très sombre */
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.19 0 0);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.843 0.165 157);                 /* vert menthe — accent */
-  --primary-foreground: oklch(0.12 0 0);             /* noir pour texte sur menthe */
-  --secondary: oklch(0.23 0 0);                      /* surface relevée */
+  --primary: oklch(0.843 0.165 157); /* vert menthe — accent */
+  --primary-foreground: oklch(0.12 0 0); /* noir pour texte sur menthe */
+  --secondary: oklch(0.23 0 0); /* surface relevée */
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.19 0 0);
-  --muted-foreground: oklch(0.72 0 0);               /* gris atténué */
+  --muted-foreground: oklch(0.72 0 0); /* gris atténué */
   --accent: oklch(0.23 0 0);
   --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.62 0.22 25);                /* rouge erreur */
-  --border: oklch(1 0 0 / 8%);                       /* hairline clair sur sombre */
+  --destructive: oklch(0.62 0.22 25); /* rouge erreur */
+  --border: oklch(1 0 0 / 8%); /* hairline clair sur sombre */
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.843 0.165 157);                    /* focus = menthe */
-  --chart-1: oklch(0.843 0.165 157);                 /* menthe */
-  --chart-2: oklch(0.79 0.13 182);                   /* glacier */
-  --chart-3: oklch(0.82 0.15 78);                    /* ambre */
-  --chart-4: oklch(0.74 0.13 233);                   /* bleu glacier */
-  --chart-5: oklch(0.72 0.04 252);                   /* acier */
+  --ring: oklch(0.843 0.165 157); /* focus = menthe */
+  --chart-1: oklch(0.843 0.165 157); /* menthe */
+  --chart-2: oklch(0.79 0.13 182); /* glacier */
+  --chart-3: oklch(0.82 0.15 78); /* ambre */
+  --chart-4: oklch(0.74 0.13 233); /* bleu glacier */
+  --chart-5: oklch(0.72 0.04 252); /* acier */
   --radius: 0.75rem;
 
   /* Sidebar / nav — noir un cran plus profond */
   --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.843 0.165 157);         /* menthe */
+  --sidebar-primary: oklch(0.843 0.165 157); /* menthe */
   --sidebar-primary-foreground: oklch(0.12 0 0);
   --sidebar-accent: oklch(0.19 0 0);
   --sidebar-accent-foreground: oklch(0.95 0 0);
@@ -102,14 +102,16 @@
   }
 
   /* Titres condensés */
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display), var(--font-sans), sans-serif;
     @apply font-semibold tracking-tight;
     letter-spacing: -0.01em;
   }
 
   /* Cards : liseré clair subtil */
-  [data-slot="card"] {
+  [data-slot='card'] {
     ring-color: oklch(1 0 0 / 6%);
   }
 }
@@ -120,7 +122,7 @@
    * À poser sur un conteneur sombre ; régler l'intensité via l'opacité.
    */
   .topo-lines {
-    background-image: url("/topo.svg");
+    background-image: url('/topo.svg');
     background-size: 600px 600px;
     background-repeat: repeat;
   }

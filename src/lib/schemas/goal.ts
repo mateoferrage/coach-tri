@@ -14,20 +14,20 @@ export const GoalSchema = z.object({
   target_type: z.enum(['finish', 'time', 'podium']).default('finish'),
   target_time_seconds: z.number().int().positive().optional(),
   swim_target_time_s: z.number().int().positive().optional(),
-  t1_target_time_s:   z.number().int().positive().optional(),
+  t1_target_time_s: z.number().int().positive().optional(),
   bike_target_time_s: z.number().int().positive().optional(),
-  t2_target_time_s:   z.number().int().positive().optional(),
-  run_target_time_s:  z.number().int().positive().optional(),
+  t2_target_time_s: z.number().int().positive().optional(),
+  run_target_time_s: z.number().int().positive().optional(),
 })
 
 export type Goal = z.infer<typeof GoalSchema>
 
 // Standard triathlon distances (meters)
 export const RACE_DISTANCES = {
-  sprint:  { swim: 750,   bike: 20000, run: 5000  },
-  olympic: { swim: 1500,  bike: 40000, run: 10000 },
-  half:    { swim: 1900,  bike: 90000, run: 21100 },
-  full:    { swim: 3800,  bike: 180000,run: 42195 },
-  xterra:  { swim: 1500,  bike: 30000, run: 10000 },
-  custom:  { swim: null,  bike: null,  run: null   },
+  sprint: { swim: 750, bike: 20000, run: 5000 },
+  olympic: { swim: 1500, bike: 40000, run: 10000 },
+  half: { swim: 1900, bike: 90000, run: 21100 },
+  full: { swim: 3800, bike: 180000, run: 42195 },
+  xterra: { swim: 1500, bike: 30000, run: 10000 },
+  custom: { swim: null, bike: null, run: null },
 } as const

@@ -1,6 +1,6 @@
-import { WeekCalendar } from "@/components/calendar/WeekCalendar";
+import { WeekCalendar } from '@/components/calendar/WeekCalendar'
 
-export const metadata = { title: "Calendrier — Coach Tri" };
+export const metadata = { title: 'Calendrier — Coach Tri' }
 
 export default function CalendarPage() {
   return (
@@ -11,12 +11,10 @@ export default function CalendarPage() {
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Emploi du temps
           </p>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">
-            Calendrier
-          </h1>
+          <h1 className="text-2xl font-semibold uppercase tracking-tight">Calendrier</h1>
         </div>
       </div>
       <WeekCalendar />
     </div>
-  );
+  )
 }

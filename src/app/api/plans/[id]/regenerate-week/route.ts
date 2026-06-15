@@ -2,7 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt, buildEquipmentBlock, buildStravaStatsBlock, type PriorWeek, type PlanWeekOverview, type EquipmentData } from '@/lib/gemini/prompts'
+import {
+  TRIATHLON_COACH_SYSTEM,
+  buildMicroPrompt,
+  buildEquipmentBlock,
+  buildStravaStatsBlock,
+  type PriorWeek,
+  type PlanWeekOverview,
+  type EquipmentData,
+} from '@/lib/gemini/prompts'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
@@ -14,12 +22,12 @@ const BodySchema = z.object({
   available_days: z.array(z.number().int().min(0).max(6)).min(1),
 })
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const { id: plan_id } = await params
@@ -32,12 +40,12 @@ export async function POST(
 
   // Verify plan ownership
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan } = await (supabase as any)
+  const { data: plan } = (await (supabase as any)
     .from('plans')
     .select('id, status')
     .eq('id', plan_id)
     .eq('user_id', user.id)
-    .single() as { data: { id: string; status: string } | null }
+    .single()) as { data: { id: string; status: string } | null }
 
   if (!plan) return apiError('Plan introuvable', 404)
 
@@ -66,9 +74,13 @@ export async function POST(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any)
       .from('plan_weeks')
-      .select('id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date')
+      .select(
+        'id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date',
+      )
       .eq('plan_id', plan_id)
-      .order('week_num', { ascending: true }) as Promise<{ data: Array<Record<string, unknown>> | null }>,
+      .order('week_num', { ascending: true }) as Promise<{
+      data: Array<Record<string, unknown>> | null
+    }>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any)
       .from('garmin_wellness')
@@ -80,7 +92,9 @@ export async function POST(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any)
       .from('physiology_current')
-      .select('vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m')
+      .select(
+        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m',
+      )
       .eq('user_id', user.id)
       .maybeSingle() as Promise<{ data: Record<string, unknown> | null }>,
     // Garmin stats for VO2max fallback when no physiology data
@@ -97,9 +111,10 @@ export async function POST(
 
   const profile = profileResult.data
   const equipmentRaw = profile?.equipment as EquipmentData | null
-  const equipmentBlock = equipmentRaw && Object.keys(equipmentRaw).length > 0
-    ? buildEquipmentBlock(equipmentRaw)
-    : undefined
+  const equipmentBlock =
+    equipmentRaw && Object.keys(equipmentRaw).length > 0
+      ? buildEquipmentBlock(equipmentRaw)
+      : undefined
   const allPlanWeeks = allPlanWeeksResult.data ?? []
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
@@ -116,14 +131,15 @@ export async function POST(
     hr_threshold_bike: physiology?.hr_threshold_bike as number | null,
     css_pace_sec_per_100m: physiology?.css_pace_sec_per_100m as number | null,
     // VO2max fallback for VMA estimation when no physiology data
-    vo2max_run: (!physiology?.vma_kmh && !physiology?.run_threshold_pace_sec_per_km)
-      ? garminStats?.vo2max_run as number | null
-      : null,
+    vo2max_run:
+      !physiology?.vma_kmh && !physiology?.run_threshold_pace_sec_per_km
+        ? (garminStats?.vo2max_run as number | null)
+        : null,
   })
   const athleteZones = zones ? formatZonesForPrompt(zones) : undefined
 
   // ── Plan overview (all weeks, macro) ────────────────────────────────────────
-  const planOverview: PlanWeekOverview[] = allPlanWeeks.map(w => ({
+  const planOverview: PlanWeekOverview[] = allPlanWeeks.map((w) => ({
     week_num: w.week_num as number,
     phase: w.phase as string,
     is_recovery_week: w.is_recovery_week as boolean,
@@ -132,17 +148,21 @@ export async function POST(
   }))
 
   // ── Prior weeks with their generated sessions ────────────────────────────────
-  const priorWeekRows = allPlanWeeks.filter(w => (w.week_num as number) < week_num)
+  const priorWeekRows = allPlanWeeks.filter((w) => (w.week_num as number) < week_num)
   let priorWeeks: PriorWeek[] = []
 
   if (priorWeekRows.length > 0) {
-    const priorWeekIds = priorWeekRows.map(w => w.id as string)
+    const priorWeekIds = priorWeekRows.map((w) => w.id as string)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: priorSessions } = await (admin as any)
+    const { data: priorSessions } = (await (admin as any)
       .from('sessions')
-      .select('plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min')
+      .select(
+        'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min',
+      )
       .in('plan_week_id', priorWeekIds)
-      .order('session_date', { ascending: true }) as { data: Array<Record<string, unknown>> | null }
+      .order('session_date', { ascending: true })) as {
+      data: Array<Record<string, unknown>> | null
+    }
 
     const sessionsByWeekId = new Map<string, Array<Record<string, unknown>>>()
     for (const s of priorSessions ?? []) {
@@ -151,13 +171,13 @@ export async function POST(
       sessionsByWeekId.get(wid)!.push(s)
     }
 
-    priorWeeks = priorWeekRows.map(w => ({
+    priorWeeks = priorWeekRows.map((w) => ({
       week_num: w.week_num as number,
       phase: w.phase as string,
       is_recovery_week: w.is_recovery_week as boolean,
       planned_volume_hours: w.planned_volume_hours as number,
       planned_tss: w.planned_tss as number,
-      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map(s => ({
+      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map((s) => ({
         session_date: s.session_date as string,
         discipline: s.discipline as string,
         session_type: s.session_type as string,
@@ -174,23 +194,35 @@ export async function POST(
 
   // ── Wellness summary ─────────────────────────────────────────────────────────
   const wellnessSummary = wellness.length
-    ? `HRV derniers 7j : ${wellness.filter(w => w.hrv_rmssd).map(w => w.hrv_rmssd).join(', ')} ms`
+    ? `HRV derniers 7j : ${wellness
+        .filter((w) => w.hrv_rmssd)
+        .map((w) => w.hrv_rmssd)
+        .join(', ')} ms`
     : ''
 
   // ── Schedule constraints for this week ───────────────────────────────────────
   const weekStartDate = week.start_date as string
   const weekEndDate = format(addDays(parseISO(weekStartDate), 6), 'yyyy-MM-dd')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rawScheduleEvents } = await (supabase as any)
+  const { data: rawScheduleEvents } = (await (supabase as any)
     .from('schedule_events')
     .select('*')
     .eq('user_id', user.id)
     .or(
       `and(is_recurring.eq.false,event_date.gte.${weekStartDate},event_date.lte.${weekEndDate}),` +
-      `and(is_recurring.eq.true,event_date.lte.${weekEndDate},or(recurrence_end_date.is.null,recurrence_end_date.gte.${weekStartDate}))`
-    ) as { data: Array<Record<string, unknown>> | null }
+        `and(is_recurring.eq.true,event_date.lte.${weekEndDate},or(recurrence_end_date.is.null,recurrence_end_date.gte.${weekStartDate}))`,
+    )) as { data: Array<Record<string, unknown>> | null }
 
-  const ISO_DAY_NAMES = ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+  const ISO_DAY_NAMES = [
+    '',
+    'Lundi',
+    'Mardi',
+    'Mercredi',
+    'Jeudi',
+    'Vendredi',
+    'Samedi',
+    'Dimanche',
+  ]
   let scheduleConstraints = ''
   if (rawScheduleEvents?.length) {
     const lines: string[] = []
@@ -198,10 +230,14 @@ export async function POST(
       if (!ev.is_recurring) {
         const jsDay = parseISO(ev.event_date as string).getDay()
         const isoDay = jsDay === 0 ? 7 : jsDay
-        lines.push(`${ISO_DAY_NAMES[isoDay]} ${ev.event_date} : "${ev.title}" de ${ev.start_time} à ${ev.end_time}`)
+        lines.push(
+          `${ISO_DAY_NAMES[isoDay]} ${ev.event_date} : "${ev.title}" de ${ev.start_time} à ${ev.end_time}`,
+        )
       } else {
         const day = ev.recurrence_day as number
-        lines.push(`Chaque ${ISO_DAY_NAMES[day]} : "${ev.title}" de ${ev.start_time} à ${ev.end_time}`)
+        lines.push(
+          `Chaque ${ISO_DAY_NAMES[day]} : "${ev.title}" de ${ev.start_time} à ${ev.end_time}`,
+        )
       }
     }
     scheduleConstraints = lines.join('\n')
@@ -219,10 +255,10 @@ export async function POST(
   if (stravaCreds) {
     try {
       const tokens: StravaTokens = {
-        access_token:  stravaCreds.access_token,
+        access_token: stravaCreds.access_token,
         refresh_token: stravaCreds.refresh_token,
-        expires_at:    stravaCreds.expires_at,
-        athlete_id:    stravaCreds.athlete_id,
+        expires_at: stravaCreds.expires_at,
+        athlete_id: stravaCreds.athlete_id,
       }
       const refreshed = await refreshIfNeeded(tokens)
       if (refreshed.access_token !== stravaCreds.access_token) {
@@ -231,9 +267,9 @@ export async function POST(
         await (adminClient as any)
           .from('strava_credentials')
           .update({
-            access_token:  refreshed.access_token,
+            access_token: refreshed.access_token,
             refresh_token: refreshed.refresh_token,
-            expires_at:    refreshed.expires_at,
+            expires_at: refreshed.expires_at,
           })
           .eq('user_id', user.id)
       }
@@ -251,7 +287,11 @@ export async function POST(
       is_recovery_week: week.is_recovery_week as boolean,
       planned_volume_hours: week.planned_volume_hours as number,
       planned_tss: week.planned_tss as number,
-      distribution: (week.distribution as Record<string, number>) ?? { z1z2: 0.8, z3: 0.1, z4z5: 0.1 },
+      distribution: (week.distribution as Record<string, number>) ?? {
+        z1z2: 0.8,
+        z3: 0.1,
+        z4z5: 0.1,
+      },
       notes: (week.notes as string) ?? '',
     },
     profile: {
@@ -278,15 +318,32 @@ export async function POST(
     return apiError(`Génération IA échouée : ${msg}`, 500)
   }
 
-  if (!microPlan.sessions?.length) return apiError('Gemini n\'a retourné aucune séance', 500)
+  if (!microPlan.sessions?.length) return apiError("Gemini n'a retourné aucune séance", 500)
 
   const VALID_SESSION_TYPES = new Set([
-    'easy', 'tempo', 'threshold', 'vo2', 'race_pace', 'technique', 'long', 'recovery', 'test',
+    'easy',
+    'tempo',
+    'threshold',
+    'vo2',
+    'race_pace',
+    'technique',
+    'long',
+    'recovery',
+    'test',
   ])
   const SESSION_TYPE_MAP: Record<string, string> = {
-    endurance: 'easy', interval: 'vo2', intervals: 'vo2', ftp: 'threshold',
-    sprint: 'vo2', speed: 'vo2', strength: 'easy', brick: 'easy',
-    'race pace': 'race_pace', moderate: 'tempo', z2: 'easy', base: 'easy',
+    endurance: 'easy',
+    interval: 'vo2',
+    intervals: 'vo2',
+    ftp: 'threshold',
+    sprint: 'vo2',
+    speed: 'vo2',
+    strength: 'easy',
+    brick: 'easy',
+    'race pace': 'race_pace',
+    moderate: 'tempo',
+    z2: 'easy',
+    base: 'easy',
   }
   function normalizeSessionType(raw: string): string {
     const lower = (raw ?? '').toLowerCase().trim()
@@ -309,10 +366,10 @@ export async function POST(
     .eq('status', 'planned')
 
   // Insert new sessions
-  const sessionRows = microPlan.sessions.map(s => {
+  const sessionRows = microPlan.sessions.map((s) => {
     const jsDay = new Date(s.session_date + 'T00:00:00').getDay() // 0=dim, 6=sam
     // Weekdays → evening (18h), Saturday → morning (7h), Sunday → midday (12h)
-    const day_part = (jsDay === 0) ? 'midday' : (jsDay === 6) ? 'morning' : 'evening'
+    const day_part = jsDay === 0 ? 'midday' : jsDay === 6 ? 'morning' : 'evening'
     return {
       plan_id,
       plan_week_id: week.id,
@@ -326,10 +383,13 @@ export async function POST(
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: insertedSessions, error: insertError } = await (admin as any)
+  const { data: insertedSessions, error: insertError } = (await (admin as any)
     .from('sessions')
     .insert(sessionRows)
-    .select('id, title, session_date, discipline') as { data: Array<Record<string, unknown>> | null; error: { message: string } | null }
+    .select('id, title, session_date, discipline')) as {
+    data: Array<Record<string, unknown>> | null
+    error: { message: string } | null
+  }
 
   if (insertError) return apiError(insertError.message)
 

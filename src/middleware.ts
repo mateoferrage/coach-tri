@@ -16,19 +16,29 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           )
         },
       },
-    }
+    },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  const protectedPrefixes = ['/dashboard', '/profile', '/program', '/activities', '/calendar', '/session', '/onboarding']
-  const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
+  const protectedPrefixes = [
+    '/dashboard',
+    '/profile',
+    '/program',
+    '/activities',
+    '/calendar',
+    '/session',
+    '/onboarding',
+  ]
+  const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p))
 
   // Redirect unauthenticated users away from protected routes
   if (!user && isProtected) {
@@ -48,7 +58,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
 }

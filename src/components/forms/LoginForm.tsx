@@ -1,65 +1,72 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const LoginSchema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Mot de passe trop court"),
-});
+  email: z.string().email('Email invalide'),
+  password: z.string().min(6, 'Mot de passe trop court'),
+})
 
-type LoginData = z.infer<typeof LoginSchema>;
+type LoginData = z.infer<typeof LoginSchema>
 
 export function LoginForm() {
-  const router = useRouter();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginData>({
     resolver: zodResolver(LoginSchema),
-  });
+  })
 
   async function onSubmit(data: LoginData) {
-    setLoading(true);
-    const supabase = createClient();
+    setLoading(true)
+    const supabase = createClient()
 
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
-        });
-        if (error) throw error;
-        toast.success("Compte créé ! Vérifiez votre email pour confirmer.");
+        })
+        if (error) throw error
+        toast.success('Compte créé ! Vérifiez votre email pour confirmer.')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
-        });
-        if (error) throw error;
-        router.push("/dashboard");
-        router.refresh();
+        })
+        if (error) throw error
+        router.push('/dashboard')
+        router.refresh()
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Une erreur est survenue";
-      toast.error(message);
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue'
+      toast.error(message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="space-y-1.5">
-        <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-white/60">
+        <Label
+          htmlFor="email"
+          className="text-xs font-bold uppercase tracking-widest text-white/60"
+        >
           Email
         </Label>
         <Input
@@ -67,13 +74,16 @@ export function LoginForm() {
           type="email"
           placeholder="vous@exemple.com"
           className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
-          {...register("email")}
+          {...register('email')}
         />
         {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-white/60">
+        <Label
+          htmlFor="password"
+          className="text-xs font-bold uppercase tracking-widest text-white/60"
+        >
           Mot de passe
         </Label>
         <Input
@@ -81,7 +91,7 @@ export function LoginForm() {
           type="password"
           placeholder="••••••••"
           className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
-          {...register("password")}
+          {...register('password')}
         />
         {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
       </div>
@@ -91,7 +101,7 @@ export function LoginForm() {
         disabled={loading}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        {loading ? "Chargement…" : isSignUp ? "Créer un compte" : "Se connecter"}
+        {loading ? 'Chargement…' : isSignUp ? 'Créer un compte' : 'Se connecter'}
       </button>
 
       <button
@@ -99,8 +109,8 @@ export function LoginForm() {
         className="w-full text-xs text-white/30 hover:text-white/60 transition-colors font-medium tracking-wide"
         onClick={() => setIsSignUp(!isSignUp)}
       >
-        {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}
+        {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
       </button>
     </form>
-  );
+  )
 }

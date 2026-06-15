@@ -34,8 +34,13 @@ interface Week {
 }
 
 const PHASE_LABELS: Record<string, string> = {
-  prep: 'Prépa', base: 'Base', build: 'Construction',
-  peak: 'Pic', taper: 'Affûtage', race: 'Course', maintenance: 'Maintien',
+  prep: 'Prépa',
+  base: 'Base',
+  build: 'Construction',
+  peak: 'Pic',
+  taper: 'Affûtage',
+  race: 'Course',
+  maintenance: 'Maintien',
 }
 
 const DEFAULT_DAYS = [1, 2, 3, 4, 5, 6] // lundi–samedi
@@ -53,7 +58,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
   const [generating, setGenerating] = useState(false)
 
   const sessions = week.sessions ?? []
-  const completedCount = sessions.filter(s => s.status === 'done').length
+  const completedCount = sessions.filter((s) => s.status === 'done').length
   const hasSessions = sessions.length > 0
 
   async function generateSessions() {
@@ -81,25 +86,35 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
   const weekStart = parseISO(week.start_date)
 
   return (
-    <div className={`rounded-xl border-2 overflow-hidden transition-all ${
-      isCurrentWeek ? 'border-primary' : 'border-border'
-    }`}>
+    <div
+      className={`rounded-xl border-2 overflow-hidden transition-all ${
+        isCurrentWeek ? 'border-primary' : 'border-border'
+      }`}
+    >
       {/* Header */}
       <button
         className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors text-left"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
       >
         <div className="flex items-center gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">Semaine {week.week_num}</span>
-              {isCurrentWeek && <Badge variant="default" className="text-xs">En cours</Badge>}
-              {week.is_recovery_week && <Badge variant="secondary" className="text-xs">Récupération</Badge>}
+              {isCurrentWeek && (
+                <Badge variant="default" className="text-xs">
+                  En cours
+                </Badge>
+              )}
+              {week.is_recovery_week && (
+                <Badge variant="secondary" className="text-xs">
+                  Récupération
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {format(weekStart, 'd MMM', { locale: fr })} ·{' '}
-              {PHASE_LABELS[week.phase] ?? week.phase} ·{' '}
-              {week.planned_volume_hours}h · TSS {week.planned_tss}
+              {PHASE_LABELS[week.phase] ?? week.phase} · {week.planned_volume_hours}h · TSS{' '}
+              {week.planned_tss}
             </p>
           </div>
         </div>
@@ -116,27 +131,21 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
       {/* Content */}
       {open && (
         <div className="px-4 pb-4 border-t border-border">
-          {week.notes && (
-            <p className="text-xs text-muted-foreground italic py-3">{week.notes}</p>
-          )}
+          {week.notes && <p className="text-xs text-muted-foreground italic py-3">{week.notes}</p>}
 
           {hasSessions ? (
             <div className="grid gap-2 mt-3">
               {sessions
                 .sort((a, b) => a.session_date.localeCompare(b.session_date))
-                .map(session => (
+                .map((session) => (
                   <SessionCard key={session.id} session={session} />
                 ))}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <p className="text-sm text-muted-foreground">Séances non encore générées</p>
-              <Button
-                size="sm"
-                onClick={generateSessions}
-                disabled={generating}
-              >
-                {generating ? 'Génération en cours…' : 'Générer les séances avec l\'IA'}
+              <Button size="sm" onClick={generateSessions} disabled={generating}>
+                {generating ? 'Génération en cours…' : "Générer les séances avec l'IA"}
               </Button>
             </div>
           )}

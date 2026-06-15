@@ -8,7 +8,10 @@ import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) return apiError('Non authentifié', 401)
 
   const body = await request.json()
@@ -23,11 +26,11 @@ export async function POST(request: Request) {
 
   // Fetch user profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = await (supabase as any)
+  const { data: profile } = (await (supabase as any)
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single() as { data: Record<string, unknown> | null }
+    .single()) as { data: Record<string, unknown> | null }
 
   if (!profile) return apiError('Profil non configuré', 400)
 
@@ -37,12 +40,12 @@ export async function POST(request: Request) {
 
   if (mode === 'race' && goal_id) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: goalData } = await (supabase as any)
+    const { data: goalData } = (await (supabase as any)
       .from('goals')
       .select('*')
       .eq('id', goal_id)
       .eq('user_id', user.id)
-      .single() as { data: Record<string, unknown> | null }
+      .single()) as { data: Record<string, unknown> | null }
 
     if (!goalData) return apiError('Course introuvable', 404)
     goal = goalData
@@ -53,21 +56,21 @@ export async function POST(request: Request) {
 
   // Fetch recent Garmin data for context
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentActivities } = await (admin as any)
+  const { data: recentActivities } = (await (admin as any)
     .from('garmin_activities')
     .select('activity_type, duration_s, distance_m, avg_hr, started_at')
     .eq('user_id', user.id)
     .gte('started_at', format(addWeeks(new Date(), -8), 'yyyy-MM-dd'))
     .order('started_at', { ascending: false })
-    .limit(30) as { data: Array<Record<string, unknown>> | null }
+    .limit(30)) as { data: Array<Record<string, unknown>> | null }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recentWellness } = await (admin as any)
+  const { data: recentWellness } = (await (admin as any)
     .from('garmin_wellness')
     .select('date, hrv_rmssd, body_battery_start, resting_hr, sleep_score')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
-    .limit(14) as { data: Array<Record<string, unknown>> | null }
+    .limit(14)) as { data: Array<Record<string, unknown>> | null }
 
   const activitySummary = buildActivitySummary(recentActivities ?? [])
   const wellnessSummary = buildWellnessSummary(recentWellness ?? [])
@@ -79,15 +82,17 @@ export async function POST(request: Request) {
     methodology,
     start_date,
     total_weeks,
-    goal: goal ? {
-      race_name: goal.race_name as string,
-      race_type: goal.race_type as string,
-      race_date: goal.race_date as string,
-      swim_distance_m: goal.swim_distance_m as number | null,
-      bike_distance_m: goal.bike_distance_m as number | null,
-      run_distance_m: goal.run_distance_m as number | null,
-      terrain: goal.terrain as string | null,
-    } : undefined,
+    goal: goal
+      ? {
+          race_name: goal.race_name as string,
+          race_type: goal.race_type as string,
+          race_date: goal.race_date as string,
+          swim_distance_m: goal.swim_distance_m as number | null,
+          bike_distance_m: goal.bike_distance_m as number | null,
+          run_distance_m: goal.run_distance_m as number | null,
+          terrain: goal.terrain as string | null,
+        }
+      : undefined,
     recent_activity_summary: activitySummary || undefined,
     recent_wellness_summary: wellnessSummary || undefined,
   })
@@ -109,7 +114,7 @@ export async function POST(request: Request) {
 
   // 1. Create plan
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: plan, error: planError } = await (admin as any)
+  const { data: plan, error: planError } = (await (admin as any)
     .from('plans')
     .insert({
       user_id: user.id,
@@ -124,7 +129,7 @@ export async function POST(request: Request) {
       summary: { phases_count: macroPlan.phases.length, weeks_count: macroPlan.weeks.length },
     })
     .select()
-    .single() as { data: { id: string } | null; error: { message: string } | null }
+    .single()) as { data: { id: string } | null; error: { message: string } | null }
 
   if (planError || !plan) return apiError(planError?.message ?? 'Erreur création plan', 500)
 
@@ -138,24 +143,21 @@ export async function POST(request: Request) {
     .neq('id', plan.id)
 
   // 3. Insert phases
-  const phaseRows = macroPlan.phases.map(p => ({ plan_id: plan.id, ...p }))
+  const phaseRows = macroPlan.phases.map((p) => ({ plan_id: plan.id, ...p }))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any).from('plan_phases').insert(phaseRows)
 
   // 4. Insert weeks
-  const weekRows = macroPlan.weeks.map(w => ({
+  const weekRows = macroPlan.weeks.map((w) => ({
     plan_id: plan.id,
     ...w,
-    start_date: format(
-      addWeeks(parseISO(start_date), w.week_num - 1),
-      'yyyy-MM-dd'
-    ),
+    start_date: format(addWeeks(parseISO(start_date), w.week_num - 1), 'yyyy-MM-dd'),
   }))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: insertedWeeks } = await (admin as any)
+  const { data: insertedWeeks } = (await (admin as any)
     .from('plan_weeks')
     .insert(weekRows)
-    .select('id, week_num') as { data: Array<{ id: string; week_num: number }> | null }
+    .select('id, week_num')) as { data: Array<{ id: string; week_num: number }> | null }
 
   // 5. Log generation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,13 +169,16 @@ export async function POST(request: Request) {
     response_meta: { weeks_generated: macroPlan.weeks.length },
   })
 
-  return apiSuccess({
-    plan_id: plan.id,
-    total_weeks,
-    phases: macroPlan.phases.length,
-    weeks_created: insertedWeeks?.length ?? 0,
-    message: 'Programme généré avec succès',
-  }, 201)
+  return apiSuccess(
+    {
+      plan_id: plan.id,
+      total_weeks,
+      phases: macroPlan.phases.length,
+      weeks_created: insertedWeeks?.length ?? 0,
+      message: 'Programme généré avec succès',
+    },
+    201,
+  )
 }
 
 function buildActivitySummary(activities: Array<Record<string, unknown>>): string {
@@ -192,7 +197,13 @@ function buildActivitySummary(activities: Array<Record<string, unknown>>): strin
 
 function buildWellnessSummary(wellness: Array<Record<string, unknown>>): string {
   if (!wellness.length) return ''
-  const avgHRV = wellness.filter(w => w.hrv_rmssd).reduce((s, w) => s + (w.hrv_rmssd as number), 0) / (wellness.filter(w => w.hrv_rmssd).length || 1)
-  const avgBB = wellness.filter(w => w.body_battery_start).reduce((s, w) => s + (w.body_battery_start as number), 0) / (wellness.filter(w => w.body_battery_start).length || 1)
+  const avgHRV =
+    wellness.filter((w) => w.hrv_rmssd).reduce((s, w) => s + (w.hrv_rmssd as number), 0) /
+    (wellness.filter((w) => w.hrv_rmssd).length || 1)
+  const avgBB =
+    wellness
+      .filter((w) => w.body_battery_start)
+      .reduce((s, w) => s + (w.body_battery_start as number), 0) /
+    (wellness.filter((w) => w.body_battery_start).length || 1)
   return `HRV moyen : ${avgHRV.toFixed(0)} ms | Body Battery moyen : ${avgBB.toFixed(0)}/100`
 }

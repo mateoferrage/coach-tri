@@ -13,6 +13,7 @@ sources créerait des doublons : une même séance est poussée par la montre ve
 Garmin **et** vers Strava.
 
 État des données (2026-06-15) :
+
 - Garmin : 107 activités (dont 2 manuelles, `garmin_activity_id < 0`), historique
   depuis ~6,5 mois. Champ exclusif utile : `aerobic_te` (Training Effect).
 - Strava : 10 activités, ~1 mois (le sync ne remonte que 30 jours). Champs
@@ -49,22 +50,22 @@ source :
 
 ```ts
 type UnifiedActivity = {
-  id: string;                 // id de la ligne source de base (Garmin si dispo, sinon Strava)
-  activity_type: string;      // discipline normalisée (run/bike/swim/strength/triathlon/other)
-  name: string | null;
-  started_at: string;         // UTC
-  duration_s: number | null;
-  distance_m: number | null;
-  avg_hr: number | null;
-  max_hr: number | null;
-  avg_speed_ms: number | null;
-  elevation_gain_m: number | null;
-  aerobic_te: number | null;  // Garmin uniquement
-  avg_watts: number | null;   // Strava uniquement
-  suffer_score: number | null;// Strava uniquement
-  is_manual: boolean;         // Garmin id < 0
-  sources: ('garmin' | 'strava')[]; // 1 ou 2 sources
-};
+  id: string // id de la ligne source de base (Garmin si dispo, sinon Strava)
+  activity_type: string // discipline normalisée (run/bike/swim/strength/triathlon/other)
+  name: string | null
+  started_at: string // UTC
+  duration_s: number | null
+  distance_m: number | null
+  avg_hr: number | null
+  max_hr: number | null
+  avg_speed_ms: number | null
+  elevation_gain_m: number | null
+  aerobic_te: number | null // Garmin uniquement
+  avg_watts: number | null // Strava uniquement
+  suffer_score: number | null // Strava uniquement
+  is_manual: boolean // Garmin id < 0
+  sources: ('garmin' | 'strava')[] // 1 ou 2 sources
+}
 ```
 
 ### Règle de dédoublonnage
@@ -134,6 +135,7 @@ faciles, page mince.
 ## Tests (TDD sur `unify.ts`)
 
 Cas couverts par les tests unitaires de `mergeActivities` :
+
 - Doublon run Garmin+Strava à 2 min d'écart → 1 carte, base Garmin, watts Strava,
   `sources=['garmin','strava']`.
 - Même sport, 3 h d'écart → 2 cartes distinctes (hors fenêtre).
