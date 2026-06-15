@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { z } from 'zod'
+import type { TablesUpdate } from '@/types/db'
 
 const PatchSchema = z.object({
   action_status: z.enum(['confirmed', 'rejected']),
@@ -129,10 +130,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (action.type === 'adjust_session') {
     const sessionId = p.session_id as string
-    const updates: Record<string, unknown> = {}
-    if (p.duration_min) updates.duration_min = p.duration_min
-    if (p.session_type) updates.session_type = p.session_type
-    if (p.coaching_note) updates.coaching_note = p.coaching_note
+    // Payload construit dynamiquement depuis les params d'action de l'IA
+    const updates: TablesUpdate<'sessions'> = {}
+    if (p.duration_min) updates.duration_min = p.duration_min as number
+    if (p.session_type) updates.session_type = p.session_type as string
+    if (p.coaching_note) updates.coaching_note = p.coaching_note as string
 
     const { error } = await admin
       .from('sessions')

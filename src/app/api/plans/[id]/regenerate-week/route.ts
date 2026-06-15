@@ -12,6 +12,7 @@ import {
   type EquipmentData,
 } from '@/lib/gemini/prompts'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
+import { asJson } from '@/lib/utils/json'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
 import { addDays, format, parseISO } from 'date-fns'
@@ -357,6 +358,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       session_type: normalizeSessionType(s.session_type),
       day_part,
       status: 'planned',
+      structure: asJson(s.structure),
+      target_values: asJson(s.target_values),
     }
   })
 

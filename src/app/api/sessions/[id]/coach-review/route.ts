@@ -7,6 +7,7 @@ import {
   buildSessionReviewPrompt,
   type SessionReviewContext,
 } from '@/lib/gemini/prompts'
+import { asJson, fromJson } from '@/lib/utils/json'
 
 interface CoachReview {
   verdict: 'excellent' | 'good' | 'average' | 'poor'
@@ -58,9 +59,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       session_type: session.session_type ?? '',
       duration_min: session.duration_min ?? 0,
       target_zone: session.target_zone ?? null,
-      target_values: session.target_values ?? null,
+      target_values: fromJson<SessionReviewContext['session']['target_values']>(
+        session.target_values,
+      ),
       expected_rpe: session.expected_rpe ?? null,
-      structure: session.structure ?? null,
+      structure: fromJson<SessionReviewContext['session']['structure']>(session.structure),
       coaching_note: session.coaching_note ?? null,
       actual_rpe: session.actual_rpe ?? null,
     },
@@ -87,7 +90,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // Persist review in sessions table
   const admin = createAdminClient()
 
-  await admin.from('sessions').update({ garmin_review: review }).eq('id', session_id)
+  await admin
+    .from('sessions')
+    .update({ garmin_review: asJson(review) })
+    .eq('id', session_id)
 
   return apiSuccess(review)
 }

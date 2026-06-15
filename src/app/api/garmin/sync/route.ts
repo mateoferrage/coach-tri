@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { decryptCredential } from '@/lib/utils/crypto'
 import { buildGarminClient, type StoredTokens } from '@/lib/garmin/client'
+import { asJson } from '@/lib/utils/json'
+import type { TablesInsert } from '@/types/db'
 
 const MAX_DAYS = 14
 
@@ -379,7 +381,7 @@ export async function POST() {
     // Upsert activities
     if (activities.length > 0) {
       await admin.from('garmin_activities').upsert(
-        activities.map((a) => ({ ...a, user_id: user.id })),
+        activities.map((a) => ({ ...a, user_id: user.id, raw_data: asJson(a.raw_data) })),
         { onConflict: 'user_id,garmin_activity_id' },
       )
     }
@@ -402,14 +404,17 @@ export async function POST() {
       if (value !== null) statsPayload[key] = value
     }
 
-    await admin.from('garmin_stats').upsert(statsPayload, { onConflict: 'user_id' })
+    // statsPayload est partiel et construit dynamiquement (clés non-null seulement)
+    await admin
+      .from('garmin_stats')
+      .upsert(statsPayload as TablesInsert<'garmin_stats'>, { onConflict: 'user_id' })
 
     // Persist refreshed tokens
     const tokens = gc.exportToken() as StoredTokens
 
     await admin
       .from('garmin_credentials')
-      .update({ last_sync_at: new Date().toISOString(), session_data: tokens })
+      .update({ last_sync_at: new Date().toISOString(), session_data: asJson(tokens) })
       .eq('user_id', user.id)
 
     return apiSuccess({

@@ -8,6 +8,7 @@ import { refreshIfNeeded, getRecentActivitiesCompact } from '@/lib/strava/client
 import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 import { buildStravaActivitiesBlock } from '@/lib/gemini/prompts'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { asJson } from '@/lib/utils/json'
 
 const PostSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -220,7 +221,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       role: 'assistant',
       content: aiResponse.message,
-      proposed_action: aiResponse.proposedAction ?? null,
+      proposed_action: asJson(aiResponse.proposedAction ?? null),
       action_status: aiResponse.proposedAction ? 'pending' : null,
     })
     .select('id, role, content, proposed_action, action_status, created_at')
