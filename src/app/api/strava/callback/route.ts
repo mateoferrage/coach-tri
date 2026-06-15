@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { exchangeCode } from '@/lib/strava/client'
+import { encryptStravaTokens } from '@/lib/strava/credentials'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 
@@ -34,8 +35,7 @@ export async function GET(request: Request) {
       {
         user_id: user.id,
         athlete_id: tokens.athlete_id,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        ...encryptStravaTokens(tokens),
         expires_at: tokens.expires_at,
         scope: 'read,activity:read',
       },

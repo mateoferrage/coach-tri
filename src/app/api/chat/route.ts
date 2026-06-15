@@ -4,7 +4,8 @@ import { generateJSON } from '@/lib/gemini/client'
 import { COACH_CHAT_SYSTEM, buildChatContext } from '@/lib/gemini/prompts'
 import { z } from 'zod'
 import { differenceInWeeks, parseISO } from 'date-fns'
-import { refreshIfNeeded, getRecentActivitiesCompact, type StravaTokens } from '@/lib/strava/client'
+import { refreshIfNeeded, getRecentActivitiesCompact } from '@/lib/strava/client'
+import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 import { buildStravaActivitiesBlock } from '@/lib/gemini/prompts'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -157,21 +158,15 @@ export async function POST(request: Request) {
   let stravaActivitiesBlock: string | undefined
   if (stravaCreds) {
     try {
-      const tokens: StravaTokens = {
-        access_token: stravaCreds.access_token,
-        refresh_token: stravaCreds.refresh_token,
-        expires_at: stravaCreds.expires_at,
-        athlete_id: stravaCreds.athlete_id,
-      }
-      const refreshed = await refreshIfNeeded(tokens)
-      if (refreshed.access_token !== stravaCreds.access_token) {
+      const stored = decryptStravaCreds(stravaCreds)
+      const refreshed = await refreshIfNeeded(stored)
+      if (refreshed.access_token !== stored.access_token) {
         const admin = createAdminClient()
 
         await admin
           .from('strava_credentials')
           .update({
-            access_token: refreshed.access_token,
-            refresh_token: refreshed.refresh_token,
+            ...encryptStravaTokens(refreshed),
             expires_at: refreshed.expires_at,
           })
           .eq('user_id', user.id)

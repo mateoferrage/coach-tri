@@ -15,7 +15,8 @@ import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { z } from 'zod'
 import { addDays, format, parseISO } from 'date-fns'
-import { refreshIfNeeded, getAthleteStatsCompact, type StravaTokens } from '@/lib/strava/client'
+import { refreshIfNeeded, getAthleteStatsCompact } from '@/lib/strava/client'
+import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 
 const BodySchema = z.object({
   week_num: z.number().int().positive(),
@@ -237,21 +238,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (stravaCreds) {
     try {
-      const tokens: StravaTokens = {
-        access_token: stravaCreds.access_token,
-        refresh_token: stravaCreds.refresh_token,
-        expires_at: stravaCreds.expires_at,
-        athlete_id: stravaCreds.athlete_id,
-      }
-      const refreshed = await refreshIfNeeded(tokens)
-      if (refreshed.access_token !== stravaCreds.access_token) {
+      const stored = decryptStravaCreds(stravaCreds)
+      const refreshed = await refreshIfNeeded(stored)
+      if (refreshed.access_token !== stored.access_token) {
         const adminClient = createAdminClient()
 
         await adminClient
           .from('strava_credentials')
           .update({
-            access_token: refreshed.access_token,
-            refresh_token: refreshed.refresh_token,
+            ...encryptStravaTokens(refreshed),
             expires_at: refreshed.expires_at,
           })
           .eq('user_id', user.id)

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { refreshIfNeeded, getActivitiesForSync, type StravaTokens } from '@/lib/strava/client'
+import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 
 export async function POST() {
   const supabase = await createClient()
@@ -21,24 +22,20 @@ export async function POST() {
 
   const admin = createAdminClient()
 
+  let stored: StravaTokens
   let tokens: StravaTokens
   try {
-    tokens = await refreshIfNeeded({
-      access_token: creds.access_token,
-      refresh_token: creds.refresh_token,
-      expires_at: creds.expires_at,
-      athlete_id: creds.athlete_id,
-    })
+    stored = decryptStravaCreds(creds)
+    tokens = await refreshIfNeeded(stored)
   } catch {
     return apiError('Token Strava expiré — reconnecte ton compte', 401)
   }
 
-  if (tokens.access_token !== creds.access_token) {
+  if (tokens.access_token !== stored.access_token) {
     await admin
       .from('strava_credentials')
       .update({
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        ...encryptStravaTokens(tokens),
         expires_at: tokens.expires_at,
       })
       .eq('user_id', user.id)

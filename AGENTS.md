@@ -347,9 +347,10 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 **OAuth2** (`src/lib/strava/client.ts`) — alternative/complément à Garmin pour importer les activités.
 
 - `GET /api/strava/connect` : construit l'URL d'autorisation Strava (scope `read,activity:read`), pose un cookie `strava_oauth_state` (CSRF), redirige vers Strava. Callback = `${NEXT_PUBLIC_APP_URL}/api/strava/callback`.
-- `GET /api/strava/callback` : vérifie le `state`, échange le code (`exchangeCode`), upsert dans `strava_credentials` (tokens **en clair**, contrairement à Garmin qui chiffre).
-- `POST /api/strava/sync` : rafraîchit le token si besoin (`refreshIfNeeded`), récupère activités + stats, upsert `strava_activities`.
+- `GET /api/strava/callback` : vérifie le `state`, échange le code (`exchangeCode`), chiffre les tokens (`encryptStravaTokens`) et upsert dans `strava_credentials`.
+- `POST /api/strava/sync` : déchiffre les tokens (`decryptStravaCreds`), rafraîchit si besoin (`refreshIfNeeded`), récupère activités + stats, upsert `strava_activities`. Réécrit les tokens chiffrés si le refresh les a changés.
 - `POST /api/strava/disconnect` : supprime les credentials.
+- **Chiffrement** : `access_token`/`refresh_token` sont chiffrés AES-256 (mêmes helpers `crypto.ts` que Garmin) via `src/lib/strava/credentials.ts` (`encryptStravaTokens` / `decryptStravaCreds`). Un déchiffrement qui échoue (ligne legacy en clair) est traité comme « reconnecter le compte ».
 - **Config Strava** : _Authorization Callback Domain_ = le host de `NEXT_PUBLIC_APP_URL` (sans `https://`).
 - Tables : `strava_credentials`, `strava_activities` (migration `0020_strava.sql`).
 
@@ -470,4 +471,4 @@ NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-t
 6. **Un seul plan actif** : à la création d'un plan, archiver les autres (`status = 'archived'`).
 7. **generateJSON** : retourne toujours du JSON pur — le system prompt Gemini doit préciser "réponds uniquement en JSON".
 8. **Garmin sync** : le délai de 350ms entre les jours wellness est intentionnel pour éviter le rate-limiting.
-9. **Chiffrement Garmin** : ne jamais stocker les credentials en clair — toujours `encryptCredential()`.
+9. **Chiffrement des credentials tiers** : ne jamais stocker en clair les identifiants Garmin ni les tokens Strava — toujours `encryptCredential()` (Garmin) / `encryptStravaTokens()` (Strava).
