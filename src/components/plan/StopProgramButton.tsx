@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 
 const MINT = 'oklch(0.843 0.165 157)'
-const DARK = 'oklch(0.25 0.055 158)'
+const DARK = 'oklch(0.19 0 0)'
 
 export function StopProgramButton({ planId }: { planId: string }) {
   const router = useRouter()

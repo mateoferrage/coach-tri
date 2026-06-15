@@ -53,20 +53,20 @@
   /* Police de titres = Outfit (sans) — repli si --font-sans absent */
   --font-display: var(--font-sans);
 
-  /* ── DA Coach Tri — blanc / noir / vert (sombre vert menthe) ── */
-  --background: oklch(0.21 0.055 158);               /* vert-sombre profond (fond) */
+  /* ── DA Coach Tri — blanc / noir / vert (fond noir, accent menthe) ── */
+  --background: oklch(0.15 0 0);                      /* noir profond (fond) */
   --foreground: oklch(0.95 0 0);                     /* blanc texte */
-  --card: oklch(0.25 0.055 158);                     /* panneau vert-sombre */
+  --card: oklch(0.19 0 0);                            /* panneau gris très sombre */
   --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.25 0.055 158);
+  --popover: oklch(0.19 0 0);
   --popover-foreground: oklch(0.95 0 0);
   --primary: oklch(0.843 0.165 157);                 /* vert menthe — accent */
-  --primary-foreground: oklch(0.17 0.05 158);        /* vert-noir pour texte sur menthe */
-  --secondary: oklch(0.29 0.055 158);                /* surface relevée */
+  --primary-foreground: oklch(0.12 0 0);             /* noir pour texte sur menthe */
+  --secondary: oklch(0.23 0 0);                      /* surface relevée */
   --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.25 0.055 158);
-  --muted-foreground: oklch(0.72 0.02 158);          /* gris-vert atténué */
-  --accent: oklch(0.29 0.055 158);
+  --muted: oklch(0.19 0 0);
+  --muted-foreground: oklch(0.72 0 0);               /* gris atténué */
+  --accent: oklch(0.23 0 0);
   --accent-foreground: oklch(0.95 0 0);
   --destructive: oklch(0.62 0.22 25);                /* rouge erreur */
   --border: oklch(1 0 0 / 8%);                       /* hairline clair sur sombre */
@@ -79,12 +79,12 @@
   --chart-5: oklch(0.72 0.04 252);                   /* acier */
   --radius: 0.75rem;
 
-  /* Sidebar / nav — vert un cran plus sombre */
-  --sidebar: oklch(0.17 0.05 158);
+  /* Sidebar / nav — noir un cran plus profond */
+  --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.843 0.165 157);         /* menthe */
-  --sidebar-primary-foreground: oklch(0.17 0.05 158);
-  --sidebar-accent: oklch(0.25 0.055 158);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.19 0 0);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.843 0.165 157);

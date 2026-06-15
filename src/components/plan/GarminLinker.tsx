@@ -254,7 +254,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               style={{ backgroundColor: verdictCfg.bg, border: `1px solid ${withAlpha(verdictCfg.color, 25)}` }}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "oklch(0.72 0.02 158)" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "oklch(0.72 0 0)" }}>
                   Retour du coach
                 </p>
                 <span
@@ -270,7 +270,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               <button
                 onClick={fetchReview}
                 className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: "oklch(0.72 0.02 158)" }}
+                style={{ color: "oklch(0.72 0 0)" }}
               >
                 Régénérer
               </button>
