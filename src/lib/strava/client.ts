@@ -48,6 +48,7 @@ interface StravaRawActivity {
   id:                    number
   name:                  string
   type:                  string
+  start_date:            string
   start_date_local:      string
   elapsed_time:          number
   distance:              number
@@ -90,7 +91,7 @@ function toRecord(raw: StravaRawActivity): StravaActivityRecord {
     strava_activity_id: raw.id,
     activity_type:      normalizeType(raw.type),
     name:               raw.name ?? null,
-    started_at:         raw.start_date_local,
+    started_at:         raw.start_date,
     duration_s:         toInt(raw.elapsed_time),
     distance_m:         raw.distance ?? null,
     avg_hr:             toInt(raw.average_heartrate),
