@@ -471,3 +471,10 @@ NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-t
 7. **generateJSON** : retourne toujours du JSON pur — le system prompt Gemini doit préciser "réponds uniquement en JSON".
 8. **Garmin sync** : le délai de 350ms entre les jours wellness est intentionnel pour éviter le rate-limiting.
 9. **Chiffrement des credentials tiers** : ne jamais stocker en clair les identifiants Garmin ni les tokens Strava — toujours `encryptCredential()` (Garmin) / `encryptStravaTokens()` (Strava).
+
+---
+
+## Limitations connues (dette technique)
+
+- **Pas de rate-limiting sur les endpoints Gemini** (`plans/generate`, `plans/[id]/regenerate-week`, `chat`, `sessions/[id]/coach-review`). Ces routes déclenchent des appels IA payants sans limite par utilisateur → risque de coût/abus. Décision : reporté. Approche pressentie quand ce sera traité : table Postgres de comptage par user/fenêtre, ou Upstash Redis (sliding-window).
+- **`src/types/db.ts` est un placeholder écrit à la main**, pas généré. C'est la cause des annotations `as { … } | null` côté lecture. Correctif : `npm run db:types` (nécessite `supabase login`), puis typer les factories Supabase avec `<Database>` et retirer les casts par lots.
