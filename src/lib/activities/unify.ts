@@ -90,24 +90,20 @@ export function normalizeStrava(row: StravaRow): UnifiedActivity {
 }
 
 const DEDUP_WINDOW_MS = 10 * 60 * 1000   // ±10 min
-const DURATION_TOLERANCE = 0.25          // ±25 %
 const DEDUP_DISCIPLINES = new Set(['run', 'bike', 'swim'])
 
 function canDedup(a: UnifiedActivity): boolean {
   return !a.is_manual && DEDUP_DISCIPLINES.has(a.activity_type)
 }
 
-function durationsCompatible(a: number | null, b: number | null): boolean {
-  if (a == null || b == null) return true   // pas de garde-fou si durée inconnue
-  if (a === 0 || b === 0) return a === b
-  return Math.abs(a - b) / Math.max(a, b) <= DURATION_TOLERANCE
-}
-
+// Même discipline + début à ≤10 min suffit. Pas de garde-fou de durée :
+// Strava mesure le temps écoulé (repos inclus), Garmin le temps actif —
+// l'écart peut dépasser 50 % (surtout en natation) sans qu'il s'agisse de
+// séances distinctes. Démarrer deux séances du même sport à <10 min est improbable.
 function isSameSession(garmin: UnifiedActivity, strava: UnifiedActivity): boolean {
   if (garmin.activity_type !== strava.activity_type) return false
   const diff = Math.abs(Date.parse(garmin.started_at) - Date.parse(strava.started_at))
-  if (diff > DEDUP_WINDOW_MS) return false
-  return durationsCompatible(garmin.duration_s, strava.duration_s)
+  return diff <= DEDUP_WINDOW_MS
 }
 
 export function mergeActivities(garmin: GarminRow[], strava: StravaRow[]): UnifiedActivity[] {

@@ -110,12 +110,15 @@ describe('mergeActivities', () => {
     expect(out).toHaveLength(2)
   })
 
-  it('garde 2 cartes si durées trop différentes (>25%)', () => {
+  it('fusionne malgré des durées très différentes (Strava temps écoulé vs Garmin temps actif)', () => {
+    // Cas réel natation : même horodatage, Garmin 18 min (temps de nage),
+    // Strava 45 min (temps écoulé, repos inclus). Doit fusionner.
     const out = mergeActivities(
-      [g({ id: 'g1', duration_s: 3600 })],
-      [s({ id: 's1', duration_s: 7200 })],
+      [g({ id: 'g1', activity_type: 'swim', duration_s: 1102 })],
+      [s({ id: 's1', activity_type: 'swim', duration_s: 2708 })],
     )
-    expect(out).toHaveLength(2)
+    expect(out).toHaveLength(1)
+    expect(out[0].sources).toEqual(['garmin', 'strava'])
   })
 
   it('garde une activité Strava sans équivalent Garmin', () => {
