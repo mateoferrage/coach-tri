@@ -437,8 +437,7 @@ STRAVA_CLIENT_SECRET              ← secret app Strava
 NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-tri-amber.vercel.app (callback OAuth Strava)
 ```
 
-> **Garmin / ENCRYPTION_KEY** : la prod (Vercel) utilise la clé d'origine qui déchiffre bien les identifiants Garmin stockés (sync OK). Le `.env.local` a une clé régénérée distincte → le sync Garmin échoue en **dev local** (déchiffrement impossible). Sans incidence en prod ; pour du Garmin en local, réaligner la clé et reconnecter Garmin.
-> **`INTERNAL_SECRET`** : vestige de l'ancien pont Python (supprimé) — plus utilisé par le code.
+> **Garmin / ENCRYPTION_KEY** : la prod (Vercel) utilise la clé d'origine qui déchiffre bien les identifiants Garmin stockés (sync OK). Le `.env.local` a une clé régénérée distincte → le sync Garmin échoue en **dev local** (déchiffrement impossible). Sans incidence en prod ; pour du Garmin en local, réaligner la clé et reconnecter Garmin. La même `ENCRYPTION_KEY` chiffre désormais aussi les tokens Strava.
 
 ---
 
