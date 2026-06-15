@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - name: Install dependencies
+        run: npm ci
+
+      # Chaîne de vérification AGENTS.md : typecheck && lint && test && format:check
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Tests (Vitest)
+        run: npm test
+      - name: Format check (Prettier)
+        run: npm run format:check
+
+      - name: Build (Next.js)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_anon_key
+          NEXT_PUBLIC_APP_URL: https://placeholder.vercel.app
+        run: npm run build
