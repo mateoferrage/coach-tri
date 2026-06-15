@@ -43,9 +43,10 @@ src/
         new/            ← création d'un nouveau programme
       session/[id]/     ← détail d'une séance
       calendar/         ← calendrier hebdomadaire
-      activities/       ← liste activités Garmin
-      profile/          ← profil + connexion Garmin
+      activities/       ← liste activités (Garmin + Strava unifiées)
+      profile/          ← profil + connexion Garmin/Strava + physiologie + équipement
     api/                ← Route Handlers (Next.js App Router)
+      activities/       ← GET liste d'activités unifiée (Garmin + Strava)
       auth/signout/
       chat/             ← GET (historique) / POST (message)
       chat/[id]/        ← PATCH (confirmer/rejeter action IA)
@@ -53,6 +54,7 @@ src/
       garmin/sync/      ← POST (déclencher sync Garmin)
       garmin/debug/
       goals/            ← CRUD objectifs de course
+      physiology/       ← GET/POST données physiologiques
       plans/generate/   ← POST (générer programme complet)
       plans/[id]/       ← GET/PATCH/DELETE plan
       plans/[id]/regenerate-week/ ← POST (régénérer une semaine)
@@ -62,24 +64,41 @@ src/
       schedule/[id]/    ← GET/PATCH/DELETE schedule event
       sessions/         ← GET liste
       sessions/[id]/    ← GET/PATCH session (statut, RPE, notes)
-      sessions/[id]/link-garmin/ ← POST lier activité Garmin
+      sessions/[id]/link-garmin/  ← POST lier activité Garmin
+      sessions/[id]/coach-review/ ← POST analyse IA de la séance réalisée
+      strava/connect/   ← GET (URL d'autorisation OAuth Strava)
+      strava/callback/  ← GET (échange du code OAuth)
+      strava/sync/      ← POST (synchroniser activités Strava)
+      strava/disconnect/← POST (supprimer la connexion Strava)
     login/
     onboarding/         ← flow 3 étapes : profil → disciplines → Garmin
     page.tsx            ← landing page
     layout.tsx          ← root layout (fonts, Toaster)
   components/
+    activities/         ← AddActivityModal
     calendar/           ← WeekCalendar, EventModal
     coach/              ← CoachChat (chat IA)
     common/             ← AppNav (nav desktop + mobile bottom bar)
     forms/              ← LoginForm, OnboardingFlow, ProgramForm
     garmin/             ← GarminConnectCard, GarminSyncButton
-    plan/               ← PhaseBar, WeekView, SessionCard, SessionActions, GarminLinker
+    plan/               ← PhaseBar, WeekView, SessionCard, SessionActions, GarminLinker, StopProgramButton
+    profile/            ← EquipmentSection, PhysiologySection
+    strava/             ← StravaConnectCard
     ui/                 ← composants shadcn/ui
   lib/
+    activities/
+      unify.ts          ← normalisation + déduplication des activités Garmin/Strava (+ tests)
+    coach/
+      knowledge/        ← base de connaissances coach (methodologies, nutrition, swim,
+                           zones-ref, sessions-lib, maintenance) agrégée via index.ts
     gemini/
       client.ts         ← generateJSON<T>() : appelle Gemini, retourne du JSON parsé
       prompts.ts        ← TRIATHLON_COACH_SYSTEM, buildMacroPrompt, buildMicroPrompt,
                            COACH_CHAT_SYSTEM, buildChatContext
+    garmin/
+      client.ts         ← wrapper garmin-connect (login, sync activités/wellness/stats)
+    strava/
+      client.ts         ← OAuth2 Strava (exchangeCode, refreshIfNeeded, fetch activités)
     schemas/
       garmin.ts, goal.ts, plan.ts, profile.ts, schedule.ts
     supabase/
@@ -87,11 +106,16 @@ src/
       client.ts         ← createClient() — browser (singleton), pour Client Components
       admin.ts          ← createAdminClient() — service_role, bypass RLS
     utils/
+      cn.ts             ← helper cn() (merge de classes Tailwind, convention shadcn)
       crypto.ts         ← encryptCredential / decryptCredential (AES-256-CBC)
       errors.ts         ← apiError() / apiSuccess() helpers
+      zones.ts          ← calcul des zones d'entraînement (FC / puissance / allure)
+      adherence.ts      ← calcul de l'adhérence au plan (prévu vs réalisé)
+    theme.ts            ← constantes de thème (couleurs OKLCH, etc.)
   types/
     db.ts               ← types Supabase générés (Database interface)
     domain.ts           ← types métier (Discipline, Phase, HRZones, etc.)
+  middleware.ts         ← rafraîchit la session Supabase + protège les routes (redirect /login)
 ```
 
 ---
