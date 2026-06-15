@@ -137,6 +137,7 @@ src/
       cn.ts             ← helper cn() (merge de classes Tailwind, convention shadcn)
       crypto.ts         ← encryptCredential / decryptCredential (AES-256-CBC)
       errors.ts         ← apiError() / apiSuccess() helpers
+      json.ts           ← asJson() / fromJson() : pont vers le type Json (colonnes jsonb)
       zones.ts          ← calcul des zones d'entraînement (FC / puissance / allure)
       adherence.ts      ← calcul de l'adhérence au plan (prévu vs réalisé)
     theme.ts            ← constantes de thème (couleurs OKLCH, etc.)
@@ -392,7 +393,11 @@ const supabase = await createClient() // @/lib/supabase/server
 const { data } = await supabase.from('sessions').select('...')
 ```
 
-Les factories Supabase (`server.ts`, `client.ts`, `admin.ts`) renvoient un `SupabaseClient` (typage permissif côté lib) : **plus aucun cast `as any`** n'est nécessaire sur les appels. Les lignes (`data`) sont typées de façon souple ; quand on a besoin d'une forme précise côté lecture, on annote explicitement le résultat (`as { … } | null`) plutôt que `any`. Si un jour `src/types/db.ts` est régénéré complet (`npm run db:types`), on pourra typer les clients avec `<Database>` pour un typage strict de bout en bout.
+Les factories Supabase (`server.ts`, `client.ts`, `admin.ts`) sont typées avec `<Database>` (types générés dans `src/types/db.ts` via `npm run db:types`) : les lignes (`data`) sont **strictement typées de bout en bout**, sans cast. Régénérer les types après toute migration (`npm run db:types`).
+
+- **Colonnes jsonb** : typées `Json` côté types générés. Utiliser les helpers `src/lib/utils/json.ts` — `asJson(value)` à l'écriture, `fromJson<T>(value)` à la lecture — plutôt que des casts dispersés.
+- **Payloads dynamiques** (objets construits à la volée) : typer avec `TablesInsert<'table'>` / `TablesUpdate<'table'>` (exportés par `db.ts`).
+- Les anciennes annotations `as { data: … } | null` sur les lectures sont désormais redondantes ; les retirer au fil des modifications.
 
 ### Route Handlers → toujours valider avec Zod d'abord
 
@@ -477,4 +482,4 @@ NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-t
 ## Limitations connues (dette technique)
 
 - **Pas de rate-limiting sur les endpoints Gemini** (`plans/generate`, `plans/[id]/regenerate-week`, `chat`, `sessions/[id]/coach-review`). Ces routes déclenchent des appels IA payants sans limite par utilisateur → risque de coût/abus. Décision : reporté. Approche pressentie quand ce sera traité : table Postgres de comptage par user/fenêtre, ou Upstash Redis (sliding-window).
-- **`src/types/db.ts` est un placeholder écrit à la main**, pas généré. C'est la cause des annotations `as { … } | null` côté lecture. Correctif : `npm run db:types` (nécessite `supabase login`), puis typer les factories Supabase avec `<Database>` et retirer les casts par lots.
+- **Casts de lecture résiduels** : ~18 annotations `as { data: … } | null` subsistent dans `src/app` depuis l'époque du placeholder `db.ts`. Désormais redondantes (les factories sont typées `<Database>`), à retirer par lots en relançant la chaîne — sans urgence, le typecheck passe avec.
