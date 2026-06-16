@@ -9,7 +9,7 @@
 // ── Surfaces ───────────────────────────────────────────────
 export const SLATE = 'oklch(0.913 0.015 186)' // sauge (fond, assombri pour contraste)
 export const SURFACE = 'oklch(1 0 0)' // panneau blanc
-export const SURFACE_DEEP = 'oklch(0.925 0.040 236)' // bandeaux (header/footer/saisie) — bleu glacier clair
+export const SURFACE_DEEP = 'oklch(0.928 0.012 75)' // bandeaux (header/footer/saisie) — greige chaud, discret
 export const DIVIDER = 'oklch(0.287 0.047 217.9 / 14%)' // séparateur sombre sur clair
 
 // ── Texte ──────────────────────────────────────────────────

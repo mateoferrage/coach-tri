@@ -371,7 +371,7 @@ BG     = oklch(0.913 0.015 186)          → fond de page (sauge, assombri pour 
 TEXT   = oklch(0.287 0.047 217.9)        → texte (canard profond #06303A)
 MINT   = oklch(0.306 0.051 209.3)        → accent/boutons (canard #03363D)
 DARK   = oklch(1 0 0)                     → SURFACE : fond des cards (blanc)
-DARKER = oklch(0.925 0.040 236)          → SURFACE_DEEP : bandeaux header/footer/saisie (bleu glacier clair)
+DARKER = oklch(0.928 0.012 75)           → SURFACE_DEEP : bandeaux header/footer/saisie (greige chaud)
 DIV    = oklch(0.287 0.047 217.9 / 14%)  → séparateurs (canard estompé)
 MUTED  = oklch(0.504 0.038 203.1)        → texte atténué (teal)
 
