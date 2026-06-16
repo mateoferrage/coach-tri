@@ -218,7 +218,7 @@ export function WeekCalendar() {
             style={{
               backgroundColor: CARD,
               border: `1px solid ${BORDER}`,
-              color: 'oklch(0.97 0 0)',
+              color: 'oklch(0.287 0.047 217.9)',
             }}
             aria-label="Semaine précédente"
           >
@@ -236,7 +236,7 @@ export function WeekCalendar() {
           </button>
           <span
             className="text-sm font-medium px-2"
-            style={{ color: 'oklch(0.95 0 0)', minWidth: 180, textAlign: 'center' }}
+            style={{ color: 'oklch(0.287 0.047 217.9)', minWidth: 180, textAlign: 'center' }}
           >
             {format(weekStart, 'd MMM', { locale: fr })} –{' '}
             {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: fr })}
@@ -247,7 +247,7 @@ export function WeekCalendar() {
             style={{
               backgroundColor: CARD,
               border: `1px solid ${BORDER}`,
-              color: 'oklch(0.97 0 0)',
+              color: 'oklch(0.287 0.047 217.9)',
             }}
             aria-label="Semaine suivante"
           >
@@ -269,7 +269,7 @@ export function WeekCalendar() {
             style={{
               backgroundColor: CARD,
               border: `1px solid ${BORDER}`,
-              color: 'oklch(0.85 0 0)',
+              color: 'oklch(0.504 0.038 203.1)',
             }}
           >
             Aujourd&apos;hui
@@ -359,7 +359,7 @@ export function WeekCalendar() {
                       fontWeight: 900,
                       lineHeight: 1,
                       marginTop: 4,
-                      color: isToday ? DARK : 'oklch(0.97 0 0)',
+                      color: isToday ? DARK : 'oklch(0.287 0.047 217.9)',
                       backgroundColor: isToday ? MINT : 'transparent',
                       borderRadius: '50%',
                       width: 32,

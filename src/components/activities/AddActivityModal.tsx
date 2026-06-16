@@ -22,8 +22,8 @@ const DISCIPLINES = [
 
 const inputStyle = {
   backgroundColor: BG2,
-  border: '1px solid oklch(1 0 0 / 10%)',
-  color: 'oklch(0.97 0 0)',
+  border: '1px solid oklch(0.287 0.047 217.9 / 10%)',
+  color: 'oklch(0.287 0.047 217.9)',
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -31,7 +31,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <p
         className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: 'oklch(1 0 0 / 38%)' }}
+        style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
       >
         {label}
       </p>
@@ -154,7 +154,7 @@ export function AddActivityModal() {
               <button
                 onClick={handleClose}
                 className="text-base leading-none transition-opacity hover:opacity-60"
-                style={{ color: 'oklch(1 0 0 / 40%)' }}
+                style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
               >
                 ✕
               </button>
@@ -172,8 +172,9 @@ export function AddActivityModal() {
                       className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all"
                       style={{
                         backgroundColor: form.discipline === d.value ? withAlpha(MINT, 12) : BG2,
-                        border: `1px solid ${form.discipline === d.value ? MINT : 'oklch(1 0 0 / 8%)'}`,
-                        color: form.discipline === d.value ? MINT : 'oklch(1 0 0 / 45%)',
+                        border: `1px solid ${form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 8%)'}`,
+                        color:
+                          form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 45%)',
                       }}
                     >
                       <span className="text-xl leading-none">{d.icon}</span>
@@ -281,7 +282,7 @@ export function AddActivityModal() {
               </div>
 
               {apiError && (
-                <p className="text-xs font-medium" style={{ color: 'oklch(0.65 0.20 25)' }}>
+                <p className="text-xs font-medium" style={{ color: 'oklch(0.55 0.20 25)' }}>
                   {apiError}
                 </p>
               )}

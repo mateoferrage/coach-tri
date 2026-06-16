@@ -78,9 +78,9 @@ function ToggleChip({
       onClick={onClick}
       className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
       style={{
-        backgroundColor: active ? MINT : 'oklch(1 0 0 / 6%)',
-        color: active ? ACCENT_FG : 'oklch(1 0 0 / 45%)',
-        border: `1px solid ${active ? MINT : 'oklch(1 0 0 / 12%)'}`,
+        backgroundColor: active ? MINT : 'oklch(0.287 0.047 217.9 / 6%)',
+        color: active ? ACCENT_FG : 'oklch(0.287 0.047 217.9 / 45%)',
+        border: `1px solid ${active ? MINT : 'oklch(0.287 0.047 217.9 / 12%)'}`,
       }}
     >
       {label}
@@ -171,7 +171,7 @@ export function EquipmentSection({ initial }: Props) {
         >
           <p
             className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'oklch(1 0 0 / 40%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
           >
             Matériel
           </p>
@@ -188,7 +188,7 @@ export function EquipmentSection({ initial }: Props) {
 
         {!hasAny ? (
           <div className="px-5 py-6 text-center">
-            <p className="text-sm" style={{ color: 'oklch(1 0 0 / 35%)' }}>
+            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}>
               Aucun matériel renseigné — le coach utilisera des séances standard
             </p>
           </div>
@@ -198,7 +198,7 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
                 >
                   Natation
                 </p>
@@ -224,7 +224,7 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
                 >
                   Vélo
                 </p>
@@ -245,17 +245,20 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(1 0 0 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
                 >
                   Course
                 </p>
                 <div className="space-y-1.5">
                   {data.run!.shoes!.map((shoe, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-sm font-bold" style={{ color: 'oklch(1 0 0 / 90%)' }}>
+                      <span
+                        className="text-sm font-bold"
+                        style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
+                      >
                         {shoe.name}
                       </span>
-                      <span className="text-xs" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+                      <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
                         {USAGE_LABELS[shoe.usage]} · {SURFACE_LABELS[shoe.surface]}
                       </span>
                     </div>
@@ -282,7 +285,7 @@ export function EquipmentSection({ initial }: Props) {
       >
         <p
           className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: 'oklch(1 0 0 / 40%)' }}
+          style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
         >
           Modifier le matériel
         </p>
@@ -293,7 +296,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(1 0 0 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
           >
             Natation
           </p>
@@ -313,7 +316,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(1 0 0 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
           >
             Vélo
           </p>
@@ -328,7 +331,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(1 0 0 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
           >
             Course
           </p>
@@ -337,7 +340,10 @@ export function EquipmentSection({ initial }: Props) {
               <div
                 key={shoe._key ?? i}
                 className="rounded-xl p-3 space-y-2"
-                style={{ backgroundColor: 'oklch(1 0 0 / 4%)', border: `1px solid ${DIV}` }}
+                style={{
+                  backgroundColor: 'oklch(0.287 0.047 217.9 / 4%)',
+                  border: `1px solid ${DIV}`,
+                }}
               >
                 <div className="flex items-center gap-2">
                   <Input
@@ -345,13 +351,13 @@ export function EquipmentSection({ initial }: Props) {
                     value={shoe.name}
                     onChange={(e) => updateShoe(i, 'name', e.target.value)}
                     className="flex-1 text-sm"
-                    style={{ color: 'oklch(1 0 0 / 90%)' }}
+                    style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
                   />
                   <button
                     type="button"
                     onClick={() => removeShoe(i)}
                     className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-                    style={{ color: 'oklch(0.65 0.20 25)' }}
+                    style={{ color: 'oklch(0.55 0.20 25)' }}
                   >
                     <Trash2 size={15} />
                   </button>
@@ -365,7 +371,7 @@ export function EquipmentSection({ initial }: Props) {
                   >
                     <SelectTrigger
                       className="flex-1 text-xs"
-                      style={{ color: 'oklch(1 0 0 / 90%)' }}
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -383,7 +389,7 @@ export function EquipmentSection({ initial }: Props) {
                   >
                     <SelectTrigger
                       className="flex-1 text-xs"
-                      style={{ color: 'oklch(1 0 0 / 90%)' }}
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -435,7 +441,7 @@ export function EquipmentSection({ initial }: Props) {
           </Button>
         </div>
         {error && (
-          <p className="text-xs text-center" style={{ color: 'oklch(0.65 0.20 25)' }}>
+          <p className="text-xs text-center" style={{ color: 'oklch(0.55 0.20 25)' }}>
             {error}
           </p>
         )}

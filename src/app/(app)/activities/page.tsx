@@ -99,12 +99,12 @@ function TEBadge({ value }: { value: number | null }) {
   const score = Math.round(value * 10) / 10
   const color =
     score < 2
-      ? 'oklch(0.6 0.05 200)'
+      ? 'oklch(0.55 0.04 200)'
       : score < 3
-        ? 'oklch(0.75 0.15 145)'
+        ? 'oklch(0.55 0.14 145)'
         : score < 4
           ? MINT
-          : 'oklch(0.88 0.16 157)'
+          : 'oklch(0.50 0.13 157)'
   return (
     <span
       className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
@@ -120,11 +120,11 @@ function StatPill({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col gap-0.5">
       <span
         className="text-[9px] font-bold uppercase tracking-widest"
-        style={{ color: 'oklch(1 0 0 / 35%)' }}
+        style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}
       >
         {label}
       </span>
-      <span className="text-sm font-semibold" style={{ color: 'oklch(1 0 0 / 85%)' }}>
+      <span className="text-sm font-semibold" style={{ color: 'oklch(0.287 0.047 217.9 / 85%)' }}>
         {value}
       </span>
     </div>
@@ -135,7 +135,7 @@ function ManualBadge() {
   return (
     <span
       className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
-      style={{ color: 'oklch(0.88 0.16 157)', border: '1px solid oklch(0.88 0.16 157)' }}
+      style={{ color: 'oklch(0.50 0.13 157)', border: '1px solid oklch(0.50 0.13 157)' }}
     >
       Manuel
     </span>
@@ -143,7 +143,7 @@ function ManualBadge() {
 }
 
 function SourceChip({ source }: { source: 'garmin' | 'strava' }) {
-  const color = source === 'strava' ? 'oklch(0.70 0.17 35)' : 'oklch(0.72 0.12 230)'
+  const color = source === 'strava' ? 'oklch(0.58 0.18 35)' : 'oklch(0.52 0.13 237)'
   const label = source === 'strava' ? 'Strava' : 'Garmin'
   return (
     <span
@@ -210,12 +210,12 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
               {activity.name && (
                 <p
                   className="text-[12px] font-semibold leading-tight mt-0.5"
-                  style={{ color: 'oklch(1 0 0 / 70%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                 >
                   {activity.name}
                 </p>
               )}
-              <p className="text-[11px]" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+              <p className="text-[11px]" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
                 {formatTime(activity.started_at)}
               </p>
             </div>
@@ -234,18 +234,21 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
           <div className="flex items-baseline gap-2">
             <span
               className="text-5xl font-semibold leading-none"
-              style={{ color: 'oklch(0.98 0 0)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9)' }}
             >
               {hero.value}
             </span>
             {hero.unit && (
-              <span className="text-lg font-bold" style={{ color: 'oklch(1 0 0 / 45%)' }}>
+              <span
+                className="text-lg font-bold"
+                style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}
+              >
                 {hero.unit}
               </span>
             )}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: 'oklch(1 0 0 / 30%)' }}>
+          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}>
             Pas de données
           </p>
         )}
@@ -332,10 +335,10 @@ export default async function ActivitiesPage() {
           style={{ backgroundColor: DARK, border: `1px solid ${DIVIDER}` }}
         >
           <p className="text-4xl">🏃</p>
-          <p className="text-sm" style={{ color: 'oklch(1 0 0 / 50%)' }}>
+          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 50%)' }}>
             Aucune activité synchronisée.
           </p>
-          <p className="text-xs" style={{ color: 'oklch(1 0 0 / 25%)' }}>
+          <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 25%)' }}>
             Connecte ton compte Garmin ou Strava et lance une synchronisation.
           </p>
         </div>

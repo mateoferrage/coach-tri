@@ -230,7 +230,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       {/* Note coach */}
       {(session.coaching_note as string | null | undefined) && (
         <Card style={{ backgroundColor: withAlpha(ACCENT, 8), borderColor: withAlpha(ACCENT, 25) }}>
-          <CardContent className="pt-4 text-sm italic" style={{ color: 'oklch(0.92 0 0)' }}>
+          <CardContent
+            className="pt-4 text-sm italic"
+            style={{ color: 'oklch(0.287 0.047 217.9)' }}
+          >
             💡{' '}
             <span
               style={{ color: ACCENT }}

@@ -39,7 +39,7 @@ export function AppNav({ user }: AppNavProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar relative">
       {/* Filigrane topographique — signature DA Sommet */}
-      <div className="topo-lines absolute inset-0 opacity-[0.04] pointer-events-none" />
+      <div className="topo-lines absolute inset-0 opacity-[0.025] pointer-events-none" />
       <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between relative">
         {/* Logo */}
         <div className="flex items-center gap-10">
@@ -66,7 +66,7 @@ export function AppNav({ user }: AppNavProps) {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
                     active
                       ? 'text-sidebar-primary bg-sidebar-primary/15'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                   }`}
                 >
                   <Icon size={14} strokeWidth={2.5} />
@@ -79,12 +79,12 @@ export function AppNav({ user }: AppNavProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <span className="hidden lg:block text-xs text-white/30 font-medium truncate max-w-[180px]">
+          <span className="hidden lg:block text-xs text-muted-foreground font-medium truncate max-w-[180px]">
             {user.email}
           </span>
           <button
             onClick={handleSignOut}
-            className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border transition-all text-white/50 hover:text-white border-white/10 hover:border-white/30"
+            className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border transition-all text-muted-foreground hover:text-foreground border-border hover:border-foreground/30"
           >
             Déconnexion
           </button>
@@ -100,7 +100,7 @@ export function AppNav({ user }: AppNavProps) {
               key={href}
               href={href}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[9px] font-bold uppercase tracking-wide transition-colors ${
-                active ? 'text-sidebar-primary' : 'text-white/40'
+                active ? 'text-sidebar-primary' : 'text-muted-foreground'
               }`}
             >
               <Icon size={18} strokeWidth={active ? 2.5 : 2} />

@@ -64,7 +64,7 @@ export function LoginForm() {
       <div className="space-y-1.5">
         <Label
           htmlFor="email"
-          className="text-xs font-bold uppercase tracking-widest text-white/60"
+          className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
         >
           Email
         </Label>
@@ -72,16 +72,16 @@ export function LoginForm() {
           id="email"
           type="email"
           placeholder="vous@exemple.com"
-          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
+          className="bg-muted border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20"
           {...register('email')}
         />
-        {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
+        {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label
           htmlFor="password"
-          className="text-xs font-bold uppercase tracking-widest text-white/60"
+          className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
         >
           Mot de passe
         </Label>
@@ -89,10 +89,10 @@ export function LoginForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus-visible:border-primary focus-visible:ring-primary/20"
+          className="bg-muted border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20"
           {...register('password')}
         />
-        {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
+        {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
       </div>
 
       <button
@@ -105,7 +105,7 @@ export function LoginForm() {
 
       <button
         type="button"
-        className="w-full text-xs text-white/30 hover:text-white/60 transition-colors font-medium tracking-wide"
+        className="w-full text-xs text-muted-foreground/70 hover:text-foreground transition-colors font-medium tracking-wide"
         onClick={() => setIsSignUp(!isSignUp)}
       >
         {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}

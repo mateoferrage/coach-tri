@@ -144,7 +144,7 @@ export default function CoachChat() {
 
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col"
+      className="card-elev rounded-2xl overflow-hidden flex flex-col"
       style={{ backgroundColor: DARK, border: `1px solid ${DIV}`, height: '420px' }}
     >
       {/* Header */}
@@ -208,10 +208,14 @@ export default function CoachChat() {
                 msg.role === 'user'
                   ? {
                       backgroundColor: `${withAlpha(MINT, 16)}`,
-                      color: 'oklch(0.97 0 0)',
+                      color: 'oklch(0.287 0.047 217.9)',
                       border: `1px solid ${withAlpha(MINT, 30)}`,
                     }
-                  : { backgroundColor: DARKER, color: 'oklch(0.9 0 0)', border: `1px solid ${DIV}` }
+                  : {
+                      backgroundColor: DARKER,
+                      color: 'oklch(0.287 0.047 217.9)',
+                      border: `1px solid ${DIV}`,
+                    }
               }
             >
               {msg.content}
@@ -229,7 +233,9 @@ export default function CoachChat() {
                 <p className="font-bold" style={{ color: MINT }}>
                   Action proposée
                 </p>
-                <p style={{ color: 'oklch(0.85 0 0)' }}>{msg.proposed_action.description}</p>
+                <p style={{ color: 'oklch(0.504 0.038 203.1)' }}>
+                  {msg.proposed_action.description}
+                </p>
 
                 {msg.action_status === 'pending' && (
                   <div className="flex gap-2 pt-1">
@@ -247,7 +253,7 @@ export default function CoachChat() {
                       className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
                       style={{
                         backgroundColor: `${DIV}`,
-                        color: 'oklch(0.7 0 0)',
+                        color: 'oklch(0.504 0.038 203.1)',
                         border: `1px solid ${DIV}`,
                       }}
                     >
@@ -289,7 +295,7 @@ export default function CoachChat() {
           style={{
             backgroundColor: DARKER,
             border: `1px solid ${DIV}`,
-            color: 'oklch(0.95 0 0)',
+            color: 'oklch(0.287 0.047 217.9)',
             maxHeight: '80px',
           }}
         />

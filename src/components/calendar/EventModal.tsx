@@ -109,8 +109,8 @@ export function EventModal({
   const inputStyle = {
     backgroundColor: DARK,
     border: `1px solid ${BORDER}`,
-    color: 'oklch(0.97 0 0)',
-    colorScheme: 'dark' as const,
+    color: 'oklch(0.287 0.047 217.9)',
+    colorScheme: 'light' as const,
   }
 
   return (
@@ -146,9 +146,9 @@ export function EventModal({
           <div
             className="rounded-xl px-3 py-2 text-xs"
             style={{
-              backgroundColor: 'oklch(0.88 0.16 157 / 10%)',
-              border: '1px solid oklch(0.88 0.16 157 / 25%)',
-              color: 'oklch(0.88 0.16 157)',
+              backgroundColor: 'oklch(0.50 0.13 157 / 10%)',
+              border: '1px solid oklch(0.50 0.13 157 / 25%)',
+              color: 'oklch(0.50 0.13 157)',
             }}
           >
             ↻ Événement récurrent — les modifications s&apos;appliquent à toutes les occurrences.
@@ -186,7 +186,7 @@ export function EventModal({
                 style={{
                   backgroundColor: eventType === value ? 'oklch(0.63 0.18 300 / 15%)' : DARK,
                   border: `1px solid ${eventType === value ? 'oklch(0.63 0.18 300)' : BORDER}`,
-                  color: eventType === value ? 'oklch(0.78 0.18 300)' : MUTED,
+                  color: eventType === value ? 'oklch(0.52 0.18 300)' : MUTED,
                 }}
               >
                 {label}
@@ -312,14 +312,14 @@ export function EventModal({
           style={{
             backgroundColor: 'oklch(0.63 0.18 300 / 8%)',
             border: '1px solid oklch(0.63 0.18 300 / 20%)',
-            color: 'oklch(0.78 0.18 300)',
+            color: 'oklch(0.52 0.18 300)',
           }}
         >
           ⚡ Le coach IA tiendra compte de ce créneau pour ne pas placer d&apos;entraînement dessus.
         </div>
 
         {error && (
-          <p className="text-xs font-medium" style={{ color: 'oklch(0.65 0.22 25)' }}>
+          <p className="text-xs font-medium" style={{ color: 'oklch(0.55 0.21 25)' }}>
             {error}
           </p>
         )}
@@ -333,9 +333,9 @@ export function EventModal({
               disabled={deleting}
               className="px-4 rounded-xl py-2.5 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-70 disabled:opacity-40"
               style={{
-                backgroundColor: 'oklch(0.65 0.20 25 / 15%)',
-                border: '1px solid oklch(0.65 0.20 25 / 40%)',
-                color: 'oklch(0.75 0.18 25)',
+                backgroundColor: 'oklch(0.55 0.20 25 / 15%)',
+                border: '1px solid oklch(0.55 0.20 25 / 40%)',
+                color: 'oklch(0.58 0.19 25)',
               }}
             >
               {deleting ? '…' : 'Supprimer'}

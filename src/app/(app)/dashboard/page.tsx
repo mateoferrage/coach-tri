@@ -120,7 +120,7 @@ export default async function DashboardPage() {
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Tableau de bord
         </p>
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">
+        <h1 className="text-4xl font-bold uppercase tracking-tight">
           Bonjour, <span style={{ color: MINT }}>{firstName}</span>
         </h1>
         <p className="text-sm text-muted-foreground">Voici votre synthèse d&apos;entraînement</p>
@@ -128,13 +128,13 @@ export default async function DashboardPage() {
 
       {/* Séance du jour */}
       <section className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
           Aujourd&apos;hui
         </h2>
 
         {todaySession ? (
           <div
-            className="rounded-2xl overflow-hidden"
+            className="card-elev rounded-2xl overflow-hidden"
             style={{
               backgroundColor: DARK,
               border: `1px solid ${DIV}`,
@@ -186,17 +186,23 @@ export default async function DashboardPage() {
             >
               <div className="flex gap-4">
                 {(todaySession.planned_tss as number | null) != null && (
-                  <span className="text-xs" style={{ color: 'oklch(1 0 0 / 45%)' }}>
-                    <span className="font-semibold" style={{ color: 'oklch(1 0 0 / 80%)' }}>
+                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}>
+                    <span
+                      className="font-semibold"
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 80%)' }}
+                    >
                       {todaySession.planned_tss as number}
                     </span>{' '}
                     TSS
                   </span>
                 )}
                 {(todaySession.expected_rpe as number | null) != null && (
-                  <span className="text-xs" style={{ color: 'oklch(1 0 0 / 45%)' }}>
+                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}>
                     RPE{' '}
-                    <span className="font-semibold" style={{ color: 'oklch(1 0 0 / 80%)' }}>
+                    <span
+                      className="font-semibold"
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 80%)' }}
+                    >
                       {todaySession.expected_rpe as number}/10
                     </span>
                   </span>
@@ -213,14 +219,14 @@ export default async function DashboardPage() {
           </div>
         ) : plan && nextSession ? (
           <div
-            className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+            className="card-elev rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
             <div>
-              <p className="font-bold text-sm" style={{ color: 'oklch(0.97 0 0)' }}>
+              <p className="font-bold text-sm" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
                 Pas de séance prévue aujourd&apos;hui
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
                 Prochaine : {DISCIPLINE_EMOJI[nextSession.discipline as string]}{' '}
                 {DISCIPLINE_LABEL[nextSession.discipline as string]} —{' '}
                 {new Date(nextSession.session_date as string).toLocaleDateString('fr-FR', {
@@ -244,22 +250,22 @@ export default async function DashboardPage() {
           </div>
         ) : plan ? (
           <div
-            className="rounded-2xl px-5 py-8 text-center"
+            className="card-elev rounded-2xl px-5 py-8 text-center"
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
-            <p className="text-sm font-bold" style={{ color: 'oklch(0.97 0 0)' }}>
+            <p className="text-sm font-bold" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
               Programme terminé 🎉
             </p>
-            <p className="text-xs mt-1" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+            <p className="text-xs mt-1" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
               Toutes les séances sont complétées.
             </p>
           </div>
         ) : (
           <div
-            className="rounded-2xl py-12 text-center space-y-4"
+            className="card-elev rounded-2xl py-12 text-center space-y-4"
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
-            <p className="text-sm" style={{ color: 'oklch(1 0 0 / 50%)' }}>
+            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 50%)' }}>
               Aucun programme actif.
             </p>
             <Link
@@ -276,11 +282,11 @@ export default async function DashboardPage() {
       {/* Programme actif */}
       {plan && (
         <section className="space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">
             Programme actif
           </h2>
           <div
-            className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+            className="card-elev rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
             <div>
@@ -292,7 +298,7 @@ export default async function DashboardPage() {
                   (plan.name as string | null) ??
                   "Programme d'entraînement"}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(1 0 0 / 40%)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
                 Sem. {currentWeekNum}/{totalWeeks} · {currentPhaseLabel}
               </p>
             </div>
@@ -313,9 +319,7 @@ export default async function DashboardPage() {
 
       {/* Coach IA */}
       <section className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Ton coach
-        </h2>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Ton coach</h2>
         <CoachChat />
       </section>
     </div>

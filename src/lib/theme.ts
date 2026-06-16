@@ -1,38 +1,38 @@
 /**
- * DA Coach Tri — palette partagée (blanc / noir / vert)
+ * DA Coach Tri — palette partagée (Piste A « Lagune » — clair, teal Zendesk)
  *
- * Source de vérité pour les couleurs utilisées en style inline (fonds sombres
+ * Source de vérité pour les couleurs utilisées en style inline (surfaces claires
  * où les classes Tailwind sémantiques ne suffisent pas). Les tokens CSS
  * équivalents vivent dans `globals.css`.
  */
 
 // ── Surfaces ───────────────────────────────────────────────
-export const SLATE = 'oklch(0.15 0 0)' // noir profond (fond)
-export const SURFACE = 'oklch(0.19 0 0)' // panneau gris très sombre
-export const SURFACE_DEEP = 'oklch(0.12 0 0)' // pied de carte (quasi noir)
-export const DIVIDER = 'oklch(1 0 0 / 8%)' // séparateur sur sombre
+export const SLATE = 'oklch(0.913 0.015 186)' // sauge (fond, assombri pour contraste)
+export const SURFACE = 'oklch(1 0 0)' // panneau blanc
+export const SURFACE_DEEP = 'oklch(0.925 0.040 236)' // bandeaux (header/footer/saisie) — bleu glacier clair
+export const DIVIDER = 'oklch(0.287 0.047 217.9 / 14%)' // séparateur sombre sur clair
 
 // ── Texte ──────────────────────────────────────────────────
-export const TEXT = 'oklch(0.95 0 0)' // blanc
-export const TEXT_MUTED = 'oklch(0.72 0 0)' // gris atténué
-export const TEXT_FAINT = 'oklch(1 0 0 / 40%)' // blanc estompé (labels secondaires)
+export const TEXT = 'oklch(0.287 0.047 217.9)' // canard profond
+export const TEXT_MUTED = 'oklch(0.504 0.038 203.1)' // teal atténué
+export const TEXT_FAINT = 'oklch(0.287 0.047 217.9 / 50%)' // canard estompé (labels 2nd)
 
 // ── Accents ────────────────────────────────────────────────
-export const ACCENT = 'oklch(0.843 0.165 157)' // vert menthe — accent triathlon
-export const ACCENT_FG = 'oklch(0.12 0 0)' // texte sur menthe (noir)
-export const GLACIER = 'oklch(0.79 0.13 182)' // teal froid (2nd)
+export const ACCENT = 'oklch(0.306 0.051 209.3)' // canard profond — accent/boutons
+export const ACCENT_FG = 'oklch(1 0 0)' // texte clair sur canard
+export const GLACIER = 'oklch(0.546 0.094 183.4)' // teal-vert (2nd)
 
 /**
  * Système couleur + picto par discipline.
  * `icon` = emoji conservé comme repli ; `color` = teinte de la pastille/liseré.
  */
 export const DISCIPLINE: Record<string, { label: string; color: string; icon: string }> = {
-  swim: { label: 'Natation', color: 'oklch(0.74 0.13 233)', icon: '🏊' }, // bleu glacier
-  bike: { label: 'Vélo', color: 'oklch(0.843 0.165 157)', icon: '🚴' }, // vert menthe (accent)
-  run: { label: 'Course à pied', color: 'oklch(0.82 0.15 78)', icon: '🏃' }, // ambre
-  brick: { label: 'Enchaînement', color: 'oklch(0.79 0.13 182)', icon: '⚡' }, // glacier
-  strength: { label: 'Renforcement', color: 'oklch(0.72 0.04 252)', icon: '💪' }, // acier
-  rest: { label: 'Récupération', color: 'oklch(0.60 0.02 252)', icon: '😴' }, // muet
+  swim: { label: 'Natation', color: 'oklch(0.559 0.101 237.5)', icon: '🏊' }, // bleu glacier
+  bike: { label: 'Vélo', color: 'oklch(0.546 0.094 183.4)', icon: '🚴' }, // teal-vert
+  run: { label: 'Course à pied', color: 'oklch(0.624 0.121 64.7)', icon: '🏃' }, // ambre
+  brick: { label: 'Enchaînement', color: 'oklch(0.520 0.075 215)', icon: '⚡' }, // cyan profond
+  strength: { label: 'Renforcement', color: 'oklch(0.540 0.024 203.9)', icon: '💪' }, // acier
+  rest: { label: 'Récupération', color: 'oklch(0.620 0.018 200)', icon: '😴' }, // muet
 }
 
 export function disciplineColor(d: string | null | undefined): string {

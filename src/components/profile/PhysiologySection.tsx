@@ -63,7 +63,7 @@ function TestHint({ children }: { children: React.ReactNode }) {
           style={{
             backgroundColor: withAlpha(MINT, 6),
             border: `1px solid ${withAlpha(MINT, 15)}`,
-            color: 'oklch(1 0 0 / 65%)',
+            color: 'oklch(0.287 0.047 217.9 / 65%)',
           }}
         >
           {children}
@@ -97,7 +97,7 @@ function Field({
           {label}
         </label>
         {unit && (
-          <span className="text-[10px]" style={{ color: 'oklch(1 0 0 / 25%)' }}>
+          <span className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 25%)' }}>
             {unit}
           </span>
         )}
@@ -106,8 +106,8 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? '—'}
-        className="h-9 text-sm font-bold bg-transparent border-white/10 focus:border-white/30"
-        style={{ color: 'oklch(0.97 0 0)' }}
+        className="h-9 text-sm font-bold bg-transparent border-border focus:border-foreground/30"
+        style={{ color: 'oklch(0.287 0.047 217.9)' }}
       />
       {hint}
     </div>
@@ -127,7 +127,7 @@ function ValueRow({ label, value, unit }: { label: string; value: string | null;
       </span>
       <span
         className="text-sm font-semibold"
-        style={{ color: value ? MINT : 'oklch(1 0 0 / 20%)' }}
+        style={{ color: value ? MINT : 'oklch(0.287 0.047 217.9 / 20%)' }}
       >
         {value ?? '—'}
         {value && unit ? (
@@ -227,12 +227,12 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
         <div>
           <p
             className="text-sm font-semibold uppercase tracking-widest"
-            style={{ color: 'oklch(0.97 0 0)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9)' }}
           >
             Données physiologiques
           </p>
           {initial?.test_date && !editing && (
-            <p className="text-[10px] mt-0.5" style={{ color: 'oklch(1 0 0 / 35%)' }}>
+            <p className="text-[10px] mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}>
               Dernière mesure :{' '}
               {new Date(initial.test_date).toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -261,7 +261,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="py-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Course à pied
             </p>
@@ -291,7 +291,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="py-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Vélo
             </p>
@@ -307,7 +307,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="py-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Natation
             </p>
@@ -324,7 +324,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
 
           {!hasAnyData && (
             <div className="py-4 text-center">
-              <p className="text-xs" style={{ color: 'oklch(1 0 0 / 35%)' }}>
+              <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}>
                 Aucune donnée — renseigne tes valeurs pour des séances avec allures et watts précis.
               </p>
             </div>
@@ -339,7 +339,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="space-y-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Course à pied
             </p>
@@ -438,7 +438,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="space-y-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Vélo
             </p>
@@ -500,7 +500,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           <div className="space-y-3">
             <p
               className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(1 0 0 / 30%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
             >
               Natation
             </p>

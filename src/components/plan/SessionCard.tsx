@@ -25,7 +25,7 @@ const DISCIPLINE_EMOJI: Record<string, string> = {
   rest: '😴',
 }
 
-const AMBER = 'oklch(0.82 0.15 78)' // ambre du design system (--chart-3)
+const AMBER = 'oklch(0.624 0.121 64.7)' // ambre du design system (--chart-4)
 
 const STATUS_STYLES: Record<string, { className: string; style?: React.CSSProperties }> = {
   planned: { className: 'border-border bg-card hover:border-primary/50' },

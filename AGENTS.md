@@ -359,14 +359,24 @@ generateJSON<T>(systemPrompt, userPrompt, { temperature? }) → Promise<T>
 
 ## Design System
 
-### Couleurs (OKLCH)
+### Couleurs (OKLCH) — Piste A « Lagune » (thème clair, teal)
+
+Source de vérité : `src/lib/theme.ts` + `src/app/globals.css`. Les composants importent les
+constantes via des alias historiques (`ACCENT as MINT`, `SURFACE as DARK`,
+`SURFACE_DEEP as DARKER`, `DIVIDER as DIV`, `TEXT_FAINT/TEXT_MUTED as MUTED`) — les noms
+`DARK`/`DARKER` sont désormais des **surfaces claires** (alias conservés, ne pas s'y fier).
 
 ```
-MINT   = oklch(0.843 0.165 157)   → accent vert triathlon
-DARK   = oklch(0.116 0.022 155)   → fond principal des cards
-DARKER = oklch(0.09 0.018 155)    → fond plus sombre (header cards)
-DIV    = oklch(1 0 0 / 8%)        → separateurs
-MUTED  = oklch(1 0 0 / 40%)       → texte atténué
+BG     = oklch(0.913 0.015 186)          → fond de page (sauge, assombri pour contraste)
+TEXT   = oklch(0.287 0.047 217.9)        → texte (canard profond #06303A)
+MINT   = oklch(0.306 0.051 209.3)        → accent/boutons (canard #03363D)
+DARK   = oklch(1 0 0)                     → SURFACE : fond des cards (blanc)
+DARKER = oklch(0.925 0.040 236)          → SURFACE_DEEP : bandeaux header/footer/saisie (bleu glacier clair)
+DIV    = oklch(0.287 0.047 217.9 / 14%)  → séparateurs (canard estompé)
+MUTED  = oklch(0.504 0.038 203.1)        → texte atténué (teal)
+
+Filigrane : `public/topo.svg` (courbes de niveau, traits canard `#06303A`) posé via la classe
+`.topo-lines` en très basse opacité (header, login, fond du layout `(app)`).
 ```
 
 ### Typographie
@@ -378,8 +388,9 @@ MUTED  = oklch(1 0 0 / 40%)       → texte atténué
 
 - Coins arrondis : `rounded-2xl` pour les cards majeures, `rounded-xl` pour boutons/chips
 - Font style répétitif : `font-black uppercase tracking-widest text-xs` → étiquettes sections
-- Bouton primaire : `backgroundColor: MINT, color: DARK`
+- Bouton primaire : `backgroundColor: MINT, color: DARK` (texte blanc sur canard — `DARK` = surface blanche)
 - Pas de classes Tailwind pour les couleurs thème — inline styles OKLCH directs
+- Thème **clair** : ne pas réintroduire de blanc littéral (`oklch(1 0 0 / x%)`) ni de classes `text-white/*` comme texte/estompé — utiliser les tokens (ils virent au canard estompé sur fond clair)
 - shadcn/ui pour les composants formulaire (Input, Select, Button, Card, Badge, Dialog, Tabs)
 
 ---

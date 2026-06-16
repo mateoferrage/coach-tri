@@ -28,10 +28,10 @@ const DISCIPLINE_LABEL: Record<string, string> = {
 }
 
 const VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  excellent: { label: 'Excellent', color: MINT, bg: 'oklch(0.843 0.165 157 / 12%)' },
-  good: { label: 'Bonne séance', color: 'oklch(0.78 0.14 157)', bg: 'oklch(0.78 0.14 157 / 10%)' },
-  average: { label: 'Correcte', color: 'oklch(0.78 0.16 75)', bg: 'oklch(0.78 0.16 75 / 10%)' },
-  poor: { label: 'À revoir', color: 'oklch(0.65 0.20 25)', bg: 'oklch(0.65 0.20 25 / 10%)' },
+  excellent: { label: 'Excellent', color: MINT, bg: 'oklch(0.306 0.051 209.3 / 10%)' },
+  good: { label: 'Bonne séance', color: 'oklch(0.52 0.13 157)', bg: 'oklch(0.52 0.13 157 / 10%)' },
+  average: { label: 'Correcte', color: 'oklch(0.60 0.13 75)', bg: 'oklch(0.60 0.13 75 / 12%)' },
+  poor: { label: 'À revoir', color: 'oklch(0.55 0.20 25)', bg: 'oklch(0.55 0.20 25 / 10%)' },
 }
 
 interface GarminActivity {
@@ -206,7 +206,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-white/5"
+                        className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-foreground/5"
                       >
                         <span className="text-lg flex-shrink-0">
                           {DISCIPLINE_EMOJI[c.activity_type] ?? '⚡'}
@@ -214,7 +214,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                         <div className="min-w-0">
                           <p
                             className="text-sm font-bold truncate"
-                            style={{ color: 'oklch(1 0 0 / 85%)' }}
+                            style={{ color: 'oklch(0.287 0.047 217.9 / 85%)' }}
                           >
                             {c.name ?? DISCIPLINE_LABEL[c.activity_type] ?? 'Activité'}
                           </p>
@@ -232,7 +232,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 <button
                   onClick={() => setOpen(false)}
                   className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: 'oklch(1 0 0 / 30%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
                 >
                   Annuler
                 </button>
@@ -274,9 +274,9 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           {reviewError && !reviewLoading && (
             <div
               className="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-              style={{ backgroundColor: DARK, border: `1px solid oklch(0.65 0.20 25 / 30%)` }}
+              style={{ backgroundColor: DARK, border: `1px solid oklch(0.55 0.20 25 / 30%)` }}
             >
-              <p className="text-xs" style={{ color: 'oklch(0.65 0.20 25)' }}>
+              <p className="text-xs" style={{ color: 'oklch(0.55 0.20 25)' }}>
                 {reviewError}
               </p>
               <button
@@ -300,7 +300,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               <div className="flex items-center gap-2">
                 <p
                   className="text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: 'oklch(0.72 0 0)' }}
+                  style={{ color: 'oklch(0.504 0.038 203.1)' }}
                 >
                   Retour du coach
                 </p>
@@ -314,13 +314,13 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                   {verdictCfg.label}
                 </span>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.92 0 0)' }}>
+              <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
                 {review.message}
               </p>
               <button
                 onClick={fetchReview}
                 className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: 'oklch(0.72 0 0)' }}
+                style={{ color: 'oklch(0.504 0.038 203.1)' }}
               >
                 Régénérer
               </button>
