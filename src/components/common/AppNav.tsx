@@ -38,19 +38,22 @@ export function AppNav({ user }: AppNavProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-sidebar-border bg-sidebar relative">
-      {/* Filigrane topographique — signature DA Sommet */}
-      <div className="topo-lines absolute inset-0 opacity-[0.025] pointer-events-none" />
-      <div className="container mx-auto max-w-6xl px-4 h-16 flex items-center justify-between relative">
+      {/* Filigrane topographique — crème (currentColor) sur le canard sombre */}
+      <div
+        className="topo-lines absolute inset-0 pointer-events-none"
+        style={{ color: 'oklch(0.97 0.008 200)', opacity: 0.08 }}
+      />
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative">
         {/* Logo */}
         <div className="flex items-center gap-10">
           <Link
             href="/dashboard"
             className="flex items-center gap-0.5 font-[family-name:var(--font-display)]"
           >
-            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-foreground">
+            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-sidebar-foreground">
               Coach
             </span>
-            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-primary">
+            <span className="text-xl font-semibold uppercase tracking-[0.15em] text-sidebar-primary">
               &nbsp;Tri
             </span>
           </Link>
@@ -66,7 +69,7 @@ export function AppNav({ user }: AppNavProps) {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
                     active
                       ? 'text-sidebar-primary bg-sidebar-primary/15'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
+                      : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-foreground/10'
                   }`}
                 >
                   <Icon size={14} strokeWidth={2.5} />
@@ -79,12 +82,12 @@ export function AppNav({ user }: AppNavProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <span className="hidden lg:block text-xs text-muted-foreground font-medium truncate max-w-[180px]">
+          <span className="hidden lg:block text-xs text-sidebar-foreground/55 font-medium truncate max-w-[180px]">
             {user.email}
           </span>
           <button
             onClick={handleSignOut}
-            className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border transition-all text-muted-foreground hover:text-foreground border-border hover:border-foreground/30"
+            className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border transition-all text-sidebar-foreground/75 hover:text-sidebar-foreground border-sidebar-border hover:border-sidebar-foreground/40"
           >
             Déconnexion
           </button>
@@ -100,7 +103,7 @@ export function AppNav({ user }: AppNavProps) {
               key={href}
               href={href}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-[9px] font-bold uppercase tracking-wide transition-colors ${
-                active ? 'text-sidebar-primary' : 'text-muted-foreground'
+                active ? 'text-sidebar-primary' : 'text-sidebar-foreground/55'
               }`}
             >
               <Icon size={18} strokeWidth={active ? 2.5 : 2} />

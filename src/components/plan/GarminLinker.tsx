@@ -232,7 +232,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 <button
                   onClick={() => setOpen(false)}
                   className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                 >
                   Annuler
                 </button>

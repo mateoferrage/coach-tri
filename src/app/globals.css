@@ -54,7 +54,7 @@
   --font-display: var(--font-sans);
 
   /* ── DA Coach Tri — Piste A « Lagune » (clair, teal Zendesk) ── */
-  --background: oklch(0.913 0.015 186); /* sauge (fond, assombri pour contraste) */
+  --background: oklch(0.94 0.004 220); /* gris clair quasi neutre (mélange gris / blanc cassé) */
   --foreground: oklch(0.287 0.047 217.9); /* canard profond — texte */
   --card: oklch(1 0 0); /* panneau blanc */
   --card-foreground: oklch(0.287 0.047 217.9);
@@ -79,15 +79,15 @@
   --chart-5: oklch(0.54 0.024 203.9); /* acier */
   --radius: 0.75rem;
 
-  /* Sidebar / nav — blanc */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.287 0.047 217.9);
-  --sidebar-primary: oklch(0.306 0.051 209.3); /* canard */
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.913 0.02 189.2);
-  --sidebar-accent-foreground: oklch(0.287 0.047 217.9);
-  --sidebar-border: oklch(0.287 0.047 217.9 / 10%);
-  --sidebar-ring: oklch(0.306 0.051 209.3);
+  /* Sidebar / nav — canard sombre (header DA « Sommet », texte clair) */
+  --sidebar: oklch(0.306 0.051 209.3); /* canard profond — bandeau nav */
+  --sidebar-foreground: oklch(0.97 0.008 200); /* crème teintée — texte sur canard */
+  --sidebar-primary: oklch(0.72 0.1 184); /* teal glacier lumineux — actif/accent */
+  --sidebar-primary-foreground: oklch(0.306 0.051 209.3); /* canard sur accent clair */
+  --sidebar-accent: oklch(0.36 0.052 209.3); /* canard relevé — survol/surface */
+  --sidebar-accent-foreground: oklch(0.97 0.008 200);
+  --sidebar-border: oklch(0.97 0.008 200 / 14%); /* hairline clair sur canard */
+  --sidebar-ring: oklch(0.72 0.1 184);
 }
 
 @layer base {
@@ -122,9 +122,19 @@
    * À poser sur un conteneur sombre ; régler l'intensité via l'opacité.
    */
   .topo-lines {
-    background-image: url('/topo.svg');
-    background-size: 600px 600px;
-    background-repeat: repeat;
+    /*
+     * Le SVG sert de masque (alpha) → la couleur des courbes = `currentColor`,
+     * pilotable par contexte (teal atténué sur fond clair, crème sur le header).
+     * Défaut : teal atténué (couleur du label « Tableau de bord »).
+     */
+    color: oklch(0.504 0.038 203.1);
+    background-color: currentColor;
+    -webkit-mask-image: url('/topo.svg');
+    mask-image: url('/topo.svg');
+    -webkit-mask-size: 600px 600px;
+    mask-size: 600px 600px;
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
   }
 
   /*

@@ -79,7 +79,7 @@ function ToggleChip({
       className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
       style={{
         backgroundColor: active ? MINT : 'oklch(0.287 0.047 217.9 / 6%)',
-        color: active ? ACCENT_FG : 'oklch(0.287 0.047 217.9 / 45%)',
+        color: active ? ACCENT_FG : 'oklch(0.287 0.047 217.9 / 70%)',
         border: `1px solid ${active ? MINT : 'oklch(0.287 0.047 217.9 / 12%)'}`,
       }}
     >
@@ -171,7 +171,7 @@ export function EquipmentSection({ initial }: Props) {
         >
           <p
             className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
           >
             Matériel
           </p>
@@ -188,7 +188,7 @@ export function EquipmentSection({ initial }: Props) {
 
         {!hasAny ? (
           <div className="px-5 py-6 text-center">
-            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}>
+            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
               Aucun matériel renseigné — le coach utilisera des séances standard
             </p>
           </div>
@@ -198,7 +198,7 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                 >
                   Natation
                 </p>
@@ -224,7 +224,7 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                 >
                   Vélo
                 </p>
@@ -245,7 +245,7 @@ export function EquipmentSection({ initial }: Props) {
               <div>
                 <p
                   className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                 >
                   Course
                 </p>
@@ -258,7 +258,7 @@ export function EquipmentSection({ initial }: Props) {
                       >
                         {shoe.name}
                       </span>
-                      <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+                      <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                         {USAGE_LABELS[shoe.usage]} · {SURFACE_LABELS[shoe.surface]}
                       </span>
                     </div>
@@ -285,7 +285,7 @@ export function EquipmentSection({ initial }: Props) {
       >
         <p
           className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
+          style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
         >
           Modifier le matériel
         </p>
@@ -296,7 +296,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
           >
             Natation
           </p>
@@ -316,7 +316,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
           >
             Vélo
           </p>
@@ -331,7 +331,7 @@ export function EquipmentSection({ initial }: Props) {
         <div>
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
           >
             Course
           </p>

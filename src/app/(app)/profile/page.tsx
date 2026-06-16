@@ -47,7 +47,7 @@ function StatBlock({
     >
       <p
         className="text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
       >
         {label}
       </p>
@@ -57,7 +57,7 @@ function StatBlock({
           {unit && (
             <span
               className="text-sm font-medium ml-1"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}
+              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
             >
               {unit}
             </span>
@@ -69,7 +69,7 @@ function StatBlock({
         </p>
       )}
       {sub && (
-        <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}>
+        <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
           {sub}
         </p>
       )}
@@ -329,7 +329,7 @@ export default async function ProfilePage() {
                 {gStats.display_name as string}
               </p>
               {!!gStats.garmin_username && (
-                <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                   @{gStats.garmin_username as string}
                 </p>
               )}
@@ -350,7 +350,7 @@ export default async function ProfilePage() {
             <p className="text-sm font-bold" style={{ color: 'oklch(0.287 0.047 217.9 / 60%)' }}>
               Lance un sync Garmin pour voir tes métriques de forme
             </p>
-            <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}>
+            <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
               VO2 Max course &amp; vélo, âge de forme…
             </p>
           </div>
@@ -401,7 +401,7 @@ export default async function ProfilePage() {
                 >
                   <p
                     className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+                    style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                   >
                     Readiness
                   </p>
@@ -412,12 +412,12 @@ export default async function ProfilePage() {
                     {readiness}
                     <span
                       className="text-sm font-medium ml-1"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                     >
                       /100
                     </span>
                   </p>
-                  <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}>
+                  <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                     {(readiness ?? 0) >= 70
                       ? 'Prêt'
                       : (readiness ?? 0) >= 40
@@ -469,7 +469,7 @@ export default async function ProfilePage() {
                   {pr.date && (
                     <span
                       className="text-[10px] ml-2"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}
+                      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
                     >
                       {new Date(pr.date).toLocaleDateString('fr-FR', {
                         month: 'short',

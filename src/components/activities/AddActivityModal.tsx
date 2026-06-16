@@ -31,7 +31,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <p
         className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 38%)' }}
+        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
       >
         {label}
       </p>
@@ -154,7 +154,7 @@ export function AddActivityModal() {
               <button
                 onClick={handleClose}
                 className="text-base leading-none transition-opacity hover:opacity-60"
-                style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}
+                style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
               >
                 ✕
               </button>
@@ -174,7 +174,7 @@ export function AddActivityModal() {
                         backgroundColor: form.discipline === d.value ? withAlpha(MINT, 12) : BG2,
                         border: `1px solid ${form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 8%)'}`,
                         color:
-                          form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 45%)',
+                          form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 70%)',
                       }}
                     >
                       <span className="text-xl leading-none">{d.icon}</span>

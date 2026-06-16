@@ -7,15 +7,15 @@
  */
 
 // ── Surfaces ───────────────────────────────────────────────
-export const SLATE = 'oklch(0.913 0.015 186)' // sauge (fond, assombri pour contraste)
+export const SLATE = 'oklch(0.94 0.004 220)' // fond page — gris clair quasi neutre (gris / blanc cassé)
 export const SURFACE = 'oklch(1 0 0)' // panneau blanc
-export const SURFACE_DEEP = 'oklch(0.928 0.012 75)' // bandeaux (header/footer/saisie) — greige chaud, discret
+export const SURFACE_DEEP = 'oklch(0.9 0.028 195)' // bandeaux/inserts — brume lagune (teal clair, démarqué du blanc)
 export const DIVIDER = 'oklch(0.287 0.047 217.9 / 14%)' // séparateur sombre sur clair
 
 // ── Texte ──────────────────────────────────────────────────
 export const TEXT = 'oklch(0.287 0.047 217.9)' // canard profond
 export const TEXT_MUTED = 'oklch(0.504 0.038 203.1)' // teal atténué
-export const TEXT_FAINT = 'oklch(0.287 0.047 217.9 / 50%)' // canard estompé (labels 2nd)
+export const TEXT_FAINT = 'oklch(0.287 0.047 217.9 / 70%)' // canard estompé (labels 2nd) — min 70% pour passer WCAG AA 4.5:1
 
 // ── Accents ────────────────────────────────────────────────
 export const ACCENT = 'oklch(0.306 0.051 209.3)' // canard profond — accent/boutons

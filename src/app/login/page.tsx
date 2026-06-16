@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
       {/* Filigrane topographique — signature DA Sommet */}
-      <div className="topo-lines absolute inset-0 opacity-[0.03] pointer-events-none" />
+      <div className="topo-lines absolute inset-0 opacity-[0.12] pointer-events-none" />
       {/* Halo teal doux en bas (lagune) */}
       <div
         className="absolute -bottom-40 left-1/2 -translate-x-1/2 h-96 w-[40rem] rounded-full blur-3xl pointer-events-none"

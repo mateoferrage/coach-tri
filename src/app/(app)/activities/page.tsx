@@ -120,7 +120,7 @@ function StatPill({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col gap-0.5">
       <span
         className="text-[9px] font-bold uppercase tracking-widest"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 35%)' }}
+        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
       >
         {label}
       </span>
@@ -215,7 +215,7 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
                   {activity.name}
                 </p>
               )}
-              <p className="text-[11px]" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+              <p className="text-[11px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                 {formatTime(activity.started_at)}
               </p>
             </div>
@@ -241,14 +241,14 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
             {hero.unit && (
               <span
                 className="text-lg font-bold"
-                style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}
+                style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
               >
                 {hero.unit}
               </span>
             )}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 30%)' }}>
+          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
             Pas de données
           </p>
         )}
@@ -335,7 +335,7 @@ export default async function ActivitiesPage() {
           style={{ backgroundColor: DARK, border: `1px solid ${DIVIDER}` }}
         >
           <p className="text-4xl">🏃</p>
-          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 50%)' }}>
+          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
             Aucune activité synchronisée.
           </p>
           <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 25%)' }}>

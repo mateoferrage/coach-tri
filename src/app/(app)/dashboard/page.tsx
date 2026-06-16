@@ -186,7 +186,7 @@ export default async function DashboardPage() {
             >
               <div className="flex gap-4">
                 {(todaySession.planned_tss as number | null) != null && (
-                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}>
+                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                     <span
                       className="font-semibold"
                       style={{ color: 'oklch(0.287 0.047 217.9 / 80%)' }}
@@ -197,7 +197,7 @@ export default async function DashboardPage() {
                   </span>
                 )}
                 {(todaySession.expected_rpe as number | null) != null && (
-                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 45%)' }}>
+                  <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                     RPE{' '}
                     <span
                       className="font-semibold"
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
               <p className="font-bold text-sm" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
                 Pas de séance prévue aujourd&apos;hui
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                 Prochaine : {DISCIPLINE_EMOJI[nextSession.discipline as string]}{' '}
                 {DISCIPLINE_LABEL[nextSession.discipline as string]} —{' '}
                 {new Date(nextSession.session_date as string).toLocaleDateString('fr-FR', {
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
             <p className="text-sm font-bold" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
               Programme terminé 🎉
             </p>
-            <p className="text-xs mt-1" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+            <p className="text-xs mt-1" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
               Toutes les séances sont complétées.
             </p>
           </div>
@@ -265,7 +265,7 @@ export default async function DashboardPage() {
             className="card-elev rounded-2xl py-12 text-center space-y-4"
             style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
           >
-            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 50%)' }}>
+            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
               Aucun programme actif.
             </p>
             <Link
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
                   (plan.name as string | null) ??
                   "Programme d'entraînement"}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 40%)' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
                 Sem. {currentWeekNum}/{totalWeeks} · {currentPhaseLabel}
               </p>
             </div>

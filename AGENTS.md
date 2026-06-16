@@ -367,11 +367,12 @@ constantes via des alias historiques (`ACCENT as MINT`, `SURFACE as DARK`,
 `DARK`/`DARKER` sont désormais des **surfaces claires** (alias conservés, ne pas s'y fier).
 
 ```
-BG     = oklch(0.913 0.015 186)          → fond de page (sauge, assombri pour contraste)
+BG     = oklch(0.94 0.004 220)           → fond de page (gris clair quasi neutre, gris / blanc cassé)
 TEXT   = oklch(0.287 0.047 217.9)        → texte (canard profond #06303A)
 MINT   = oklch(0.306 0.051 209.3)        → accent/boutons (canard #03363D)
 DARK   = oklch(1 0 0)                     → SURFACE : fond des cards (blanc)
-DARKER = oklch(0.928 0.012 75)           → SURFACE_DEEP : bandeaux header/footer/saisie (greige chaud)
+DARKER = oklch(0.925 0.018 200)          → SURFACE_DEEP : bandeaux/inserts footer/saisie (brume lagune, teal très clair)
+NAV    = oklch(0.306 0.051 209.3)        → header/nav : canard sombre, texte clair (tokens --sidebar*)
 DIV    = oklch(0.287 0.047 217.9 / 14%)  → séparateurs (canard estompé)
 MUTED  = oklch(0.504 0.038 203.1)        → texte atténué (teal)
 
@@ -392,6 +393,15 @@ Filigrane : `public/topo.svg` (courbes de niveau, traits canard `#06303A`) posé
 - Pas de classes Tailwind pour les couleurs thème — inline styles OKLCH directs
 - Thème **clair** : ne pas réintroduire de blanc littéral (`oklch(1 0 0 / x%)`) ni de classes `text-white/*` comme texte/estompé — utiliser les tokens (ils virent au canard estompé sur fond clair)
 - shadcn/ui pour les composants formulaire (Input, Select, Button, Card, Badge, Dialog, Tabs)
+
+### Accessibilité (cible WCAG 2.2 niveau AA)
+
+Le standard de référence est **WCAG 2.2 AA** (benchmark légal ADA/EAA, mesuré par Lighthouse/axe).
+
+- **Contraste texte ≥ 4.5:1** (normal), ≥ 3:1 (grand texte ≥ 24px ou ≥ 18.66px gras). Pour du texte canard estompé sur fond clair, **opacité minimale 70%** (`oklch(0.287 0.047 217.9 / 70%)`) — en dessous ça échoue (ex. 50% ≈ 3:1). `TEXT_FAINT` est calé à 70%. Attention : `TEXT_MUTED` ne passe que ~4.34:1 sur le bandeau teal `SURFACE_DEEP` → préférer `TEXT_FAINT` (ink/70%) sur ces inserts.
+- Texte clair sur le header canard : les opacités `cream/55`+ passent ; ne pas descendre sous 55%.
+- Tout bouton à icône seule doit avoir un `aria-label` (ou un `<span className="sr-only">`).
+- **Vérifier les ratios avec `node scripts/a11y-contrast.mjs`** (convertit OKLCH→sRGB, composite l'alpha, calcule le ratio WCAG) avant d'introduire une nouvelle couleur de texte.
 
 ---
 
@@ -472,7 +482,7 @@ NEXT_PUBLIC_APP_URL               ← URL publique de l'app, ex. https://coach-t
 | `/activities`   | Liste activités Garmin                      | —                                   |
 | `/profile`      | Profil + connexion/sync Garmin              | GarminConnectCard, GarminSyncButton |
 
-**Navigation** : `AppNav` — sticky header desktop + bottom bar mobile (5 liens).
+**Navigation** : `AppNav` — sticky header desktop + bottom bar mobile (5 liens). Bandeau **canard sombre** (tokens `--sidebar*`), texte clair, lien actif en teal glacier ; filigrane topo inversé pour ressortir sur le fond sombre.
 
 ---
 
