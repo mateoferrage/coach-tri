@@ -144,7 +144,7 @@ src/
   types/
     db.ts               ← types Supabase générés (Database interface)
     domain.ts           ← types métier (Discipline, Phase, HRZones, etc.)
-  middleware.ts         ← rafraîchit la session Supabase + protège les routes (redirect /login)
+  proxy.ts              ← (ex-middleware, renommé en Next 16) rafraîchit la session Supabase + protège les routes (redirect /login) — runtime nodejs
 ```
 
 ---
