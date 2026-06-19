@@ -39,6 +39,24 @@ export function disciplineColor(d: string | null | undefined): string {
   return DISCIPLINE[d ?? '']?.color ?? ACCENT
 }
 
+/** Système couleur + label par type d'événement personnel (agenda). */
+// Couleurs calées pour passer WCAG AA (≥ 4.5:1) en texte sur fond blanc ET sur
+// leur propre teinte à 14 % (rendu des blocs du calendrier). Cf. scripts/a11y-contrast.mjs.
+export const EVENT_TYPE: Record<string, { label: string; color: string }> = {
+  cours: { label: 'Cours', color: 'oklch(0.47 0.16 300)' }, // violet
+  stage: { label: 'Stage', color: 'oklch(0.50 0.13 64.7)' }, // ambre
+  rdv: { label: 'RDV', color: 'oklch(0.46 0.09 183.4)' }, // teal-vert
+  autre: { label: 'Autre', color: 'oklch(0.48 0.024 203.9)' }, // acier
+}
+
+export function eventTypeColor(t: string | null | undefined): string {
+  return EVENT_TYPE[t ?? '']?.color ?? EVENT_TYPE.autre.color
+}
+
+export function eventTypeLabel(t: string | null | undefined): string {
+  return EVENT_TYPE[t ?? '']?.label ?? EVENT_TYPE.autre.label
+}
+
 /**
  * Applique une opacité à une couleur `oklch(L C H)` → `oklch(L C H / N%)`.
  * Indispensable pour les teintes/liserés (la concat hex ne marche pas en oklch).

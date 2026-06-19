@@ -9,7 +9,10 @@ import {
   SURFACE as DARK,
   SURFACE as CARD,
   DIVIDER as BORDER,
+  TEXT,
   TEXT_FAINT as MUTED,
+  eventTypeColor,
+  withAlpha,
 } from '@/lib/theme'
 
 const EVENT_TYPES = [
@@ -109,7 +112,7 @@ export function EventModal({
   const inputStyle = {
     backgroundColor: DARK,
     border: `1px solid ${BORDER}`,
-    color: 'oklch(0.287 0.047 217.9)',
+    color: TEXT,
     colorScheme: 'light' as const,
   }
 
@@ -177,21 +180,25 @@ export function EventModal({
             Type
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {EVENT_TYPES.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setEventType(value)}
-                className="rounded-lg px-3 py-2 text-xs font-bold transition-all text-left"
-                style={{
-                  backgroundColor: eventType === value ? 'oklch(0.63 0.18 300 / 15%)' : DARK,
-                  border: `1px solid ${eventType === value ? 'oklch(0.63 0.18 300)' : BORDER}`,
-                  color: eventType === value ? 'oklch(0.52 0.18 300)' : MUTED,
-                }}
-              >
-                {label}
-              </button>
-            ))}
+            {EVENT_TYPES.map(({ value, label }) => {
+              const selected = eventType === value
+              const color = eventTypeColor(value)
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setEventType(value)}
+                  className="rounded-lg px-3 py-2 text-xs font-bold transition-all text-left"
+                  style={{
+                    backgroundColor: selected ? withAlpha(color, 12) : DARK,
+                    border: `1px solid ${selected ? color : BORDER}`,
+                    color: selected ? color : MUTED,
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         </div>
 

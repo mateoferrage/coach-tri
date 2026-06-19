@@ -7,16 +7,30 @@ import { toast } from 'sonner'
 import { EventModal } from './EventModal'
 import type { CalendarEvent, ScheduleEventInput } from '@/lib/schemas/schedule'
 import {
-  ACCENT as MINT,
-  ACCENT_FG as DARK,
-  SURFACE as CARD,
-  DIVIDER as BORDER,
-  TEXT_FAINT as MUTED,
+  HOUR_PX,
+  START_HOUR,
+  END_HOUR,
+  topPx,
+  heightPx,
+  assignColumns,
+} from '@/lib/calendar/layout'
+import { timeToFrac } from '@/lib/calendar/time'
+import {
+  DISCIPLINE,
+  disciplineColor,
+  EVENT_TYPE,
+  eventTypeColor,
+  eventTypeLabel,
+  withAlpha,
+  SURFACE,
+  SURFACE_DEEP,
+  DIVIDER,
+  TEXT,
+  TEXT_MUTED,
+  TEXT_FAINT,
+  ACCENT,
+  ACCENT_FG,
 } from '@/lib/theme'
-
-const HOUR_PX = 44
-const START_HOUR = 6
-const END_HOUR = 22
 
 interface TrainingSession {
   id: string
@@ -30,54 +44,16 @@ interface TrainingSession {
   session_time: string | null // HH:MM — set after drag-and-drop
 }
 
-// Explicit hex backgrounds for good visibility on dark theme
-const DISC_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  swim: { bg: 'rgba(56,189,248,0.22)', border: '#38bdf8', text: '#38bdf8' },
-  bike: { bg: 'rgba(52,211,153,0.22)', border: '#34d399', text: '#34d399' },
-  run: { bg: 'rgba(244,114,182,0.22)', border: '#f472b6', text: '#f472b6' },
-  brick: { bg: 'rgba(250,204,21,0.22)', border: '#facc15', text: '#facc15' },
-  strength: { bg: 'rgba(100,116,139,0.22)', border: '#64748b', text: '#64748b' },
-  rest: { bg: 'rgba(148,163,184,0.22)', border: '#94a3b8', text: '#94a3b8' },
-}
-const DISC_FALLBACK = DISC_COLORS.rest
-
-const EV_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  cours: { bg: 'rgba(167,139,250,0.22)', border: '#a78bfa', text: '#a78bfa' },
-  stage: { bg: 'rgba(251,191,36,0.22)', border: '#fbbf24', text: '#fbbf24' },
-  rdv: { bg: 'rgba(52,211,153,0.22)', border: '#34d399', text: '#34d399' },
-  autre: { bg: 'rgba(148,163,184,0.22)', border: '#94a3b8', text: '#94a3b8' },
-}
-
-const DISC_LABEL: Record<string, string> = {
-  swim: 'Natation',
-  bike: 'Vélo',
-  run: 'Course',
-  brick: 'Enchaîn.',
-  strength: 'Muscu',
-  rest: 'Repos',
-}
-const EV_LABEL: Record<string, string> = {
-  cours: 'Cours',
-  stage: 'Stage',
-  rdv: 'RDV',
-  autre: 'Autre',
-}
 const DAY_PART_HOUR: Record<string, number> = {
   morning: 7,
   midday: 12,
   evening: 18,
 }
 
-function timeToFrac(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h + m / 60
-}
-function topPx(h: number) {
-  return (h - START_HOUR) * HOUR_PX
-}
-function heightPx(s: number, e: number) {
-  return Math.max((e - s) * HOUR_PX - 3, 20)
-}
+// A positioned block in a day column — either a personal event or a training session.
+type Block =
+  | { kind: 'event'; ev: CalendarEvent; start: number; end: number }
+  | { kind: 'session'; sess: TrainingSession; start: number; end: number }
 
 export function WeekCalendar() {
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -86,15 +62,17 @@ export function WeekCalendar() {
   const [calEvents, setCalEvents] = useState<CalendarEvent[]>([])
   const [sessions, setSessions] = useState<TrainingSession[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [clickedDate, setClickedDate] = useState<string | undefined>()
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [nowFrac, setNowFrac] = useState<number | null>(null)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
-  // Drag & drop
+  // Drag & drop (desktop)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd')
 
@@ -113,22 +91,34 @@ export function WeekCalendar() {
   }, [weekStart])
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       setLoading(true)
+      setError(null)
       try {
         const end = format(addDays(weekStart, 6), 'yyyy-MM-dd')
         const [evRes, sessRes] = await Promise.all([
           fetch(`/api/schedule?week_start=${weekStartStr}`),
           fetch(`/api/sessions?start=${weekStartStr}&end=${end}&fields=session_time`),
         ])
-        if (evRes.ok) setCalEvents(await evRes.json())
-        if (sessRes.ok) setSessions(await sessRes.json())
+        if (!evRes.ok || !sessRes.ok) throw new Error('fetch failed')
+        const [evJson, sessJson] = await Promise.all([evRes.json(), sessRes.json()])
+        if (cancelled) return
+        setCalEvents(evJson)
+        setSessions(sessJson)
+      } catch {
+        if (cancelled) return
+        setError('Impossible de charger le calendrier.')
+        toast.error('Impossible de charger le calendrier.')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
-  }, [weekStartStr, weekStart])
+    return () => {
+      cancelled = true
+    }
+  }, [weekStart, weekStartStr, reloadKey])
 
   // Auto-scroll: position the grid at current hour (−1h buffer) on week change
   useEffect(() => {
@@ -140,6 +130,7 @@ export function WeekCalendar() {
   async function refreshEvents() {
     const res = await fetch(`/api/schedule?week_start=${weekStartStr}`)
     if (res.ok) setCalEvents(await res.json())
+    else toast.error('Impossible de rafraîchir les événements.')
   }
 
   async function handleSave(data: ScheduleEventInput) {
@@ -206,6 +197,22 @@ export function WeekCalendar() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i)
+  const isEmpty = !loading && !error && calEvents.length === 0 && sessions.length === 0
+
+  // Horizontal geometry from column assignment (side-by-side overlap layout).
+  function colStyle(col: number, cols: number) {
+    const widthPct = 100 / cols
+    return {
+      left: `calc(${col * widthPct}% + 3px)`,
+      width: `calc(${widthPct}% - 6px)`,
+    }
+  }
+
+  const navBtnStyle = {
+    backgroundColor: SURFACE,
+    border: `1px solid ${DIVIDER}`,
+    color: TEXT,
+  } as const
 
   return (
     <div className="flex flex-col" style={{ minHeight: 0, flex: 1 }}>
@@ -215,11 +222,7 @@ export function WeekCalendar() {
           <button
             onClick={() => setWeekStart((w) => subWeeks(w, 1))}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
-            style={{
-              backgroundColor: CARD,
-              border: `1px solid ${BORDER}`,
-              color: 'oklch(0.287 0.047 217.9)',
-            }}
+            style={navBtnStyle}
             aria-label="Semaine précédente"
           >
             <svg
@@ -236,7 +239,7 @@ export function WeekCalendar() {
           </button>
           <span
             className="text-sm font-medium px-2"
-            style={{ color: 'oklch(0.287 0.047 217.9)', minWidth: 180, textAlign: 'center' }}
+            style={{ color: TEXT, minWidth: 180, textAlign: 'center' }}
           >
             {format(weekStart, 'd MMM', { locale: fr })} –{' '}
             {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: fr })}
@@ -244,11 +247,7 @@ export function WeekCalendar() {
           <button
             onClick={() => setWeekStart((w) => addWeeks(w, 1))}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
-            style={{
-              backgroundColor: CARD,
-              border: `1px solid ${BORDER}`,
-              color: 'oklch(0.287 0.047 217.9)',
-            }}
+            style={navBtnStyle}
             aria-label="Semaine suivante"
           >
             <svg
@@ -266,11 +265,7 @@ export function WeekCalendar() {
           <button
             onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
             className="ml-1 text-xs px-3 py-1.5 rounded-lg font-bold transition-opacity hover:opacity-70"
-            style={{
-              backgroundColor: CARD,
-              border: `1px solid ${BORDER}`,
-              color: 'oklch(0.504 0.038 203.1)',
-            }}
+            style={{ backgroundColor: SURFACE, border: `1px solid ${DIVIDER}`, color: TEXT_MUTED }}
           >
             Aujourd&apos;hui
           </button>
@@ -282,7 +277,7 @@ export function WeekCalendar() {
             setShowModal(true)
           }}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90"
-          style={{ backgroundColor: MINT, color: DARK }}
+          style={{ backgroundColor: ACCENT, color: ACCENT_FG }}
         >
           <span className="text-base leading-none">+</span> Ajouter
         </button>
@@ -290,28 +285,21 @@ export function WeekCalendar() {
 
       {/* ── Legend ── */}
       <div className="flex flex-wrap items-center gap-3 mb-4 flex-shrink-0">
-        {[
-          { label: 'Natation', color: '#38bdf8' },
-          { label: 'Vélo', color: '#34d399' },
-          { label: 'Course', color: '#f472b6' },
-        ].map(({ label, color }) => (
-          <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: MUTED }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} /> {label}
+        {(['swim', 'bike', 'run'] as const).map((d) => (
+          <div key={d} className="flex items-center gap-1.5 text-xs" style={{ color: TEXT_MUTED }}>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: disciplineColor(d) }} />{' '}
+            {DISCIPLINE[d].label}
           </div>
         ))}
-        <div className="w-px h-4 mx-1" style={{ backgroundColor: BORDER }} />
-        {[
-          { label: 'Cours', color: '#a78bfa' },
-          { label: 'Stage', color: '#fbbf24' },
-          { label: 'RDV', color: '#34d399' },
-          { label: 'Autre', color: '#94a3b8' },
-        ].map(({ label, color }) => (
-          <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: MUTED }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} /> {label}
+        <div className="w-px h-4 mx-1" style={{ backgroundColor: DIVIDER }} />
+        {(['cours', 'stage', 'rdv', 'autre'] as const).map((t) => (
+          <div key={t} className="flex items-center gap-1.5 text-xs" style={{ color: TEXT_MUTED }}>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: eventTypeColor(t) }} />{' '}
+            {EVENT_TYPE[t].label}
           </div>
         ))}
         {loading && (
-          <span className="text-xs ml-auto" style={{ color: MUTED }}>
+          <span className="text-xs ml-auto" style={{ color: TEXT_MUTED }}>
             Chargement…
           </span>
         )}
@@ -320,10 +308,39 @@ export function WeekCalendar() {
       {/* ── Grid ── */}
       <div
         ref={gridRef}
-        className="overflow-y-auto rounded-xl"
-        style={{ flex: 1, minHeight: 0, border: `1px solid ${BORDER}`, backgroundColor: '#15261c' }}
+        className="overflow-y-auto rounded-xl relative"
+        style={{ flex: 1, minHeight: 0, border: `1px solid ${DIVIDER}`, backgroundColor: SURFACE }}
       >
-        <div style={{ minWidth: 640, backgroundColor: '#15261c' }}>
+        {error && (
+          <div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3"
+            style={{ backgroundColor: withAlpha(SURFACE, 90) }}
+          >
+            <p className="text-sm font-medium" style={{ color: TEXT }}>
+              {error}
+            </p>
+            <button
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-widest transition-opacity hover:opacity-90"
+              style={{ backgroundColor: ACCENT, color: ACCENT_FG }}
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {isEmpty && (
+          <div className="absolute inset-x-0 top-20 z-10 flex justify-center pointer-events-none">
+            <span
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: SURFACE_DEEP, color: TEXT_MUTED }}
+            >
+              Aucun créneau cette semaine
+            </span>
+          </div>
+        )}
+
+        <div style={{ minWidth: 640, backgroundColor: SURFACE }}>
           {/* Day headers — sticky */}
           <div
             className="grid"
@@ -332,8 +349,8 @@ export function WeekCalendar() {
               position: 'sticky',
               top: 0,
               zIndex: 10,
-              backgroundColor: '#15261c',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: SURFACE,
+              borderBottom: `1px solid ${DIVIDER}`,
             }}
           >
             <div />
@@ -348,7 +365,7 @@ export function WeekCalendar() {
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
-                      color: MUTED,
+                      color: TEXT_MUTED,
                     }}
                   >
                     {format(day, 'EEE', { locale: fr })}
@@ -359,8 +376,8 @@ export function WeekCalendar() {
                       fontWeight: 900,
                       lineHeight: 1,
                       marginTop: 4,
-                      color: isToday ? DARK : 'oklch(0.287 0.047 217.9)',
-                      backgroundColor: isToday ? MINT : 'transparent',
+                      color: isToday ? ACCENT_FG : TEXT,
+                      backgroundColor: isToday ? ACCENT : 'transparent',
                       borderRadius: '50%',
                       width: 32,
                       height: 32,
@@ -378,14 +395,14 @@ export function WeekCalendar() {
           </div>
 
           {/* Body: time column + 7 day columns */}
-          <div className="flex" style={{ backgroundColor: '#15261c' }}>
+          <div className="flex" style={{ backgroundColor: SURFACE }}>
             {/* Time labels */}
             <div
               style={{
                 width: 44,
                 flexShrink: 0,
-                backgroundColor: '#15261c',
-                borderRight: '1px solid rgba(255,255,255,0.08)',
+                backgroundColor: SURFACE,
+                borderRight: `1px solid ${DIVIDER}`,
               }}
             >
               {hours.map((h) => (
@@ -395,11 +412,11 @@ export function WeekCalendar() {
                     height: HOUR_PX,
                     fontSize: 11,
                     fontWeight: 500,
-                    color: 'rgba(255,255,255,0.45)',
+                    color: TEXT_FAINT,
                     textAlign: 'right',
                     paddingRight: 8,
                     paddingTop: 4,
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    borderBottom: `1px solid ${withAlpha(TEXT, 6)}`,
                     userSelect: 'none',
                   }}
                 >
@@ -414,14 +431,39 @@ export function WeekCalendar() {
               const dayCalEvs = calEvents.filter((e) => e.date === dStr)
               const daySessions = sessions.filter((s) => s.session_date === dStr)
 
+              const blocks: Block[] = [
+                ...dayCalEvs.map((ev) => ({
+                  kind: 'event' as const,
+                  ev,
+                  start: timeToFrac(ev.start_time),
+                  end: timeToFrac(ev.end_time),
+                })),
+                ...daySessions.map((sess) => {
+                  const start = sess.session_time
+                    ? timeToFrac(sess.session_time)
+                    : (DAY_PART_HOUR[sess.day_part ?? ''] ?? 7)
+                  return {
+                    kind: 'session' as const,
+                    sess,
+                    start,
+                    end: start + (sess.duration_min ?? 60) / 60,
+                  }
+                }),
+              ]
+              const placed = assignColumns(
+                blocks,
+                (b) => b.start,
+                (b) => b.end,
+              )
+
               return (
                 <div
                   key={colIdx}
                   style={{
                     flex: 1,
                     position: 'relative',
-                    backgroundColor: '#15261c',
-                    borderRight: colIdx < 6 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    backgroundColor: SURFACE,
+                    borderRight: colIdx < 6 ? `1px solid ${DIVIDER}` : 'none',
                   }}
                 >
                   {/* Background hour slots — also drop targets */}
@@ -447,13 +489,13 @@ export function WeekCalendar() {
                         }}
                         style={{
                           height: HOUR_PX,
-                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                          borderBottom: `1px solid ${withAlpha(TEXT, 6)}`,
                           backgroundColor: isDropTarget
-                            ? 'rgba(94,245,160,0.1)'
+                            ? withAlpha(ACCENT, 10)
                             : h % 2 === 0
-                              ? '#15261c'
-                              : '#1a2e22',
-                          outline: isDropTarget ? '1px solid rgba(94,245,160,0.4)' : 'none',
+                              ? SURFACE
+                              : withAlpha(SURFACE_DEEP, 45),
+                          outline: isDropTarget ? `1px solid ${withAlpha(ACCENT, 40)}` : 'none',
                           cursor: 'pointer',
                           transition: 'background-color 0.1s',
                         }}
@@ -470,7 +512,7 @@ export function WeekCalendar() {
                         right: 0,
                         top: topPx(nowFrac),
                         height: 2,
-                        backgroundColor: MINT,
+                        backgroundColor: ACCENT,
                         zIndex: 5,
                         pointerEvents: 'none',
                       }}
@@ -480,7 +522,7 @@ export function WeekCalendar() {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          backgroundColor: MINT,
+                          backgroundColor: ACCENT,
                           position: 'absolute',
                           left: -4,
                           top: -3,
@@ -489,76 +531,89 @@ export function WeekCalendar() {
                     </div>
                   )}
 
-                  {/* Personal events */}
-                  {dayCalEvs.map((ev) => {
-                    const c = EV_COLORS[ev.event_type] ?? EV_COLORS.autre
-                    const s = timeToFrac(ev.start_time)
-                    const e = timeToFrac(ev.end_time)
-                    return (
-                      <div
-                        key={ev.id}
-                        title={`${ev.title} — cliquer pour modifier`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingEvent(ev)
-                        }}
-                        style={{
-                          position: 'absolute',
-                          left: 3,
-                          right: 3,
-                          top: topPx(s),
-                          height: heightPx(s, e),
-                          borderRadius: 6,
-                          padding: '3px 7px',
-                          backgroundColor: c.bg,
-                          borderLeft: `3px solid ${c.border}`,
-                          color: c.text,
-                          overflow: 'hidden',
-                          zIndex: 3,
-                          cursor: 'pointer',
-                        }}
-                      >
+                  {/* Blocks: events + sessions, laid out side-by-side on overlap */}
+                  {placed.map((p) => {
+                    const horiz = colStyle(p.col, p.cols)
+                    if (p.item.kind === 'event') {
+                      const ev = p.item.ev
+                      const color = eventTypeColor(ev.event_type)
+                      return (
                         <div
+                          key={ev.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${ev.title}, ${ev.start_time}–${ev.end_time}, ${eventTypeLabel(ev.event_type)} — modifier`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingEvent(ev)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setEditingEvent(ev)
+                            }
+                          }}
                           style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap',
+                            position: 'absolute',
+                            top: topPx(p.item.start),
+                            height: heightPx(p.item.start, p.item.end),
+                            ...horiz,
+                            borderRadius: 6,
+                            padding: '2px 6px',
+                            backgroundColor: withAlpha(color, 14),
+                            borderLeft: `3px solid ${color}`,
+                            color: TEXT,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            zIndex: 3,
+                            cursor: 'pointer',
                           }}
                         >
-                          {ev.title}
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {ev.title}
+                          </div>
+                          <div
+                            className="flex items-center gap-1"
+                            style={{
+                              fontSize: 10,
+                              color: TEXT_MUTED,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                backgroundColor: color,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {ev.start_time}–{ev.end_time} · {eventTypeLabel(ev.event_type)}
+                            </span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: 10, opacity: 0.75 }}>
-                          {ev.start_time} – {ev.end_time}
-                        </div>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            fontSize: 9,
-                            padding: '1px 5px',
-                            borderRadius: 10,
-                            fontWeight: 700,
-                            backgroundColor: c.border,
-                            color: '#0a1a0d',
-                          }}
-                        >
-                          {EV_LABEL[ev.event_type]}
-                        </span>
-                      </div>
-                    )
-                  })}
+                      )
+                    }
 
-                  {/* Training sessions — draggable */}
-                  {daySessions.map((sess) => {
-                    const c = DISC_COLORS[sess.discipline] ?? DISC_FALLBACK
-                    // Use precise session_time if set, otherwise fall back to day_part default
-                    const startH = sess.session_time
-                      ? timeToFrac(sess.session_time)
-                      : (DAY_PART_HOUR[sess.day_part ?? ''] ?? 7)
-                    const endH = startH + (sess.duration_min ?? 60) / 60
+                    const sess = p.item.sess
+                    const color = disciplineColor(sess.discipline)
+                    const label = DISCIPLINE[sess.discipline]?.label ?? 'Séance'
                     const isDragging = draggingId === sess.id
-
                     return (
                       <div
                         key={sess.id}
@@ -566,7 +621,6 @@ export function WeekCalendar() {
                         onDragStart={(e) => {
                           setDraggingId(sess.id)
                           e.dataTransfer.effectAllowed = 'move'
-                          // ghost image via dataTransfer
                           e.dataTransfer.setData('text/plain', sess.id)
                         }}
                         onDragEnd={() => {
@@ -575,62 +629,65 @@ export function WeekCalendar() {
                         }}
                         style={{
                           position: 'absolute',
-                          left: 3,
-                          right: 3,
-                          top: topPx(startH),
-                          height: heightPx(startH, endH),
+                          top: topPx(p.item.start),
+                          height: heightPx(p.item.start, p.item.end),
+                          ...horiz,
                           borderRadius: 6,
-                          padding: '3px 7px',
-                          backgroundColor: c.bg,
-                          borderLeft: `3px solid ${c.border}`,
-                          color: c.text,
+                          padding: '2px 6px',
+                          backgroundColor: withAlpha(color, 14),
+                          borderLeft: `3px solid ${color}`,
+                          color: TEXT,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
                           overflow: 'hidden',
                           zIndex: 4,
-                          opacity: isDragging ? 0.4 : sess.status === 'done' ? 0.5 : 1,
+                          opacity: isDragging ? 0.4 : sess.status === 'done' ? 0.55 : 1,
                           cursor: 'grab',
                           transition: 'opacity 0.15s',
                         }}
                       >
-                        {/* Drag handle hint */}
-                        <div
-                          style={{ fontSize: 9, opacity: 0.5, marginBottom: 1, userSelect: 'none' }}
-                        >
-                          ⠿ déplacer
-                        </div>
-                        <div
+                        <a
+                          href={`/session/${sess.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`${sess.title ?? label}, ${sess.duration_min} minutes — voir la séance`}
                           style={{
+                            color: 'inherit',
+                            textDecoration: 'none',
                             fontSize: 11,
                             fontWeight: 700,
+                            lineHeight: 1.2,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          <a
-                            href={`/session/${sess.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ color: 'inherit', textDecoration: 'none' }}
-                          >
-                            {sess.title ?? DISC_LABEL[sess.discipline]}
-                          </a>
-                        </div>
-                        <div style={{ fontSize: 10, opacity: 0.75 }}>
-                          {sess.session_time ? `${sess.session_time.slice(0, 5)} · ` : ''}
-                          {sess.duration_min} min
-                        </div>
-                        <span
+                          {sess.title ?? label}
+                        </a>
+                        <div
+                          className="flex items-center gap-1"
                           style={{
-                            display: 'inline-block',
-                            fontSize: 9,
-                            padding: '1px 5px',
-                            borderRadius: 10,
-                            fontWeight: 700,
-                            backgroundColor: c.border,
-                            color: '#0a1a0d',
+                            fontSize: 10,
+                            color: TEXT_MUTED,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
-                          {DISC_LABEL[sess.discipline]}
-                        </span>
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              backgroundColor: color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sess.session_time ? `${sess.session_time.slice(0, 5)} · ` : ''}
+                            {sess.duration_min} min · {label}
+                          </span>
+                        </div>
                       </div>
                     )
                   })}

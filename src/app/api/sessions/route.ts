@@ -14,8 +14,7 @@ export async function GET(request: Request) {
   const end = searchParams.get('end')
   if (!start || !end) return apiError('Paramètres start et end requis', 400)
 
-  // Try with session_time first; fall back if the column doesn't exist yet (migration pending)
-  let { data, error }: { data: unknown[] | null; error: unknown } = await supabase
+  const { data, error } = await supabase
     .from('sessions')
     .select(
       'id, title, discipline, session_type, session_date, duration_min, status, day_part, session_time',
@@ -25,19 +24,6 @@ export async function GET(request: Request) {
     .lte('session_date', end)
     .order('session_date', { ascending: true })
 
-  if (error && (error as { message: string }).message?.includes('session_time')) {
-    // Column not yet created — retry without it
-    const fallback = await supabase
-      .from('sessions')
-      .select('id, title, discipline, session_type, session_date, duration_min, status, day_part')
-      .eq('user_id', user.id)
-      .gte('session_date', start)
-      .lte('session_date', end)
-      .order('session_date', { ascending: true })
-    data = fallback.data
-    error = fallback.error
-  }
-
-  if (error) return apiError((error as { message: string }).message)
+  if (error) return apiError(error.message)
   return apiSuccess(data)
 }
