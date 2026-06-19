@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
+import { normalizePhase } from '@/lib/plan/phases'
 import { generateJSON } from '@/lib/gemini/client'
 import { TRIATHLON_COACH_SYSTEM, buildMacroPrompt } from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
@@ -108,6 +109,24 @@ export async function POST(request: Request) {
     return apiError('Réponse Gemini invalide — structure manquante', 500)
   }
 
+  // Normalize phase casing from the LLM before any DB write. `plan_phases.phase`
+  // has a strict lowercase CHECK constraint; Gemini sometimes returns UPPERCASE,
+  // which would silently fail the batch insert and leave a plan with no phases.
+  const normalizedPhases = macroPlan.phases.map((p) => {
+    const phase = normalizePhase(p.phase)
+    return phase ? { ...p, phase } : null
+  })
+  if (normalizedPhases.includes(null)) {
+    const bad = macroPlan.phases.map((p) => p.phase).filter((p) => !normalizePhase(p))
+    return apiError(`Réponse Gemini invalide — phase(s) inconnue(s) : ${bad.join(', ')}`, 500)
+  }
+  const validPhases = normalizedPhases as Array<MacroPlan['phases'][number]>
+  // plan_weeks.phase has no CHECK, but normalize it too so phase labels resolve.
+  const normalizedWeeks = macroPlan.weeks.map((w) => ({
+    ...w,
+    phase: normalizePhase(w.phase) ?? w.phase.trim().toLowerCase(),
+  }))
+
   // --- Save to database ---
 
   // 1. Create plan
@@ -141,12 +160,17 @@ export async function POST(request: Request) {
     .neq('id', plan.id)
 
   // 3. Insert phases
-  const phaseRows = macroPlan.phases.map((p) => ({ plan_id: plan.id, ...p }))
+  const phaseRows = validPhases.map((p) => ({ plan_id: plan.id, ...p }))
 
-  await admin.from('plan_phases').insert(phaseRows)
+  const { error: phaseError } = await admin.from('plan_phases').insert(phaseRows)
+  if (phaseError) {
+    // Don't leave a half-built plan behind (cascade removes any rows).
+    await admin.from('plans').delete().eq('id', plan.id)
+    return apiError(`Échec enregistrement des phases : ${phaseError.message}`, 500)
+  }
 
   // 4. Insert weeks
-  const weekRows = macroPlan.weeks.map((w) => ({
+  const weekRows = normalizedWeeks.map((w) => ({
     plan_id: plan.id,
     ...w,
     start_date: format(addWeeks(parseISO(start_date), w.week_num - 1), 'yyyy-MM-dd'),
