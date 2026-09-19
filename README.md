@@ -14,9 +14,9 @@
 
 ## Screenshots
 
-| Dashboard                                  | AI coach                              |
-| ------------------------------------------ | ------------------------------------- |
-| ![Dashboard](.github/assets/dashboard.png) | ![AI coach](.github/assets/coach.png) |
+| Dashboard (with AI coach)                  | Training program                                |
+| ------------------------------------------ | ----------------------------------------------- |
+| ![Dashboard](.github/assets/dashboard.png) | ![Training program](.github/assets/program.png) |
 
 | Calendar                                 | Activities                                   |
 | ---------------------------------------- | -------------------------------------------- |
