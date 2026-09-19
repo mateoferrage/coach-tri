@@ -2,6 +2,8 @@
   "name": "coach-tri",
   "version": "0.1.0",
   "private": true,
+  "description": "AI-powered triathlon coaching web app: personalized training plans, a conversational AI coach, and unified Garmin Connect + Strava activity data.",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
