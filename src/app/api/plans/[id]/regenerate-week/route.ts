@@ -83,7 +83,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     admin
       .from('physiology_current')
       .select(
-        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m',
+        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr',
       )
       .eq('user_id', user.id)
       .maybeSingle(),
@@ -114,6 +114,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ftp_watts: physiology?.ftp_watts as number | null,
     hr_max: physiology?.hr_max as number | null,
     hr_threshold_bike: physiology?.hr_threshold_bike as number | null,
+    resting_hr: physiology?.resting_hr as number | null,
     css_pace_sec_per_100m: physiology?.css_pace_sec_per_100m as number | null,
     // VO2max fallback for VMA estimation when no physiology data
     vo2max_run:
@@ -336,6 +337,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return VALID_DISCIPLINES.has(lower) ? lower : 'run'
   }
 
+  // Contrainte DB : expected_rpe doit être null ou un entier entre 1 et 10.
+  // Gemini renvoie parfois 0 (jour de repos/récup) ou une valeur hors bornes →
+  // on assainit avant insert pour ne pas violer sessions_expected_rpe_check.
+  function normalizeExpectedRpe(raw: unknown): number | null {
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) return null
+    const rounded = Math.round(raw)
+    if (rounded < 1) return null
+    return Math.min(rounded, 10)
+  }
+
   // Delete existing planned sessions for this week (keep done/skipped)
 
   await admin
@@ -356,6 +367,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ...s,
       discipline: normalizeDiscipline(s.discipline),
       session_type: normalizeSessionType(s.session_type),
+      expected_rpe: normalizeExpectedRpe(s.expected_rpe),
       day_part,
       status: 'planned',
       structure: asJson(s.structure),

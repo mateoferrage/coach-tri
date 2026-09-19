@@ -198,7 +198,7 @@ export default async function ProfilePage() {
       supabase
         .from('physiology_current')
         .select(
-          'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, resting_hr, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, test_date',
+          'run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s, ftp_watts, hr_max, resting_hr, vma_kmh, run_threshold_pace_sec_per_km, css_pace_sec_per_100m, test_date',
         )
         .eq('user_id', user!.id)
         .maybeSingle(),
@@ -223,14 +223,18 @@ export default async function ProfilePage() {
   const gStats = garminStatsRes.data as Record<string, unknown> | null
   const activities = (activitiesRes.data ?? []) as ActivityRow[]
   const physiology = physiologyRes.data as {
-    vma_kmh: number | null
-    run_threshold_pace_sec_per_km: number | null
-    hr_max_run: number | null
-    hr_threshold_run: number | null
-    resting_hr: number | null
+    run_5k_time_s: number | null
+    run_10k_time_s: number | null
+    run_half_time_s: number | null
+    swim_100m_time_s: number | null
+    swim_200m_time_s: number | null
+    swim_400m_time_s: number | null
+    swim_800m_time_s: number | null
     ftp_watts: number | null
     hr_max: number | null
-    hr_threshold_bike: number | null
+    resting_hr: number | null
+    vma_kmh: number | null
+    run_threshold_pace_sec_per_km: number | null
     css_pace_sec_per_100m: number | null
     test_date: string | null
   } | null

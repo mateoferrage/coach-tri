@@ -17,6 +17,7 @@ import {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+// Format seconds as "m:ss" (used for pace values, always < 60 min).
 function secToMinSec(sec: number | null): string {
   if (!sec) return ''
   const m = Math.floor(sec / 60)
@@ -24,21 +25,35 @@ function secToMinSec(sec: number | null): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function minSecToSec(str: string): number | null {
+// Format a duration as "m:ss" or "h:mm:ss" (records can exceed an hour: semi).
+function secToDuration(sec: number | null): string {
+  if (!sec) return ''
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = Math.round(sec % 60)
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+// Parse "h:mm:ss", "mm:ss" or a raw number of seconds into seconds.
+function durationToSec(str: string): number | null {
   const clean = str.trim()
   if (!clean) return null
   const parts = clean.split(':')
+  if (parts.length === 3) {
+    const [h, m, s] = parts.map((p) => parseInt(p, 10))
+    if (![h, m, s].some(isNaN)) return h * 3600 + m * 60 + s
+  }
   if (parts.length === 2) {
-    const m = parseInt(parts[0], 10)
-    const s = parseInt(parts[1], 10)
-    if (!isNaN(m) && !isNaN(s)) return m * 60 + s
+    const [m, s] = parts.map((p) => parseInt(p, 10))
+    if (![m, s].some(isNaN)) return m * 60 + s
   }
   const n = parseFloat(clean)
-  return isNaN(n) ? null : n
+  return isNaN(n) ? null : Math.round(n)
 }
 
-function numOrNull(v: string): number | null {
-  const n = parseFloat(v)
+function intOrNull(v: string): number | null {
+  const n = parseInt(v, 10)
   return isNaN(n) ? null : n
 }
 
@@ -116,7 +131,17 @@ function Field({
 
 // ── Display row (read mode) ───────────────────────────────────────────────────
 
-function ValueRow({ label, value, unit }: { label: string; value: string | null; unit?: string }) {
+function ValueRow({
+  label,
+  value,
+  unit,
+  estimated,
+}: {
+  label: string
+  value: string | null
+  unit?: string
+  estimated?: boolean
+}) {
   return (
     <div
       className="flex items-center justify-between py-2.5 border-b last:border-0"
@@ -124,6 +149,11 @@ function ValueRow({ label, value, unit }: { label: string; value: string | null;
     >
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
         {label}
+        {estimated && (
+          <span className="ml-1.5 lowercase font-medium" style={{ opacity: 0.7 }}>
+            (estimé)
+          </span>
+        )}
       </span>
       <span
         className="text-sm font-semibold"
@@ -140,17 +170,35 @@ function ValueRow({ label, value, unit }: { label: string; value: string | null;
   )
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="text-[10px] font-bold uppercase tracking-widest mb-2"
+      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
+    >
+      {children}
+    </p>
+  )
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface PhysiologyData {
-  vma_kmh: number | null
-  run_threshold_pace_sec_per_km: number | null
-  hr_max_run: number | null
-  hr_threshold_run: number | null
-  resting_hr: number | null
+  // Records saisis
+  run_5k_time_s: number | null
+  run_10k_time_s: number | null
+  run_half_time_s: number | null
+  swim_100m_time_s: number | null
+  swim_200m_time_s: number | null
+  swim_400m_time_s: number | null
+  swim_800m_time_s: number | null
+  // Vélo + cardio saisis
   ftp_watts: number | null
   hr_max: number | null
-  hr_threshold_bike: number | null
+  resting_hr: number | null
+  // Seuils dérivés (lecture seule)
+  vma_kmh: number | null
+  run_threshold_pace_sec_per_km: number | null
   css_pace_sec_per_100m: number | null
   test_date: string | null
 }
@@ -163,35 +211,45 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // form state (string inputs for pace fields)
-  const [vma, setVma] = useState(initial?.vma_kmh?.toString() ?? '')
-  const [runPace, setRunPace] = useState(
-    secToMinSec(initial?.run_threshold_pace_sec_per_km ?? null),
-  )
-  const [hrMaxRun, setHrMaxRun] = useState(initial?.hr_max_run?.toString() ?? '')
-  const [hrThreshRun, setHrThreshRun] = useState(initial?.hr_threshold_run?.toString() ?? '')
-  const [restingHr, setRestingHr] = useState(initial?.resting_hr?.toString() ?? '')
+  // form state (records as mm:ss / h:mm:ss strings)
+  const [run5k, setRun5k] = useState(secToDuration(initial?.run_5k_time_s ?? null))
+  const [run10k, setRun10k] = useState(secToDuration(initial?.run_10k_time_s ?? null))
+  const [runHalf, setRunHalf] = useState(secToDuration(initial?.run_half_time_s ?? null))
+  const [swim100, setSwim100] = useState(secToDuration(initial?.swim_100m_time_s ?? null))
+  const [swim200, setSwim200] = useState(secToDuration(initial?.swim_200m_time_s ?? null))
+  const [swim400, setSwim400] = useState(secToDuration(initial?.swim_400m_time_s ?? null))
+  const [swim800, setSwim800] = useState(secToDuration(initial?.swim_800m_time_s ?? null))
   const [ftp, setFtp] = useState(initial?.ftp_watts?.toString() ?? '')
   const [hrMax, setHrMax] = useState(initial?.hr_max?.toString() ?? '')
-  const [hrThreshBike, setHrThreshBike] = useState(initial?.hr_threshold_bike?.toString() ?? '')
-  const [css, setCss] = useState(secToMinSec(initial?.css_pace_sec_per_100m ?? null))
+  const [restingHr, setRestingHr] = useState(initial?.resting_hr?.toString() ?? '')
 
-  const hasAnyData = !!(initial?.vma_kmh || initial?.ftp_watts || initial?.css_pace_sec_per_100m)
+  const hasAnyData = !!(
+    initial?.run_5k_time_s ||
+    initial?.run_10k_time_s ||
+    initial?.run_half_time_s ||
+    initial?.swim_100m_time_s ||
+    initial?.swim_200m_time_s ||
+    initial?.swim_400m_time_s ||
+    initial?.swim_800m_time_s ||
+    initial?.ftp_watts ||
+    initial?.hr_max
+  )
 
   async function handleSave() {
     setSaving(true)
     setError(null)
     try {
       const body = {
-        vma_kmh: numOrNull(vma),
-        run_threshold_pace_sec_per_km: minSecToSec(runPace),
-        hr_max_run: numOrNull(hrMaxRun),
-        hr_threshold_run: numOrNull(hrThreshRun),
-        resting_hr: numOrNull(restingHr),
-        ftp_watts: numOrNull(ftp),
-        hr_max: numOrNull(hrMax),
-        hr_threshold_bike: numOrNull(hrThreshBike),
-        css_pace_sec_per_100m: minSecToSec(css),
+        run_5k_time_s: durationToSec(run5k),
+        run_10k_time_s: durationToSec(run10k),
+        run_half_time_s: durationToSec(runHalf),
+        swim_100m_time_s: durationToSec(swim100),
+        swim_200m_time_s: durationToSec(swim200),
+        swim_400m_time_s: durationToSec(swim400),
+        swim_800m_time_s: durationToSec(swim800),
+        ftp_watts: intOrNull(ftp),
+        hr_max: intOrNull(hrMax),
+        resting_hr: intOrNull(restingHr),
       }
 
       const res = await fetch('/api/physiology', {
@@ -229,11 +287,11 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
             className="text-sm font-semibold uppercase tracking-widest"
             style={{ color: 'oklch(0.287 0.047 217.9)' }}
           >
-            Données physiologiques
+            Performances de référence
           </p>
           {initial?.test_date && !editing && (
             <p className="text-[10px] mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-              Dernière mesure :{' '}
+              Dernière mise à jour :{' '}
               {new Date(initial.test_date).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
@@ -259,16 +317,15 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
         <div className="px-5 divide-y" style={{ borderColor: DIV }}>
           {/* Running */}
           <div className="py-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Course à pied
-            </p>
+            <SectionLabel>Course à pied</SectionLabel>
+            <ValueRow label="5 km" value={secToDuration(initial?.run_5k_time_s ?? null) || null} />
             <ValueRow
-              label="VMA"
-              value={initial?.vma_kmh != null ? initial.vma_kmh.toFixed(1) : null}
-              unit="km/h"
+              label="10 km"
+              value={secToDuration(initial?.run_10k_time_s ?? null) || null}
+            />
+            <ValueRow
+              label="Semi"
+              value={secToDuration(initial?.run_half_time_s ?? null) || null}
             />
             <ValueRow
               label="Allure seuil"
@@ -278,39 +335,39 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                   : null
               }
               unit="/km"
+              estimated
             />
-            <ValueRow label="FC max" value={initial?.hr_max_run?.toString() ?? null} unit="bpm" />
             <ValueRow
-              label="FC seuil"
-              value={initial?.hr_threshold_run?.toString() ?? null}
-              unit="bpm"
+              label="VMA"
+              value={initial?.vma_kmh != null ? initial.vma_kmh.toFixed(1) : null}
+              unit="km/h"
+              estimated
             />
-            <ValueRow label="FC repos" value={initial?.resting_hr?.toString() ?? null} unit="bpm" />
           </div>
           {/* Cycling */}
           <div className="py-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Vélo
-            </p>
+            <SectionLabel>Vélo</SectionLabel>
             <ValueRow label="FTP" value={initial?.ftp_watts?.toString() ?? null} unit="W" />
-            <ValueRow label="FC max" value={initial?.hr_max?.toString() ?? null} unit="bpm" />
-            <ValueRow
-              label="FC seuil"
-              value={initial?.hr_threshold_bike?.toString() ?? null}
-              unit="bpm"
-            />
           </div>
           {/* Swimming */}
           <div className="py-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Natation
-            </p>
+            <SectionLabel>Natation</SectionLabel>
+            <ValueRow
+              label="100 m"
+              value={secToDuration(initial?.swim_100m_time_s ?? null) || null}
+            />
+            <ValueRow
+              label="200 m"
+              value={secToDuration(initial?.swim_200m_time_s ?? null) || null}
+            />
+            <ValueRow
+              label="400 m"
+              value={secToDuration(initial?.swim_400m_time_s ?? null) || null}
+            />
+            <ValueRow
+              label="800 m"
+              value={secToDuration(initial?.swim_800m_time_s ?? null) || null}
+            />
             <ValueRow
               label="CSS"
               value={
@@ -319,13 +376,20 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                   : null
               }
               unit="/100m"
+              estimated
             />
+          </div>
+          {/* Cardio */}
+          <div className="py-3">
+            <SectionLabel>Fréquence cardiaque</SectionLabel>
+            <ValueRow label="FC max" value={initial?.hr_max?.toString() ?? null} unit="bpm" />
+            <ValueRow label="FC repos" value={initial?.resting_hr?.toString() ?? null} unit="bpm" />
           </div>
 
           {!hasAnyData && (
             <div className="py-4 text-center">
               <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-                Aucune donnée — renseigne tes valeurs pour des séances avec allures et watts précis.
+                Aucune donnée — renseigne tes records pour des séances avec allures et watts précis.
               </p>
             </div>
           )}
@@ -337,97 +401,36 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
         <div className="px-5 py-4 space-y-6">
           {/* ── Course ─────────────────────────────────────────────────── */}
           <div className="space-y-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Course à pied
-            </p>
+            <SectionLabel>Course à pied — tes meilleurs temps</SectionLabel>
 
             <Field
-              label="VMA"
-              unit="km/h"
-              value={vma}
-              onChange={setVma}
-              placeholder="ex : 16.5"
-              hint={
-                !vma && (
-                  <TestHint>
-                    <strong>Test 6 minutes</strong> : après échauffement, cours 6 min à fond. Mesure
-                    la distance parcourue. VMA ≈ distance (km) × 10.
-                    <br />
-                    <br />
-                    <strong>Test Cooper 12 min</strong> : distance (m) / 12 = vitesse en m/min → ÷
-                    16.67 = km/h.
-                  </TestHint>
-                )
-              }
+              label="5 km"
+              unit="mm:ss"
+              value={run5k}
+              onChange={setRun5k}
+              placeholder="ex : 22:30"
             />
-
             <Field
-              label="Allure au seuil"
-              unit="mm:ss / km"
-              value={runPace}
-              onChange={setRunPace}
-              placeholder="ex : 4:30"
-              hint={
-                !runPace && (
-                  <TestHint>
-                    <strong>Test 30 min</strong> : cours 30 min le plus vite possible à allure
-                    constante. L&apos;allure moyenne = ton allure au seuil lactique.
-                    <br />
-                    <br />
-                    <strong>Depuis la VMA</strong> : seuil ≈ 85–90% VMA. À 16 km/h VMA → seuil ≈ 14
-                    km/h → 4:17/km.
-                  </TestHint>
-                )
-              }
+              label="10 km"
+              unit="mm:ss"
+              value={run10k}
+              onChange={setRun10k}
+              placeholder="ex : 47:00"
             />
-
             <Field
-              label="FC max course"
-              unit="bpm"
-              value={hrMaxRun}
-              onChange={setHrMaxRun}
-              placeholder="ex : 185"
+              label="Semi-marathon"
+              unit="h:mm:ss"
+              value={runHalf}
+              onChange={setRunHalf}
+              placeholder="ex : 1:45:00"
               hint={
-                !hrMaxRun && (
+                !run5k &&
+                !run10k &&
+                !runHalf && (
                   <TestHint>
-                    Sprinte 2–3 fois 30 s à fond avec 30 s de récup après un bon échauffement. La FC
-                    max = valeur la plus haute vue sur ta montre pendant l&apos;effort.
-                  </TestHint>
-                )
-              }
-            />
-
-            <Field
-              label="FC au seuil course"
-              unit="bpm"
-              value={hrThreshRun}
-              onChange={setHrThreshRun}
-              placeholder="ex : 168"
-              hint={
-                !hrThreshRun && (
-                  <TestHint>
-                    Lis la FC moyenne sur tes 20–30 dernières minutes lors d&apos;un test à allure
-                    seuil. Ou estime : FC seuil ≈ 88–92% de ta FC max.
-                  </TestHint>
-                )
-              }
-            />
-
-            <Field
-              label="FC de repos"
-              unit="bpm"
-              value={restingHr}
-              onChange={setRestingHr}
-              placeholder="ex : 48"
-              hint={
-                !restingHr && (
-                  <TestHint>
-                    Mesure le matin au réveil, avant de te lever, après 5 min allongé. Utiliser la
-                    valeur moyenne sur 3–5 jours consécutifs. Utilisée pour le calcul des zones FC
-                    par la méthode Karvonen.
+                    Renseigne au moins un temps de course récent, réalisé à fond sur une distance
+                    connue (chrono officiel ou séance test). Plus tu en donnes, plus l&apos;allure
+                    au seuil et la VMA estimées sont précises.
                   </TestHint>
                 )
               }
@@ -436,12 +439,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
 
           {/* ── Vélo ───────────────────────────────────────────────────── */}
           <div className="space-y-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Vélo
-            </p>
+            <SectionLabel>Vélo</SectionLabel>
 
             <Field
               label="FTP"
@@ -462,72 +460,86 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 )
               }
             />
+          </div>
+
+          {/* ── Natation ───────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            <SectionLabel>Natation — tes meilleurs temps</SectionLabel>
 
             <Field
-              label="FC max vélo"
-              unit="bpm"
-              value={hrMax}
-              onChange={setHrMax}
-              placeholder="ex : 178"
-              hint={
-                !hrMax && (
-                  <TestHint>
-                    Généralement 5–10 bpm plus basse qu&apos;en course. Mesure lors du dernier
-                    sprint d&apos;un test FTP ou lors d&apos;une montée à fond.
-                  </TestHint>
-                )
-              }
+              label="100 m"
+              unit="mm:ss"
+              value={swim100}
+              onChange={setSwim100}
+              placeholder="ex : 1:35"
             />
-
             <Field
-              label="FC au seuil vélo"
-              unit="bpm"
-              value={hrThreshBike}
-              onChange={setHrThreshBike}
-              placeholder="ex : 158"
+              label="200 m"
+              unit="mm:ss"
+              value={swim200}
+              onChange={setSwim200}
+              placeholder="ex : 3:20"
+            />
+            <Field
+              label="400 m"
+              unit="mm:ss"
+              value={swim400}
+              onChange={setSwim400}
+              placeholder="ex : 7:00"
+            />
+            <Field
+              label="800 m"
+              unit="mm:ss"
+              value={swim800}
+              onChange={setSwim800}
+              placeholder="ex : 14:30"
               hint={
-                !hrThreshBike && (
+                !swim100 &&
+                !swim200 &&
+                !swim400 &&
+                !swim800 && (
                   <TestHint>
-                    FC moyenne des 20 dernières minutes de ton test FTP. Ou estime : FC seuil vélo ≈
-                    88–92% de ta FC max vélo.
+                    Nage chaque distance à fond, en bassin, départ chrono. Deux distances suffisent
+                    pour estimer ton CSS (Critical Swim Speed) ; le protocole classique est 400 m
+                    puis 200 m après 10 min de récup.
                   </TestHint>
                 )
               }
             />
           </div>
 
-          {/* ── Natation ───────────────────────────────────────────────── */}
+          {/* ── Fréquence cardiaque ────────────────────────────────────── */}
           <div className="space-y-3">
-            <p
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              Natation
-            </p>
+            <SectionLabel>Fréquence cardiaque</SectionLabel>
 
             <Field
-              label="CSS (Critical Swim Speed)"
-              unit="mm:ss / 100m"
-              value={css}
-              onChange={setCss}
-              placeholder="ex : 1:52"
+              label="FC max"
+              unit="bpm"
+              value={hrMax}
+              onChange={setHrMax}
+              placeholder="ex : 188"
               hint={
-                !css && (
+                !hrMax && (
                   <TestHint>
-                    <strong>Protocole CSS</strong> :<br />
-                    1. Nage 400m le plus vite possible → note T400
-                    <br />
-                    2. Récupère 10 min
-                    <br />
-                    3. Nage 200m le plus vite possible → note T200
-                    <br />
-                    <br />
-                    CSS = (400 − 200) / (T400 − T200) → exprimé en sec/100m.
-                    <br />
-                    <em>
-                      Exemple : T400 = 7:00 (420s), T200 = 3:10 (190s) → CSS = 200/(230) × 100 = 87s
-                      = 1:27/100m
-                    </em>
+                    Sprinte 2–3 fois 30 s à fond avec 30 s de récup après un bon échauffement. La FC
+                    max = valeur la plus haute vue sur ta montre pendant l&apos;effort.
+                  </TestHint>
+                )
+              }
+            />
+
+            <Field
+              label="FC de repos"
+              unit="bpm"
+              value={restingHr}
+              onChange={setRestingHr}
+              placeholder="ex : 48"
+              hint={
+                !restingHr && (
+                  <TestHint>
+                    Mesure le matin au réveil, avant de te lever, après 5 min allongé. Utiliser la
+                    valeur moyenne sur 3–5 jours consécutifs. Utilisée pour le calcul des zones FC
+                    par la méthode Karvonen.
                   </TestHint>
                 )
               }

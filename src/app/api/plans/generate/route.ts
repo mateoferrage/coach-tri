@@ -4,7 +4,11 @@ import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
 import { normalizePhase } from '@/lib/plan/phases'
 import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMacroPrompt } from '@/lib/gemini/prompts'
+import {
+  TRIATHLON_COACH_SYSTEM,
+  buildMacroPrompt,
+  type PerformanceData,
+} from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
 export async function POST(request: Request) {
@@ -71,6 +75,15 @@ export async function POST(request: Request) {
     .order('date', { ascending: false })
     .limit(14)) as { data: Array<Record<string, unknown>> | null }
 
+  // Performances de référence (records + seuils dérivés)
+  const { data: physiology } = (await admin
+    .from('physiology_current')
+    .select(
+      'run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s, ftp_watts, hr_max, resting_hr, vma_kmh, run_threshold_pace_sec_per_km, css_pace_sec_per_100m',
+    )
+    .eq('user_id', user.id)
+    .maybeSingle()) as { data: PerformanceData | null }
+
   const activitySummary = buildActivitySummary(recentActivities ?? [])
   const wellnessSummary = buildWellnessSummary(recentWellness ?? [])
 
@@ -92,6 +105,7 @@ export async function POST(request: Request) {
           terrain: goal.terrain as string | null,
         }
       : undefined,
+    performance: physiology ?? undefined,
     recent_activity_summary: activitySummary || undefined,
     recent_wellness_summary: wellnessSummary || undefined,
   })

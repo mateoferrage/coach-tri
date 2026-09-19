@@ -115,6 +115,72 @@ ${KNOWLEDGE_BASE_CORE}
 
 // ─── Macro generation ──────────────────────────────────────────────────────────
 
+export interface PerformanceData {
+  run_5k_time_s: number | null
+  run_10k_time_s: number | null
+  run_half_time_s: number | null
+  swim_100m_time_s: number | null
+  swim_200m_time_s: number | null
+  swim_400m_time_s: number | null
+  swim_800m_time_s: number | null
+  ftp_watts: number | null
+  hr_max: number | null
+  resting_hr: number | null
+  vma_kmh: number | null
+  run_threshold_pace_sec_per_km: number | null
+  css_pace_sec_per_100m: number | null
+}
+
+function fmtDuration(sec: number | null): string | null {
+  if (!sec) return null
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = Math.round(sec % 60)
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+/** Bloc "PERFORMANCES DE RÉFÉRENCE" : records saisis + seuils dérivés. */
+export function buildPerformanceBlock(p: PerformanceData): string {
+  const run = [
+    p.run_5k_time_s && `5 km ${fmtDuration(p.run_5k_time_s)}`,
+    p.run_10k_time_s && `10 km ${fmtDuration(p.run_10k_time_s)}`,
+    p.run_half_time_s && `semi ${fmtDuration(p.run_half_time_s)}`,
+  ].filter(Boolean)
+  const swim = [
+    p.swim_100m_time_s && `100m ${fmtDuration(p.swim_100m_time_s)}`,
+    p.swim_200m_time_s && `200m ${fmtDuration(p.swim_200m_time_s)}`,
+    p.swim_400m_time_s && `400m ${fmtDuration(p.swim_400m_time_s)}`,
+    p.swim_800m_time_s && `800m ${fmtDuration(p.swim_800m_time_s)}`,
+  ].filter(Boolean)
+
+  const lines: string[] = []
+  if (run.length) {
+    let l = `- Course : records ${run.join(', ')}`
+    const derived = [
+      p.run_threshold_pace_sec_per_km &&
+        `allure seuil ${fmtDuration(p.run_threshold_pace_sec_per_km)}/km`,
+      p.vma_kmh && `VMA ${p.vma_kmh.toFixed(1)} km/h`,
+    ].filter(Boolean)
+    if (derived.length) l += ` → ${derived.join(', ')} (estimés)`
+    lines.push(l)
+  }
+  if (p.ftp_watts) lines.push(`- Vélo : FTP ${p.ftp_watts} W`)
+  if (swim.length) {
+    let l = `- Natation : records ${swim.join(', ')}`
+    if (p.css_pace_sec_per_100m) l += ` → CSS ${fmtDuration(p.css_pace_sec_per_100m)}/100m (estimé)`
+    lines.push(l)
+  }
+  const hr = [
+    p.hr_max && `FC max ${p.hr_max} bpm`,
+    p.resting_hr && `FC repos ${p.resting_hr} bpm`,
+  ].filter(Boolean)
+  if (hr.length) lines.push(`- Cardio : ${hr.join(', ')}`)
+
+  if (lines.length === 0) return ''
+  return `PERFORMANCES DE RÉFÉRENCE (niveau actuel de l'athlète) :\n${lines.join('\n')}`
+}
+
 interface MacroContext {
   profile: {
     first_name: string | null
@@ -137,6 +203,7 @@ interface MacroContext {
     run_distance_m: number | null
     terrain: string | null
   }
+  performance?: PerformanceData
   recent_activity_summary?: string
   recent_wellness_summary?: string
 }
@@ -164,6 +231,8 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     threshold: 'Seuil (focus sur la Zone 3-4)',
   }
 
+  const performanceBlock = ctx.performance ? buildPerformanceBlock(ctx.performance) : ''
+
   const goalSection =
     ctx.mode === 'race' && ctx.goal
       ? `
@@ -189,6 +258,7 @@ PROFIL ATHLÈTE :
 - Disciplines : ${disciplines}
 - Poids : ${ctx.profile.weight_kg ? ctx.profile.weight_kg + ' kg' : 'non précisé'}
 
+${performanceBlock ? performanceBlock + '\n' : ''}
 ${goalSection}
 
 PROGRAMME :
