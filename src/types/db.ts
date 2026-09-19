@@ -409,8 +409,15 @@ export type Database = {
           hr_threshold_run: number | null
           id: string
           resting_hr: number | null
+          run_10k_time_s: number | null
+          run_5k_time_s: number | null
+          run_half_time_s: number | null
           run_threshold_pace_sec_per_km: number | null
           source: string | null
+          swim_100m_time_s: number | null
+          swim_200m_time_s: number | null
+          swim_400m_time_s: number | null
+          swim_800m_time_s: number | null
           test_date: string
           updated_at: string
           user_id: string
@@ -426,8 +433,15 @@ export type Database = {
           hr_threshold_run?: number | null
           id?: string
           resting_hr?: number | null
+          run_10k_time_s?: number | null
+          run_5k_time_s?: number | null
+          run_half_time_s?: number | null
           run_threshold_pace_sec_per_km?: number | null
           source?: string | null
+          swim_100m_time_s?: number | null
+          swim_200m_time_s?: number | null
+          swim_400m_time_s?: number | null
+          swim_800m_time_s?: number | null
           test_date?: string
           updated_at?: string
           user_id: string
@@ -443,8 +457,15 @@ export type Database = {
           hr_threshold_run?: number | null
           id?: string
           resting_hr?: number | null
+          run_10k_time_s?: number | null
+          run_5k_time_s?: number | null
+          run_half_time_s?: number | null
           run_threshold_pace_sec_per_km?: number | null
           source?: string | null
+          swim_100m_time_s?: number | null
+          swim_200m_time_s?: number | null
+          swim_400m_time_s?: number | null
+          swim_800m_time_s?: number | null
           test_date?: string
           updated_at?: string
           user_id?: string
@@ -975,8 +996,16 @@ export type Database = {
           hr_threshold_bike: number | null
           hr_threshold_run: number | null
           id: string | null
+          resting_hr: number | null
+          run_10k_time_s: number | null
+          run_5k_time_s: number | null
+          run_half_time_s: number | null
           run_threshold_pace_sec_per_km: number | null
           source: string | null
+          swim_100m_time_s: number | null
+          swim_200m_time_s: number | null
+          swim_400m_time_s: number | null
+          swim_800m_time_s: number | null
           test_date: string | null
           updated_at: string | null
           user_id: string | null

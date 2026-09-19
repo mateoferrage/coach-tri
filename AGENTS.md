@@ -162,13 +162,21 @@ src/
 - `available_disciplines` : array `string[]` (swim/bike/run)
 - `notes`
 
-**`physiology`** — données physiologiques (FTP, VMA, CSS, etc.)
+**`physiology`** — performances de référence (records) + seuils dérivés
 
 - `user_id`, `test_date`
-- `ftp_watts`, `hr_max`, `hr_threshold_bike`
-- `vma_kmh`, `run_threshold_pace_sec_per_km`, `hr_max_run`, `hr_threshold_run`
-- `css_pace_sec_per_100m`
+- **Records saisis par l'athlète** (source de vérité) :
+  - Course : `run_5k_time_s`, `run_10k_time_s`, `run_half_time_s`
+  - Natation : `swim_100m_time_s`, `swim_200m_time_s`, `swim_400m_time_s`, `swim_800m_time_s`
+- **Vélo + cardio saisis directement** : `ftp_watts`, `hr_max` (FC max globale), `resting_hr`
+- **Seuils dérivés des records** (calculés côté serveur via `src/lib/utils/performance.ts`,
+  modèle de Vitesse Critique + fallback Riegel, stockés à la sauvegarde) :
+  `run_threshold_pace_sec_per_km`, `vma_kmh`, `css_pace_sec_per_100m`
+- Colonnes legacy conservées mais non exposées dans l'UI : `hr_max_run`,
+  `hr_threshold_run`, `hr_threshold_bike`
 - Vue `physiology_current` : dernière mesure par user
+- Le prompt **macro** reçoit ces données via `buildPerformanceBlock` ; le prompt
+  **micro** les utilise via `calculateZones` (`zones.ts`, FC course → `hr_max_run ?? hr_max`)
 
 **`goals`** — objectifs de course
 

@@ -23,12 +23,12 @@ automatiquement** à partir de ces records.
 
 ## Modèle de saisie (source de vérité)
 
-| Discipline | Saisi par l'athlète | Dérivé automatiquement (stocké) |
-|---|---|---|
-| Course | Temps **5 km / 10 km / semi** (au moins 1) | allure au seuil → puis VMA (dérivée par `zones.ts`) |
-| Vélo | **FTP** (watts) | — |
-| Natation | Temps **100 / 200 / 400 / 800 m** (au moins 1) | **CSS** |
-| Cardio | **FC max** (globale) + **FC repos** | — |
+| Discipline | Saisi par l'athlète                            | Dérivé automatiquement (stocké)                     |
+| ---------- | ---------------------------------------------- | --------------------------------------------------- |
+| Course     | Temps **5 km / 10 km / semi** (au moins 1)     | allure au seuil → puis VMA (dérivée par `zones.ts`) |
+| Vélo       | **FTP** (watts)                                | —                                                   |
+| Natation   | Temps **100 / 200 / 400 / 800 m** (au moins 1) | **CSS**                                             |
+| Cardio     | **FC max** (globale) + **FC repos**            | —                                                   |
 
 Les saisies manuelles VMA / allure seuil / CSS / FC seuil par discipline sont
 **retirées de l'UI**.

@@ -103,7 +103,7 @@ export function calculateZones(p: PhysiologyInput): AthleteZones | null {
     // 2. Karvonen when FCmax + resting_hr are both known
     // 3. Estimated LTHR = FCmax × 0.92 (fallback)
     const lthr = p.hr_threshold_run ?? null
-    const hrFcMax = p.hr_max_run ?? null
+    const hrFcMax = p.hr_max_run ?? p.hr_max ?? null
     const hrResting = p.resting_hr ?? null
 
     type HrMethod = 'lthr' | 'karvonen' | 'pct_fcmax' | null
