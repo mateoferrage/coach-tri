@@ -31,8 +31,10 @@ export function computeReplanScope(input: ReplanScopeInput): ReplanScope {
   const regenerateWeeks = existing.filter((w) => w >= cutoffWeek && w <= newTotalWeeks)
   const deleteWeeks = existing.filter((w) => w > newTotalWeeks)
 
+  // Toute semaine au-delà de l'horizon existant est à créer (jusqu'au nouveau
+  // pic). `maxExisting` suffit : une semaine > maxExisting n'existe pas encore.
   const createWeeks: number[] = []
-  for (let w = Math.max(maxExisting, cutoffWeek - 1) + 1; w <= newTotalWeeks; w++) {
+  for (let w = maxExisting + 1; w <= newTotalWeeks; w++) {
     createWeeks.push(w)
   }
 

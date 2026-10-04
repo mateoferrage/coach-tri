@@ -1,15 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { computeReplanScope } from './replan'
 
-const existingWeeks = Array.from({ length: 12 }, (_, i) => ({
-  week_num: i + 1,
-  start_date: undefined as unknown as string,
-}))
+const weekNums = Array.from({ length: 12 }, (_, i) => i + 1)
 
 describe('computeReplanScope', () => {
   it('préserve les semaines < cutoff, régénère le reste (même horizon)', () => {
     const r = computeReplanScope({
-      existingWeekNums: existingWeeks.map((w) => w.week_num),
+      existingWeekNums: weekNums,
       cutoffWeek: 3,
       newTotalWeeks: 12,
     })
@@ -20,7 +17,7 @@ describe('computeReplanScope', () => {
 
   it('étend l\'horizon quand la nouvelle course est plus lointaine', () => {
     const r = computeReplanScope({
-      existingWeekNums: existingWeeks.map((w) => w.week_num),
+      existingWeekNums: weekNums,
       cutoffWeek: 3,
       newTotalWeeks: 16,
     })
@@ -30,13 +27,25 @@ describe('computeReplanScope', () => {
 
   it('raccourcit l\'horizon quand le nouveau pic est plus proche', () => {
     const r = computeReplanScope({
-      existingWeekNums: existingWeeks.map((w) => w.week_num),
+      existingWeekNums: weekNums,
       cutoffWeek: 3,
       newTotalWeeks: 8,
     })
     expect(r.regenerateWeeks).toEqual([3, 4, 5, 6, 7, 8])
     expect(r.deleteWeeks).toEqual([9, 10, 11, 12])
     expect(r.createWeeks).toEqual([])
+  })
+
+  it('crée toutes les semaines manquantes quand cutoff dépasse l’horizon existant', () => {
+    const r = computeReplanScope({
+      existingWeekNums: [1, 2, 3, 4],
+      cutoffWeek: 6,
+      newTotalWeeks: 8,
+    })
+    expect(r.preservedWeeks).toEqual([1, 2, 3, 4])
+    expect(r.regenerateWeeks).toEqual([])
+    expect(r.createWeeks).toEqual([5, 6, 7, 8])
+    expect(r.deleteWeeks).toEqual([])
   })
 
   it('cutoff=1 régénère tout (aucune semaine préservée)', () => {
