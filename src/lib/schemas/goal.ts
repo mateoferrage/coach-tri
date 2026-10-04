@@ -10,6 +10,7 @@ export const TRIATHLON_RACE_TYPES = [
 ] as const
 export const RUNNING_RACE_TYPES = ['road', 'trail', 'ultra'] as const
 export const SURFACE_TYPES = ['road', 'gravel', 'technical', 'mountain'] as const
+export const SPORT_TYPES = ['triathlon', 'running'] as const
 
 // Champs spécifiques à la course à pied / trail. Interdits sur un triathlon.
 const TRAIL_ONLY_FIELDS = [
@@ -25,7 +26,7 @@ const TRAIL_ONLY_FIELDS = [
 // `.omit` sur un objet portant un refinement). La validation croisée
 // (sport ↔ race_type, champs trail) vit uniquement sur `GoalSchema`.
 export const GoalBaseSchema = z.object({
-  sport: z.enum(['triathlon', 'running']).default('triathlon'),
+  sport: z.enum(SPORT_TYPES).default('triathlon'),
   race_name: z.string().min(1, 'Nom de la course requis'),
   race_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide'),
   race_type: z.enum([...TRIATHLON_RACE_TYPES, ...RUNNING_RACE_TYPES]),

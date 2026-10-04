@@ -29,7 +29,8 @@ describe('GoalSchema', () => {
   })
 
   it('applique sport=triathlon par défaut', () => {
-    const parsed = GoalSchema.parse(triathlon)
+    const { sport: _omit, ...withoutSport } = triathlon
+    const parsed = GoalSchema.parse(withoutSport)
     expect(parsed.sport).toBe('triathlon')
   })
 
