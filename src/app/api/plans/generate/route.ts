@@ -23,37 +23,35 @@ export async function POST(request: Request) {
   const parsed = PlanGenerationSchema.safeParse(body)
   if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-  const { mode, goal_id, methodology, start_date } = parsed.data
+  const { mode, goal_ids, primary_goal_id, methodology, start_date } = parsed.data
 
-  if (mode === 'race' && !goal_id) return apiError('goal_id requis pour le mode course', 400)
+  if (mode === 'race' && (!goal_ids?.length || !primary_goal_id))
+    return apiError('Courses requises pour le mode course', 400)
 
   const admin = createAdminClient()
-
-  // Fetch user profile
 
   const { data: profile } = (await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()) as { data: Record<string, unknown> | null }
-
   if (!profile) return apiError('Profil non configuré', 400)
 
-  // Fetch goal if race mode
-  let goal: Record<string, unknown> | null = null
+  let goalRows: Array<Record<string, unknown>> = []
+  let primaryGoal: Record<string, unknown> | null = null
   let end_date = format(addWeeks(parseISO(start_date), 16), 'yyyy-MM-dd')
 
-  if (mode === 'race' && goal_id) {
-    const { data: goalData } = (await supabase
+  if (mode === 'race' && goal_ids?.length) {
+    const { data } = (await supabase
       .from('goals')
       .select('*')
-      .eq('id', goal_id)
-      .eq('user_id', user.id)
-      .single()) as { data: Record<string, unknown> | null }
-
-    if (!goalData) return apiError('Course introuvable', 404)
-    goal = goalData
-    end_date = goalData.race_date as string
+      .in('id', goal_ids)
+      .eq('user_id', user.id)) as { data: Array<Record<string, unknown>> | null }
+    goalRows = data ?? []
+    if (goalRows.length !== goal_ids.length) return apiError('Course(s) introuvable(s)', 404)
+    primaryGoal = goalRows.find((g) => g.id === primary_goal_id) ?? null
+    if (!primaryGoal) return apiError('Course principale introuvable', 404)
+    end_date = primaryGoal.race_date as string
   }
 
   const total_weeks = Math.max(4, differenceInWeeks(parseISO(end_date), parseISO(start_date)))
@@ -87,6 +85,24 @@ export async function POST(request: Request) {
   const activitySummary = buildActivitySummary(recentActivities ?? [])
   const wellnessSummary = buildWellnessSummary(recentWellness ?? [])
 
+  const goalContexts = goalRows.map((g) => ({
+    role: g.id === primary_goal_id ? ('primary' as const) : ('secondary' as const),
+    sport: (g.sport as 'triathlon' | 'running') ?? 'triathlon',
+    race_name: g.race_name as string,
+    race_type: g.race_type as string,
+    race_date: g.race_date as string,
+    swim_distance_m: g.swim_distance_m as number | null,
+    bike_distance_m: g.bike_distance_m as number | null,
+    run_distance_m: g.run_distance_m as number | null,
+    elevation_gain_m: g.run_elevation_m as number | null,
+    elevation_loss_m: g.elevation_loss_m as number | null,
+    surface: g.surface as string | null,
+    terrain: g.terrain as string | null,
+    max_altitude_m: g.max_altitude_m as number | null,
+    cutoff_time_s: g.cutoff_time_s as number | null,
+    estimated_finish_time_s: g.estimated_finish_time_s as number | null,
+  }))
+
   // Build Gemini prompt and generate macro plan
   const userPrompt = buildMacroPrompt({
     profile: profile as Parameters<typeof buildMacroPrompt>[0]['profile'],
@@ -94,17 +110,7 @@ export async function POST(request: Request) {
     methodology,
     start_date,
     total_weeks,
-    goal: goal
-      ? {
-          race_name: goal.race_name as string,
-          race_type: goal.race_type as string,
-          race_date: goal.race_date as string,
-          swim_distance_m: goal.swim_distance_m as number | null,
-          bike_distance_m: goal.bike_distance_m as number | null,
-          run_distance_m: goal.run_distance_m as number | null,
-          terrain: goal.terrain as string | null,
-        }
-      : undefined,
+    goals: goalContexts.length ? goalContexts : undefined,
     performance: physiology ?? undefined,
     recent_activity_summary: activitySummary || undefined,
     recent_wellness_summary: wellnessSummary || undefined,
@@ -149,8 +155,8 @@ export async function POST(request: Request) {
     .from('plans')
     .insert({
       user_id: user.id,
-      goal_id: goal_id ?? null,
-      name: goal ? `Programme ${goal.race_name}` : `Programme Maintien — ${start_date}`,
+      goal_id: primary_goal_id ?? null,
+      name: primaryGoal ? `Programme ${primaryGoal.race_name}` : `Programme Maintien — ${start_date}`,
       start_date,
       end_date,
       methodology,
@@ -163,6 +169,12 @@ export async function POST(request: Request) {
     .single()) as { data: { id: string } | null; error: { message: string } | null }
 
   if (planError || !plan) return apiError(planError?.message ?? 'Erreur création plan', 500)
+
+  if (goal_ids?.length) {
+    await admin
+      .from('plan_goals')
+      .insert(goal_ids.map((gid) => ({ plan_id: plan.id, goal_id: gid })))
+  }
 
   // 2. Archive other active plans
 
