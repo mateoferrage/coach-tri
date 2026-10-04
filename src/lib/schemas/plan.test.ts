@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { PlanGenerationSchema } from './plan'
 
 const base = { methodology: 'polarized', start_date: '2026-01-05' }
-const g1 = '11111111-1111-1111-1111-111111111111'
-const g2 = '22222222-2222-2222-2222-222222222222'
+// UUID v4 conformes RFC (nibbles version=4 et variant=8) pour passer z.uuid()
+const g1 = '11111111-1111-4111-8111-111111111111'
+const g2 = '22222222-2222-4222-8222-222222222222'
 
 describe('PlanGenerationSchema', () => {
   it('mode race : accepte goal_ids + primary_goal_id valides', () => {
