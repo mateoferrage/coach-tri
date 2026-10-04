@@ -18,11 +18,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { GoalSchema, RACE_DISTANCES } from '@/lib/schemas/goal'
+import { GoalBaseSchema, RACE_DISTANCES } from '@/lib/schemas/goal'
 import { format } from 'date-fns'
 
-// Strip .default() from shared schema — react-hook-form resolver requires input/output types to match
-const GoalFormSchema = GoalSchema.omit({ priority: true, target_type: true }).extend({
+// Strip .default() from shared schema — react-hook-form resolver requires input/output types to match.
+// Uses GoalBaseSchema (the plain object) because `.omit` can't run on GoalSchema's refinement.
+const GoalFormSchema = GoalBaseSchema.omit({
+  sport: true,
+  priority: true,
+  target_type: true,
+}).extend({
+  sport: z.enum(['triathlon', 'running']).optional(),
   priority: z.enum(['A', 'B', 'C']).optional(),
   target_type: z.enum(['finish', 'time', 'podium']).optional(),
 })
