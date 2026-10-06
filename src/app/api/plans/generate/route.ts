@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     swim_distance_m: g.swim_distance_m as number | null,
     bike_distance_m: g.bike_distance_m as number | null,
     run_distance_m: g.run_distance_m as number | null,
-    elevation_gain_m: g.run_elevation_m as number | null,
+    elevation_gain_m: g.run_elevation_m as number | null, // D+ ← colonne DB run_elevation_m
     elevation_loss_m: g.elevation_loss_m as number | null,
     surface: g.surface as string | null,
     terrain: g.terrain as string | null,
@@ -170,10 +170,16 @@ export async function POST(request: Request) {
 
   if (planError || !plan) return apiError(planError?.message ?? 'Erreur création plan', 500)
 
+  // Rattacher toutes les courses au plan. Écriture porteuse : en cas d'échec on
+  // supprime le plan (le cascade nettoie) pour ne pas laisser un plan incomplet.
   if (goal_ids?.length) {
-    await admin
+    const { error: planGoalsError } = await admin
       .from('plan_goals')
       .insert(goal_ids.map((gid) => ({ plan_id: plan.id, goal_id: gid })))
+    if (planGoalsError) {
+      await admin.from('plans').delete().eq('id', plan.id)
+      return apiError(`Échec rattachement des courses : ${planGoalsError.message}`, 500)
+    }
   }
 
   // 2. Archive other active plans

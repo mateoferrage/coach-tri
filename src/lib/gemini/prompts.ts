@@ -200,7 +200,7 @@ export interface GoalContext {
 }
 
 function fmtHms(sec?: number | null): string {
-  if (!sec) return '?'
+  if (sec == null) return '?'
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`
@@ -222,9 +222,9 @@ function describeGoal(g: GoalContext): string {
     const detail = [
       g.surface && `technicité ${SURFACE_FR[g.surface] ?? g.surface}`,
       g.terrain && `profil ${g.terrain}`,
-      g.max_altitude_m && `altitude max ${g.max_altitude_m}m`,
-      g.cutoff_time_s && `barrière horaire ${fmtHms(g.cutoff_time_s)}`,
-      g.estimated_finish_time_s && `temps estimé ${fmtHms(g.estimated_finish_time_s)}`,
+      g.max_altitude_m != null && `altitude max ${g.max_altitude_m}m`,
+      g.cutoff_time_s != null && `barrière horaire ${fmtHms(g.cutoff_time_s)}`,
+      g.estimated_finish_time_s != null && `temps estimé ${fmtHms(g.estimated_finish_time_s)}`,
     ].filter(Boolean)
     if (detail.length) lines.push(`  ${detail.join(', ')}`)
   } else {
@@ -281,7 +281,7 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     ctx.mode === 'race' && ctx.goals?.length
       ? `OBJECTIF(S) DE COURSE :\n${ctx.goals
           .slice()
-          .sort((a, b) => (a.role === 'primary' ? -1 : 1) - (b.role === 'primary' ? -1 : 1))
+          .sort((a, b) => (a.role === 'primary' ? 0 : 1) - (b.role === 'primary' ? 0 : 1))
           .map(describeGoal)
           .join('\n')}`
       : 'MODE : Maintien de forme (programme continu sans objectif de course)'
