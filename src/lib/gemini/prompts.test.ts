@@ -33,4 +33,19 @@ describe('buildMacroPrompt (multi-courses)', () => {
     const out = buildMacroPrompt({ profile, mode: 'maintenance', methodology: 'polarized', start_date: '2026-03-01', total_weeks: 12 })
     expect(out).toContain('Maintien')
   })
+
+  it('injecte la spécialisation trail quand une course running est présente', () => {
+    const out = buildMacroPrompt({
+      profile, mode: 'race', methodology: 'polarized', start_date: '2026-03-01', total_weeks: 25, goals: [trail],
+    })
+    expect(out).toContain('SPÉCIALISATION TRAIL')
+    expect(out).toContain('excentrique')
+  })
+
+  it("n'injecte pas la spécialisation trail pour un triathlon seul", () => {
+    const out = buildMacroPrompt({
+      profile, mode: 'race', methodology: 'polarized', start_date: '2026-03-01', total_weeks: 25, goals: [tri],
+    })
+    expect(out).not.toContain('SPÉCIALISATION TRAIL')
+  })
 })

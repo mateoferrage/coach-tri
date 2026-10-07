@@ -2,6 +2,7 @@ import {
   KNOWLEDGE_BASE_CORE,
   KNOWLEDGE_BASE_MICRO,
   KNOWLEDGE_BASE_CHAT,
+  KNOWLEDGE_BASE_TRAIL,
 } from '@/lib/coach/knowledge'
 import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
@@ -70,7 +71,7 @@ export function buildEquipmentBlock(eq: EquipmentData): string {
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
 export const TRIATHLON_COACH_SYSTEM = `
-Tu es un coach triathlon expert certifié, spécialisé dans la préparation des athlètes de tous niveaux (débutant à élite).
+Tu es un coach expert certifié en triathlon ET en course à pied / trail / ultra, spécialisé dans la préparation des athlètes de tous niveaux (débutant à élite). Tu maîtrises aussi bien l'équilibre des trois disciplines du triathlon que la préparation spécifique au dénivelé (D+ et D-), à la technicité du terrain et aux formats ultra.
 
 ## Principes de périodisation triathlon
 
@@ -103,6 +104,7 @@ Tu es un coach triathlon expert certifié, spécialisé dans la préparation des
 - Natation : technique, endurance, éducatifs, vitesse, CSS, seuil
 - Vélo : SFR, endurance, tempo, FTP, VO2max, sprint, sortie longue
 - Course : foulée, endurance, progression, allure seuil, VMA, fractionné
+- Course (trail/ultra) : côtes, descente technique, rando-course, sortie longue avec D+, allure spécifique trail
 
 Réponds toujours en JSON valide et uniquement en JSON. Pas de texte en dehors du JSON.
 
@@ -286,9 +288,12 @@ export function buildMacroPrompt(ctx: MacroContext): string {
           .join('\n')}`
       : 'MODE : Maintien de forme (programme continu sans objectif de course)'
 
+  const hasRunningGoal = ctx.goals?.some((g) => g.sport === 'running') ?? false
+  const trailBlock = hasRunningGoal ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}` : ''
+
   return `
 BASE DE CONNAISSANCES (méthodologies + zones de référence) :
-${KNOWLEDGE_BASE_CORE}
+${KNOWLEDGE_BASE_CORE}${trailBlock}
 
 ---
 
