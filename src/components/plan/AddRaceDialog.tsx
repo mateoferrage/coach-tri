@@ -126,7 +126,7 @@ export function AddRaceDialog({
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
               Annuler
             </Button>
             <Button onClick={handleConfirm} disabled={!selectedId || loading}>
