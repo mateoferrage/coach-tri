@@ -358,6 +358,8 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                       <Select
                         value={currentValue ?? ''}
                         onValueChange={(v) => {
+                          // Lire la valeur fraîche du primaire (pas la snapshot de render)
+                          const primaryId = settingsForm.getValues('existing_goal_id')
                           setSecondaryGoalIds((prev) => {
                             const next = [...prev]
                             if (!v) {
@@ -368,7 +370,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                             // Deduplicate and remove primary
                             const seen = new Set<string>()
                             return next.filter((id) => {
-                              if (!id || id === selectedPrimaryId || seen.has(id)) return false
+                              if (!id || id === primaryId || seen.has(id)) return false
                               seen.add(id)
                               return true
                             })
