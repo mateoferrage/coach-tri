@@ -11,6 +11,7 @@ import type { MicroSessions } from '@/lib/schemas/plan'
 import { generateMacroWeeks } from '@/lib/plan/macro'
 import { buildMicroInputForWeek } from '@/lib/plan/micro-context'
 import { replaceWeekSessions } from '@/lib/plan/micro'
+import { buildGoalContexts } from '@/lib/plan/goal-context'
 import { currentWeekNum } from '@/lib/plan/replan-weeknum'
 import { computeReplanScope } from '@/lib/plan/replan'
 import { addWeeks, format, parseISO } from 'date-fns'
@@ -72,24 +73,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!primaryGoal) return apiError('Course principale introuvable', 404)
   const newEndDate = primaryGoal.race_date as string
 
-  // 5. Build goal contexts (same mapping as generate/route.ts)
-  const goalContexts = goalRows.map((g) => ({
-    role: g.id === primary_goal_id ? ('primary' as const) : ('secondary' as const),
-    sport: (g.sport as 'triathlon' | 'running') ?? 'triathlon',
-    race_name: g.race_name as string,
-    race_type: g.race_type as string,
-    race_date: g.race_date as string,
-    swim_distance_m: g.swim_distance_m as number | null,
-    bike_distance_m: g.bike_distance_m as number | null,
-    run_distance_m: g.run_distance_m as number | null,
-    elevation_gain_m: g.run_elevation_m as number | null, // D+ ← colonne DB run_elevation_m
-    elevation_loss_m: g.elevation_loss_m as number | null,
-    surface: g.surface as string | null,
-    terrain: g.terrain as string | null,
-    max_altitude_m: g.max_altitude_m as number | null,
-    cutoff_time_s: g.cutoff_time_s as number | null,
-    estimated_finish_time_s: g.estimated_finish_time_s as number | null,
-  }))
+  // 5. Build goal contexts (shared mapping with generate/route.ts)
+  const goalContexts = buildGoalContexts(goalRows, primary_goal_id)
 
   // 6. Fetch existing weeks
   const { data: existingWeeks } = (await admin
@@ -121,14 +106,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .insert(goal_ids.map((gid) => ({ plan_id, goal_id: gid })))
   if (insGoalsError)
     return apiError(`Échec rattachement des courses : ${insGoalsError.message}`, 500)
-  await admin.from('plans').update({ goal_id: primary_goal_id }).eq('id', plan_id)
+  const { error: repointError } = await admin
+    .from('plans')
+    .update({ goal_id: primary_goal_id })
+    .eq('id', plan_id)
+  if (repointError)
+    return apiError(`Échec mise à jour de la course principale : ${repointError.message}`, 500)
 
   // 9. Delete out-of-horizon weeks (cascade removes their sessions)
   if (scope.deleteWeeks.length) {
     const deleteIds = weeks
       .filter((w) => scope.deleteWeeks.includes(w.week_num))
       .map((w) => w.id)
-    if (deleteIds.length) await admin.from('plan_weeks').delete().in('id', deleteIds)
+    if (deleteIds.length) {
+      const { error: delWeeksError } = await admin.from('plan_weeks').delete().in('id', deleteIds)
+      if (delWeeksError)
+        return apiError(`Échec suppression des semaines hors horizon : ${delWeeksError.message}`, 500)
+    }
   }
 
   // 10. MACRO regen for the tail
@@ -154,7 +148,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const staleTailIds = weeks
     .filter((w) => w.week_num >= cutoffWeek && w.week_num <= newTotalWeeks)
     .map((w) => w.id)
-  if (staleTailIds.length) await admin.from('plan_weeks').delete().in('id', staleTailIds)
+  if (staleTailIds.length) {
+    const { error: delTailError } = await admin.from('plan_weeks').delete().in('id', staleTailIds)
+    if (delTailError)
+      return apiError(`Échec remplacement des semaines : ${delTailError.message}`, 500)
+  }
 
   const tailRows = tailWeeks.map((w) => ({
     plan_id,
@@ -193,6 +191,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }> | null
   }
 
+  // Pré-générer TOUS les micro en mémoire avant d'écrire la moindre séance : si
+  // Gemini échoue (ou ne renvoie rien) en cours de route, aucune séance n'est
+  // écrite — on évite un plan à moitié peuplé (certaines semaines avec séances,
+  // d'autres nues). Défaut semaine complète : le replan est global, pas par-jour.
+  const microByWeek: Array<{ weekId: string; sessions: MicroSessions['sessions'] }> = []
   try {
     for (const week of tailWeekRows ?? []) {
       const input = await buildMicroInputForWeek({
@@ -207,19 +210,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         TRIATHLON_COACH_SYSTEM,
         buildMicroPrompt(input),
       )
-      if (micro.sessions?.length) {
-        await replaceWeekSessions({
-          admin,
-          plan_id,
-          plan_week_id: week.id,
-          user_id: user.id,
-          sessions: micro.sessions,
-        })
-      }
+      if (!micro.sessions?.length)
+        return apiError(`Aucune séance générée pour la semaine ${week.week_num}`, 500)
+      microByWeek.push({ weekId: week.id, sessions: micro.sessions })
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur Gemini'
     return apiError(`Génération IA échouée : ${msg}`, 500)
+  }
+
+  // Toutes les générations ont réussi → écrire les séances.
+  for (const { weekId, sessions } of microByWeek) {
+    await replaceWeekSessions({
+      admin,
+      plan_id,
+      plan_week_id: weekId,
+      user_id: user.id,
+      sessions,
+    })
   }
 
   // 12. Log generation

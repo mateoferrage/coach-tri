@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
 import { generateMacroWeeks } from '@/lib/plan/macro'
+import { buildGoalContexts } from '@/lib/plan/goal-context'
 import { buildMacroPrompt, type PerformanceData } from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
@@ -80,23 +81,7 @@ export async function POST(request: Request) {
   const activitySummary = buildActivitySummary(recentActivities ?? [])
   const wellnessSummary = buildWellnessSummary(recentWellness ?? [])
 
-  const goalContexts = goalRows.map((g) => ({
-    role: g.id === primary_goal_id ? ('primary' as const) : ('secondary' as const),
-    sport: (g.sport as 'triathlon' | 'running') ?? 'triathlon',
-    race_name: g.race_name as string,
-    race_type: g.race_type as string,
-    race_date: g.race_date as string,
-    swim_distance_m: g.swim_distance_m as number | null,
-    bike_distance_m: g.bike_distance_m as number | null,
-    run_distance_m: g.run_distance_m as number | null,
-    elevation_gain_m: g.run_elevation_m as number | null, // D+ ← colonne DB run_elevation_m
-    elevation_loss_m: g.elevation_loss_m as number | null,
-    surface: g.surface as string | null,
-    terrain: g.terrain as string | null,
-    max_altitude_m: g.max_altitude_m as number | null,
-    cutoff_time_s: g.cutoff_time_s as number | null,
-    estimated_finish_time_s: g.estimated_finish_time_s as number | null,
-  }))
+  const goalContexts = mode === 'race' ? buildGoalContexts(goalRows, primary_goal_id!) : []
 
   // Build Gemini prompt, generate and normalize the macro structure.
   // `generateMacroWeeks` validates phases against the strict lowercase CHECK
