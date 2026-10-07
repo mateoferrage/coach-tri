@@ -2,13 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
-import { normalizePhase } from '@/lib/plan/phases'
-import { generateJSON } from '@/lib/gemini/client'
-import {
-  TRIATHLON_COACH_SYSTEM,
-  buildMacroPrompt,
-  type PerformanceData,
-} from '@/lib/gemini/prompts'
+import { generateMacroWeeks } from '@/lib/plan/macro'
+import { buildMacroPrompt, type PerformanceData } from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
 export async function POST(request: Request) {
@@ -103,49 +98,29 @@ export async function POST(request: Request) {
     estimated_finish_time_s: g.estimated_finish_time_s as number | null,
   }))
 
-  // Build Gemini prompt and generate macro plan
-  const userPrompt = buildMacroPrompt({
-    profile: profile as Parameters<typeof buildMacroPrompt>[0]['profile'],
-    mode,
-    methodology,
-    start_date,
-    total_weeks,
-    goals: goalContexts.length ? goalContexts : undefined,
-    performance: physiology ?? undefined,
-    recent_activity_summary: activitySummary || undefined,
-    recent_wellness_summary: wellnessSummary || undefined,
-  })
-
-  let macroPlan: MacroPlan
+  // Build Gemini prompt, generate and normalize the macro structure.
+  // `generateMacroWeeks` validates phases against the strict lowercase CHECK
+  // constraint on `plan_phases.phase` before any DB write.
+  let validPhases: MacroPlan['phases']
+  let normalizedWeeks: MacroPlan['weeks']
   try {
-    macroPlan = await generateJSON<MacroPlan>(TRIATHLON_COACH_SYSTEM, userPrompt)
+    const macro = await generateMacroWeeks({
+      profile: profile as Parameters<typeof buildMacroPrompt>[0]['profile'],
+      mode,
+      methodology,
+      start_date,
+      total_weeks,
+      goals: goalContexts.length ? goalContexts : undefined,
+      performance: physiology ?? undefined,
+      recent_activity_summary: activitySummary || undefined,
+      recent_wellness_summary: wellnessSummary || undefined,
+    })
+    validPhases = macro.phases
+    normalizedWeeks = macro.weeks
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur Gemini'
-    return apiError(`Génération IA échouée : ${msg}`, 500)
+    return apiError(msg.startsWith('Réponse Gemini') ? msg : `Génération IA échouée : ${msg}`, 500)
   }
-
-  // Validate basic structure
-  if (!macroPlan.phases?.length || !macroPlan.weeks?.length) {
-    return apiError('Réponse Gemini invalide — structure manquante', 500)
-  }
-
-  // Normalize phase casing from the LLM before any DB write. `plan_phases.phase`
-  // has a strict lowercase CHECK constraint; Gemini sometimes returns UPPERCASE,
-  // which would silently fail the batch insert and leave a plan with no phases.
-  const normalizedPhases = macroPlan.phases.map((p) => {
-    const phase = normalizePhase(p.phase)
-    return phase ? { ...p, phase } : null
-  })
-  if (normalizedPhases.includes(null)) {
-    const bad = macroPlan.phases.map((p) => p.phase).filter((p) => !normalizePhase(p))
-    return apiError(`Réponse Gemini invalide — phase(s) inconnue(s) : ${bad.join(', ')}`, 500)
-  }
-  const validPhases = normalizedPhases as Array<MacroPlan['phases'][number]>
-  // plan_weeks.phase has no CHECK, but normalize it too so phase labels resolve.
-  const normalizedWeeks = macroPlan.weeks.map((w) => ({
-    ...w,
-    phase: normalizePhase(w.phase) ?? w.phase.trim().toLowerCase(),
-  }))
 
   // --- Save to database ---
 
@@ -163,7 +138,7 @@ export async function POST(request: Request) {
       periodization: 'linear',
       status: 'active',
       params: { mode, total_weeks },
-      summary: { phases_count: macroPlan.phases.length, weeks_count: macroPlan.weeks.length },
+      summary: { phases_count: validPhases.length, weeks_count: normalizedWeeks.length },
     })
     .select()
     .single()) as { data: { id: string } | null; error: { message: string } | null }
@@ -220,14 +195,14 @@ export async function POST(request: Request) {
     trigger: 'initial',
     scope: { weeks: [1, total_weeks] },
     model: 'gemini-2.5-flash',
-    response_meta: { weeks_generated: macroPlan.weeks.length },
+    response_meta: { weeks_generated: normalizedWeeks.length },
   })
 
   return apiSuccess(
     {
       plan_id: plan.id,
       total_weeks,
-      phases: macroPlan.phases.length,
+      phases: validPhases.length,
       weeks_created: insertedWeeks?.length ?? 0,
       message: 'Programme généré avec succès',
     },
