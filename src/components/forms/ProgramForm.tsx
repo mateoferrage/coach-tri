@@ -162,6 +162,7 @@ interface Goal {
   race_name: string
   race_date: string
   race_type: string
+  sport?: string
 }
 
 export function ProgramForm({ goals }: { goals: Goal[] }) {
@@ -171,6 +172,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
   const [sport, setSport] = useState<'triathlon' | 'running'>('triathlon')
   const [loading, setLoading] = useState(false)
   const [goalCreated, setGoalCreated] = useState<Goal | null>(null)
+  const [secondaryGoalIds, setSecondaryGoalIds] = useState<string[]>([])
 
   const goalForm = useForm<GoalFormData>({
     resolver: zodResolver(GoalFormSchema),
@@ -186,6 +188,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
   })
   // useWatch (plutôt que settingsForm.watch dans le render) : compatible React Compiler
   const selectedMethodology = useWatch({ control: settingsForm.control, name: 'methodology' })
+  const selectedPrimaryId = useWatch({ control: settingsForm.control, name: 'existing_goal_id' })
 
   function onRaceTypeChange(type: string | null) {
     if (!type) return
@@ -214,10 +217,10 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
   async function createGoalAndGenerate(settings: ProgramSettings) {
     setLoading(true)
     try {
-      let goal_id = settings.existing_goal_id ?? goalCreated?.id
+      let primaryId = settings.existing_goal_id ?? goalCreated?.id
 
       // If race mode and no goal yet, validate then create the goal first
-      if (mode === 'race' && !goal_id) {
+      if (mode === 'race' && !primaryId) {
         const valid = await goalForm.trigger()
         if (!valid) {
           toast.error('Complète les informations de la course (nom, date, type).')
@@ -240,7 +243,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
           throw new Error(err.error ?? 'Erreur création objectif')
         }
         const created = await goalRes.json()
-        goal_id = created.id
+        primaryId = created.id
         setGoalCreated(created)
       }
 
@@ -249,15 +252,31 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
         duration: 20000,
       })
 
+      let body: Record<string, unknown>
+      if (mode === 'race') {
+        const secondaryIds = secondaryGoalIds
+          .filter((id) => id !== primaryId)
+          .slice(0, 2)
+        const goal_ids = primaryId ? [primaryId, ...secondaryIds] : []
+        body = {
+          mode,
+          goal_ids,
+          primary_goal_id: primaryId,
+          methodology: settings.methodology,
+          start_date: settings.start_date,
+        }
+      } else {
+        body = {
+          mode,
+          methodology: settings.methodology,
+          start_date: settings.start_date,
+        }
+      }
+
       const genRes = await fetch('/api/plans/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode,
-          goal_id: mode === 'race' ? goal_id : undefined,
-          methodology: settings.methodology,
-          start_date: settings.start_date,
-        }),
+        body: JSON.stringify(body),
       })
 
       const genData = await genRes.json()
@@ -291,13 +310,16 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
           {goals.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Utiliser une course existante</CardTitle>
+                <CardTitle className="text-base">Course principale (objectif A)</CardTitle>
               </CardHeader>
               <CardContent>
                 <Select
-                  onValueChange={(v) =>
-                    settingsForm.setValue('existing_goal_id', v != null ? String(v) : undefined)
-                  }
+                  onValueChange={(v) => {
+                    const id = v != null ? String(v) : undefined
+                    settingsForm.setValue('existing_goal_id', id)
+                    // Remove from secondary if it was there
+                    setSecondaryGoalIds((prev) => prev.filter((s) => s !== id))
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choisir une course..." />
@@ -306,10 +328,77 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                     {goals.map((g) => (
                       <SelectItem key={g.id} value={g.id}>
                         {g.race_name} — {g.race_date}
+                        {g.sport ? ` · ${g.sport === 'running' ? 'course à pied' : g.sport}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Secondary courses — only shown when there are goals to choose from */}
+          {goals.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Courses secondaires (optionnel, max 2)</CardTitle>
+                <CardDescription>
+                  Objectifs B / C intégrés dans la planification
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(['B', 'C'] as const).map((priority, idx) => {
+                  const availableGoals = goals.filter((g) => g.id !== selectedPrimaryId)
+                  const currentValue = secondaryGoalIds[idx]
+                  return (
+                    <div key={priority} className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        Objectif {priority}
+                      </span>
+                      <Select
+                        value={currentValue ?? ''}
+                        onValueChange={(v) => {
+                          setSecondaryGoalIds((prev) => {
+                            const next = [...prev]
+                            if (!v) {
+                              next.splice(idx, 1)
+                            } else {
+                              next[idx] = v
+                            }
+                            // Deduplicate and remove primary
+                            const seen = new Set<string>()
+                            return next.filter((id) => {
+                              if (!id || id === selectedPrimaryId || seen.has(id)) return false
+                              seen.add(id)
+                              return true
+                            })
+                          })
+                        }}
+                        disabled={idx === 1 && secondaryGoalIds.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Aucune (optionnel)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Aucune</SelectItem>
+                          {availableGoals
+                            .filter(
+                              (g) =>
+                                !secondaryGoalIds.includes(g.id) || secondaryGoalIds[idx] === g.id,
+                            )
+                            .map((g) => (
+                              <SelectItem key={g.id} value={g.id}>
+                                {g.race_name} — {g.race_date}
+                                {g.sport
+                                  ? ` · ${g.sport === 'running' ? 'course à pied' : g.sport}`
+                                  : ''}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )
+                })}
               </CardContent>
             </Card>
           )}
