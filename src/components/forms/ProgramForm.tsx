@@ -192,6 +192,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
     setSelectedRaceType(type)
     goalForm.setValue('race_type', type as GoalFormData['race_type'])
     const distances = RACE_DISTANCES[type as keyof typeof RACE_DISTANCES]
+    if (!distances) return // type de course à pied : pas de pré-remplissage triathlon
     if (distances.swim) goalForm.setValue('swim_distance_m', distances.swim)
     if (distances.bike) goalForm.setValue('bike_distance_m', distances.bike)
     if (distances.run) goalForm.setValue('run_distance_m', distances.run)
@@ -356,7 +357,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 <div className="space-y-2">
                   <Label>Type</Label>
                   {sport === 'triathlon' ? (
-                    <Select defaultValue="olympic" onValueChange={onRaceTypeChange}>
+                    <Select value={selectedRaceType} onValueChange={onRaceTypeChange}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -369,11 +370,14 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Select defaultValue="trail" onValueChange={(v) => {
-                      if (!v) return
-                      setSelectedRaceType(v)
-                      goalForm.setValue('race_type', v as GoalFormData['race_type'])
-                    }}>
+                    <Select
+                      value={selectedRaceType}
+                      onValueChange={(v) => {
+                        if (!v) return
+                        setSelectedRaceType(v)
+                        goalForm.setValue('race_type', v as GoalFormData['race_type'])
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
