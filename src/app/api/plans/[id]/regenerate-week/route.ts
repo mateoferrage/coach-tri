@@ -12,8 +12,8 @@ import {
   type EquipmentData,
 } from '@/lib/gemini/prompts'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
-import { asJson } from '@/lib/utils/json'
 import type { MicroSessions } from '@/lib/schemas/plan'
+import { replaceWeekSessions } from '@/lib/plan/micro'
 import { z } from 'zod'
 import { addDays, format, parseISO } from 'date-fns'
 import { refreshIfNeeded, getAthleteStatsCompact } from '@/lib/strava/client'
@@ -300,89 +300,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (!microPlan.sessions?.length) return apiError("Gemini n'a retourné aucune séance", 500)
 
-  const VALID_SESSION_TYPES = new Set([
-    'easy',
-    'tempo',
-    'threshold',
-    'vo2',
-    'race_pace',
-    'technique',
-    'long',
-    'recovery',
-    'test',
-  ])
-  const SESSION_TYPE_MAP: Record<string, string> = {
-    endurance: 'easy',
-    interval: 'vo2',
-    intervals: 'vo2',
-    ftp: 'threshold',
-    sprint: 'vo2',
-    speed: 'vo2',
-    strength: 'easy',
-    brick: 'easy',
-    'race pace': 'race_pace',
-    moderate: 'tempo',
-    z2: 'easy',
-    base: 'easy',
-  }
-  function normalizeSessionType(raw: string): string {
-    const lower = (raw ?? '').toLowerCase().trim()
-    if (VALID_SESSION_TYPES.has(lower)) return lower
-    return SESSION_TYPE_MAP[lower] ?? 'easy'
-  }
-
-  const VALID_DISCIPLINES = new Set(['swim', 'bike', 'run', 'brick', 'strength', 'rest'])
-  function normalizeDiscipline(raw: string): string {
-    const lower = (raw ?? '').toLowerCase().trim()
-    return VALID_DISCIPLINES.has(lower) ? lower : 'run'
-  }
-
-  // Contrainte DB : expected_rpe doit être null ou un entier entre 1 et 10.
-  // Gemini renvoie parfois 0 (jour de repos/récup) ou une valeur hors bornes →
-  // on assainit avant insert pour ne pas violer sessions_expected_rpe_check.
-  function normalizeExpectedRpe(raw: unknown): number | null {
-    if (typeof raw !== 'number' || !Number.isFinite(raw)) return null
-    const rounded = Math.round(raw)
-    if (rounded < 1) return null
-    return Math.min(rounded, 10)
-  }
-
-  // Delete existing planned sessions for this week (keep done/skipped)
-
-  await admin
-    .from('sessions')
-    .delete()
-    .eq('plan_week_id', week.id as string)
-    .eq('status', 'planned')
-
-  // Insert new sessions
-  const sessionRows = microPlan.sessions.map((s) => {
-    const jsDay = new Date(s.session_date + 'T00:00:00').getDay() // 0=dim, 6=sam
-    // Weekdays → evening (18h), Saturday → morning (7h), Sunday → midday (12h)
-    const day_part = jsDay === 0 ? 'midday' : jsDay === 6 ? 'morning' : 'evening'
-    return {
-      plan_id,
-      plan_week_id: week.id,
-      user_id: user.id,
-      ...s,
-      discipline: normalizeDiscipline(s.discipline),
-      session_type: normalizeSessionType(s.session_type),
-      expected_rpe: normalizeExpectedRpe(s.expected_rpe),
-      day_part,
-      status: 'planned',
-      structure: asJson(s.structure),
-      target_values: asJson(s.target_values),
-    }
+  const { data: insertedSessions, error: insertError } = await replaceWeekSessions({
+    admin,
+    plan_id,
+    plan_week_id: week.id as string,
+    user_id: user.id,
+    sessions: microPlan.sessions,
   })
-
-  const { data: insertedSessions, error: insertError } = (await admin
-    .from('sessions')
-    .insert(sessionRows)
-    .select('id, title, session_date, discipline')) as {
-    data: Array<Record<string, unknown>> | null
-    error: { message: string } | null
-  }
-
   if (insertError) return apiError(insertError.message)
 
   // Log generation
