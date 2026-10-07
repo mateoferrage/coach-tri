@@ -51,6 +51,19 @@ const RACE_TYPES = [
   { value: 'custom', label: 'Personnalisé' },
 ]
 
+const RUNNING_RACE_TYPES_UI = [
+  { value: 'road', label: 'Route (10 km, semi, marathon…)' },
+  { value: 'trail', label: 'Trail' },
+  { value: 'ultra', label: 'Ultra' },
+]
+
+const SURFACE_OPTIONS = [
+  { value: 'road', label: 'Route' },
+  { value: 'gravel', label: 'Chemin roulant' },
+  { value: 'technical', label: 'Sentier technique' },
+  { value: 'mountain', label: 'Montagne' },
+]
+
 const METHODOLOGIES = [
   {
     value: 'polarized',
@@ -155,12 +168,13 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
   const router = useRouter()
   const [mode, setMode] = useState<'race' | 'maintenance'>('race')
   const [selectedRaceType, setSelectedRaceType] = useState<string>('olympic')
+  const [sport, setSport] = useState<'triathlon' | 'running'>('triathlon')
   const [loading, setLoading] = useState(false)
   const [goalCreated, setGoalCreated] = useState<Goal | null>(null)
 
   const goalForm = useForm<GoalFormData>({
     resolver: zodResolver(GoalFormSchema),
-    defaultValues: { priority: 'A', target_type: 'finish' },
+    defaultValues: { priority: 'A', target_type: 'finish', sport: 'triathlon', race_type: 'olympic' },
   })
   const watchTargetType = useWatch({ control: goalForm.control, name: 'target_type' })
   const settingsForm = useForm<ProgramSettings>({
@@ -183,6 +197,19 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
     if (distances.run) goalForm.setValue('run_distance_m', distances.run)
   }
 
+  function onSportChange(value: string | null) {
+    if (!value) return
+    const s = value as 'triathlon' | 'running'
+    setSport(s)
+    goalForm.setValue('sport', s)
+    if (s === 'triathlon') {
+      onRaceTypeChange('olympic')
+    } else {
+      setSelectedRaceType('trail')
+      goalForm.setValue('race_type', 'trail')
+    }
+  }
+
   async function createGoalAndGenerate(settings: ProgramSettings) {
     setLoading(true)
     try {
@@ -195,7 +222,13 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
           toast.error('Complète les informations de la course (nom, date, type).')
           return
         }
-        const goalData = goalForm.getValues()
+        const rawGoalData = goalForm.getValues()
+        // Strip NaN produced by valueAsNumber on empty number inputs so Zod
+        // treats them as undefined (matching how the existing swim/bike/run
+        // custom-distance inputs behave — they also use valueAsNumber).
+        const goalData = Object.fromEntries(
+          Object.entries(rawGoalData).filter(([, v]) => !(typeof v === 'number' && isNaN(v))),
+        ) as typeof rawGoalData
         const goalRes = await fetch('/api/goals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -288,9 +321,26 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
               <CardDescription>Les distances sont pré-remplies selon le type</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Sport selector */}
+              <div className="space-y-2">
+                <Label>Sport</Label>
+                <Select defaultValue="triathlon" onValueChange={onSportChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="triathlon">Triathlon</SelectItem>
+                    <SelectItem value="running">Course à pied (route / trail / ultra)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Nom de la course</Label>
-                <Input placeholder="Ex: Ironman 70.3 Nice" {...goalForm.register('race_name')} />
+                <Input
+                  placeholder={sport === 'triathlon' ? 'Ex: Ironman 70.3 Nice' : 'Ex: UTMB, Paris Marathon…'}
+                  {...goalForm.register('race_name')}
+                />
                 {goalForm.formState.errors.race_name && (
                   <p className="text-xs text-red-500">
                     {goalForm.formState.errors.race_name.message}
@@ -305,22 +355,42 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 </div>
                 <div className="space-y-2">
                   <Label>Type</Label>
-                  <Select defaultValue="olympic" onValueChange={onRaceTypeChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RACE_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {sport === 'triathlon' ? (
+                    <Select defaultValue="olympic" onValueChange={onRaceTypeChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RACE_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Select defaultValue="trail" onValueChange={(v) => {
+                      if (!v) return
+                      setSelectedRaceType(v)
+                      goalForm.setValue('race_type', v as GoalFormData['race_type'])
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RUNNING_RACE_TYPES_UI.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
 
-              {selectedRaceType === 'custom' && (
+              {/* Triathlon-specific: custom distances */}
+              {sport === 'triathlon' && selectedRaceType === 'custom' && (
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Nage (m)</Label>
@@ -346,25 +416,121 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Terrain vélo/course</Label>
-                  <Select
-                    onValueChange={(v) =>
-                      goalForm.setValue('terrain', (v ?? undefined) as GoalFormData['terrain'])
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Terrain..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="flat">Plat</SelectItem>
-                      <SelectItem value="hilly">Vallonné</SelectItem>
-                      <SelectItem value="mountainous">Montagneux</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Running-specific fields */}
+              {sport === 'running' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Distance (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 42195"
+                        {...goalForm.register('run_distance_m', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">D+ dénivelé positif (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 2300"
+                        {...goalForm.register('run_elevation_m', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">D- dénivelé négatif (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 2300"
+                        {...goalForm.register('elevation_loss_m', { valueAsNumber: true })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Altitude max (m)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 2500"
+                        {...goalForm.register('max_altitude_m', { valueAsNumber: true })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Technicité</Label>
+                      <Select
+                        onValueChange={(v) =>
+                          goalForm.setValue('surface', v as GoalFormData['surface'])
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Technicité..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SURFACE_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Profil</Label>
+                      <Select
+                        onValueChange={(v) =>
+                          goalForm.setValue('terrain', (v ?? undefined) as GoalFormData['terrain'])
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Profil..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="flat">Plat</SelectItem>
+                          <SelectItem value="hilly">Vallonné</SelectItem>
+                          <SelectItem value="mountainous">Montagneux</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <TimeInput
+                      label="Barrière horaire (cut-off)"
+                      valueSeconds={goalForm.getValues('cutoff_time_s')}
+                      onChange={(v) => goalForm.setValue('cutoff_time_s', v)}
+                      showHours
+                    />
+                    <TimeInput
+                      label="Temps estimé"
+                      valueSeconds={goalForm.getValues('estimated_finish_time_s')}
+                      onChange={(v) => goalForm.setValue('estimated_finish_time_s', v)}
+                      showHours
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                {sport === 'triathlon' && (
+                  <div className="space-y-2">
+                    <Label>Terrain vélo/course</Label>
+                    <Select
+                      onValueChange={(v) =>
+                        goalForm.setValue('terrain', (v ?? undefined) as GoalFormData['terrain'])
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Terrain..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flat">Plat</SelectItem>
+                        <SelectItem value="hilly">Vallonné</SelectItem>
+                        <SelectItem value="mountainous">Montagneux</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className={sport === 'triathlon' ? 'space-y-2' : 'space-y-2 col-span-2'}>
                   <Label>Objectif</Label>
                   <Select
                     defaultValue="finish"
@@ -399,44 +565,46 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Détail par discipline{' '}
-                      <span className="font-normal text-muted-foreground">(optionnel)</span>
-                    </p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      <TimeInput
-                        label="Natation"
-                        valueSeconds={goalForm.getValues('swim_target_time_s')}
-                        onChange={(v) => goalForm.setValue('swim_target_time_s', v)}
-                        showHours={false}
-                      />
-                      <TimeInput
-                        label="T1"
-                        valueSeconds={goalForm.getValues('t1_target_time_s')}
-                        onChange={(v) => goalForm.setValue('t1_target_time_s', v)}
-                        showHours={false}
-                      />
-                      <TimeInput
-                        label="Vélo"
-                        valueSeconds={goalForm.getValues('bike_target_time_s')}
-                        onChange={(v) => goalForm.setValue('bike_target_time_s', v)}
-                        showHours
-                      />
-                      <TimeInput
-                        label="T2"
-                        valueSeconds={goalForm.getValues('t2_target_time_s')}
-                        onChange={(v) => goalForm.setValue('t2_target_time_s', v)}
-                        showHours={false}
-                      />
-                      <TimeInput
-                        label="Course à pied"
-                        valueSeconds={goalForm.getValues('run_target_time_s')}
-                        onChange={(v) => goalForm.setValue('run_target_time_s', v)}
-                        showHours
-                      />
+                  {sport === 'triathlon' && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Détail par discipline{' '}
+                        <span className="font-normal text-muted-foreground">(optionnel)</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <TimeInput
+                          label="Natation"
+                          valueSeconds={goalForm.getValues('swim_target_time_s')}
+                          onChange={(v) => goalForm.setValue('swim_target_time_s', v)}
+                          showHours={false}
+                        />
+                        <TimeInput
+                          label="T1"
+                          valueSeconds={goalForm.getValues('t1_target_time_s')}
+                          onChange={(v) => goalForm.setValue('t1_target_time_s', v)}
+                          showHours={false}
+                        />
+                        <TimeInput
+                          label="Vélo"
+                          valueSeconds={goalForm.getValues('bike_target_time_s')}
+                          onChange={(v) => goalForm.setValue('bike_target_time_s', v)}
+                          showHours
+                        />
+                        <TimeInput
+                          label="T2"
+                          valueSeconds={goalForm.getValues('t2_target_time_s')}
+                          onChange={(v) => goalForm.setValue('t2_target_time_s', v)}
+                          showHours={false}
+                        />
+                        <TimeInput
+                          label="Course à pied"
+                          valueSeconds={goalForm.getValues('run_target_time_s')}
+                          onChange={(v) => goalForm.setValue('run_target_time_s', v)}
+                          showHours
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </CardContent>
