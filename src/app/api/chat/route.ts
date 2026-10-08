@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
     supabase
       .from('plans')
-      .select('id, name, start_date, plan_weeks(week_num, phase), goal:goals(race_name, race_date)')
+      .select('id, name, start_date, plan_weeks(week_num, phase), goal:goals!plans_goal_id_fkey(race_name, race_date)')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })

@@ -24,7 +24,7 @@ export default async function ProgramPage() {
     .select(
       `
       *,
-      goal:goals(race_name, race_date, race_type),
+      goal:goals!plans_goal_id_fkey(race_name, race_date, race_type),
       plan_phases(*),
       plan_weeks(*, sessions(*))
     `,
