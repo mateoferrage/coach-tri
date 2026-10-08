@@ -4,6 +4,7 @@ import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
 import { generateMacroWeeks } from '@/lib/plan/macro'
 import { buildGoalContexts } from '@/lib/plan/goal-context'
+import { disciplinesForGoals } from '@/lib/plan/disciplines'
 import { buildMacroPrompt, type PerformanceData } from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
@@ -83,6 +84,13 @@ export async function POST(request: Request) {
 
   const goalContexts = mode === 'race' ? buildGoalContexts(goalRows, primary_goal_id!) : []
 
+  // Disciplines à entraîner = union des sports des courses, restreinte aux
+  // disciplines dont dispose l'athlète (le renforcement reste toujours inclus).
+  const availableDisciplines = (profile.available_disciplines as string[] | null) ?? null
+  const scopedDisciplines = disciplinesForGoals(goalContexts).filter(
+    (d) => d === 'strength' || !availableDisciplines?.length || availableDisciplines.includes(d),
+  )
+
   // Build Gemini prompt, generate and normalize the macro structure.
   // `generateMacroWeeks` validates phases against the strict lowercase CHECK
   // constraint on `plan_phases.phase` before any DB write.
@@ -96,6 +104,7 @@ export async function POST(request: Request) {
       start_date,
       total_weeks,
       goals: goalContexts.length ? goalContexts : undefined,
+      disciplines: goalContexts.length ? scopedDisciplines : undefined,
       performance: physiology ?? undefined,
       recent_activity_summary: activitySummary || undefined,
       recent_wellness_summary: wellnessSummary || undefined,

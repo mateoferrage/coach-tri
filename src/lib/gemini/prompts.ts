@@ -249,6 +249,9 @@ interface MacroContext {
   start_date: string
   total_weeks: number
   goals?: GoalContext[]
+  /** Disciplines à entraîner (dérivées des courses ∩ profil). Si absent, on
+   *  retombe sur les disciplines du profil (mode maintien). */
+  disciplines?: string[]
   performance?: PerformanceData
   recent_activity_summary?: string
   recent_wellness_summary?: string
@@ -259,8 +262,9 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     swim: 'natation',
     bike: 'vélo',
     run: 'course à pied',
+    strength: 'renforcement',
   }
-  const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
+  const disciplines = (ctx.disciplines ?? ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
     .map((d) => disciplineLabels[d] ?? d)
     .join(', ')
 

@@ -12,6 +12,7 @@ import { generateMacroWeeks } from '@/lib/plan/macro'
 import { buildMicroInputForWeek } from '@/lib/plan/micro-context'
 import { replaceWeekSessions } from '@/lib/plan/micro'
 import { buildGoalContexts } from '@/lib/plan/goal-context'
+import { disciplinesForGoals } from '@/lib/plan/disciplines'
 import { currentWeekNum } from '@/lib/plan/replan-weeknum'
 import { computeReplanScope } from '@/lib/plan/replan'
 import { addWeeks, format, parseISO } from 'date-fns'
@@ -76,6 +77,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // 5. Build goal contexts (shared mapping with generate/route.ts)
   const goalContexts = buildGoalContexts(goalRows, primary_goal_id)
 
+  // Disciplines à entraîner = union des sports des courses, restreinte au profil
+  // (le renforcement reste toujours inclus).
+  const availableDisciplines = (profile.available_disciplines as string[] | null) ?? null
+  const scopedDisciplines = disciplinesForGoals(goalContexts).filter(
+    (d) => d === 'strength' || !availableDisciplines?.length || availableDisciplines.includes(d),
+  )
+
   // 6. Fetch existing weeks
   const { data: existingWeeks } = (await admin
     .from('plan_weeks')
@@ -135,6 +143,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       start_date: plan.start_date,
       total_weeks: newTotalWeeks,
       goals: goalContexts.length ? goalContexts : undefined,
+      disciplines: goalContexts.length ? scopedDisciplines : undefined,
     })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur Gemini'
