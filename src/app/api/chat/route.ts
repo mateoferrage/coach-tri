@@ -14,6 +14,11 @@ const PostSchema = z.object({
   message: z.string().min(1).max(2000),
 })
 
+// Durée de vie d'un message de chat : au-delà, il disparaît de l'affichage et
+// du contexte de l'IA (filtre à la lecture, aucune suppression en base).
+const CHAT_TTL_MS = 24 * 60 * 60 * 1000
+const chatCutoff = () => new Date(Date.now() - CHAT_TTL_MS).toISOString()
+
 interface ChatResponse {
   message: string
   proposedAction: {
@@ -39,6 +44,7 @@ export async function GET(request: Request) {
     .select('id, role, content, proposed_action, action_status, created_at')
     .eq('user_id', user.id)
     .is('archived_at', null)
+    .gte('created_at', chatCutoff())
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -103,6 +109,7 @@ export async function POST(request: Request) {
       .select('role, content')
       .eq('user_id', user.id)
       .is('archived_at', null)
+      .gte('created_at', chatCutoff())
       .order('created_at', { ascending: false })
       .limit(10),
 
