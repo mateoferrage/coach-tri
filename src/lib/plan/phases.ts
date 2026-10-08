@@ -17,23 +17,29 @@ const PHASE_SYNONYMS: Record<string, Phase> = {
 
 /**
  * Normalise une valeur de phase issue du LLM vers la valeur canonique attendue
- * par la base. Le LLM produit souvent des libellés enrichis (« BASE 1 »,
- * « BUILD 2 (Trail Focus) », « TAPER (Tri Test) », « TRANSITION (Post-Trail) »),
- * surtout en multi-course. On extrait donc le mot-clé de phase plutôt que
- * d'exiger une correspondance exacte. Renvoie `null` si rien n'est reconnu —
- * l'appelant décide quoi en faire (erreur ou skip).
+ * par la base. Le LLM produit souvent des libellés enrichis, surtout en
+ * multi-course — avec espaces, parenthèses, chiffres OU underscores :
+ * « BASE 1 », « BUILD 2 (Trail Focus) », « BASE_VENTOUX », « TAPER_TRI »…
+ * On découpe donc le libellé en tokens (tout ce qui n'est pas une lettre) et
+ * on cherche un mot-clé de phase, canonique d'abord puis synonyme. Renvoie
+ * `null` si rien n'est reconnu — l'appelant décide quoi en faire.
  */
 export function normalizePhase(raw: string): Phase | null {
   const v = raw.trim().toLowerCase()
   if ((PHASE_VALUES as readonly string[]).includes(v)) return v as Phase
-  // Mot-clé canonique présent dans le libellé (ex. « build 2 (trail) » → build).
-  for (const p of PHASE_VALUES) {
-    if (new RegExp(`\\b${p}\\b`).test(v)) return p
+  // Accents retirés puis découpe sur tout séparateur non-alphabétique
+  // (espace, underscore, tiret, parenthèse, chiffre…).
+  const tokens = v
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .split(/[^a-z]+/)
+    .filter(Boolean)
+  // Un mot-clé canonique l'emporte sur un synonyme (signal plus fort).
+  for (const tok of tokens) {
+    if ((PHASE_VALUES as readonly string[]).includes(tok)) return tok as Phase
   }
-  // Synonymes, accents retirés (affûtage → affutage, récup → recup…).
-  const ascii = v.normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  for (const [syn, p] of Object.entries(PHASE_SYNONYMS)) {
-    if (ascii.includes(syn)) return p
+  for (const tok of tokens) {
+    if (PHASE_SYNONYMS[tok]) return PHASE_SYNONYMS[tok]
   }
   return null
 }
