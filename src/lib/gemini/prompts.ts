@@ -252,6 +252,9 @@ interface MacroContext {
   /** Disciplines à entraîner (dérivées des courses ∩ profil). Si absent, on
    *  retombe sur les disciplines du profil (mode maintien). */
   disciplines?: string[]
+  /** Disciplines complémentaires (cross-training) : entraînées en plus de
+   *  l'objectif, avec progression structurée mais dégressive en peak/taper. */
+  complementary_disciplines?: string[]
   performance?: PerformanceData
   recent_activity_summary?: string
   recent_wellness_summary?: string
@@ -295,6 +298,15 @@ export function buildMacroPrompt(ctx: MacroContext): string {
   const hasRunningGoal = ctx.goals?.some((g) => g.sport === 'running') ?? false
   const trailBlock = hasRunningGoal ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}` : ''
 
+  const complementaryBlock = ctx.complementary_disciplines?.length
+    ? `\n\nDISCIPLINES COMPLÉMENTAIRES (cross-training) : ${ctx.complementary_disciplines
+        .map((d) => disciplineLabels[d] ?? d)
+        .join(', ')}
+- À entraîner EN PLUS de l'objectif, avec une vraie progression structurée (endurance + intensité), comme un entraînement dédié — pas du simple remplissage.
+- Part de volume SECONDAIRE et CROISSANTE en phases base/build (l'objectif principal reste prioritaire).
+- RÉDUIRE nettement en phases peak et taper, et supprimer sur la dernière semaine, pour ne jamais compromettre les séances clés ni l'affûtage de l'objectif principal.`
+    : ''
+
   return `
 BASE DE CONNAISSANCES (méthodologies + zones de référence) :
 ${KNOWLEDGE_BASE_CORE}${trailBlock}
@@ -309,7 +321,7 @@ PROFIL ATHLÈTE :
 - Poids : ${ctx.profile.weight_kg ? ctx.profile.weight_kg + ' kg' : 'non précisé'}
 
 ${performanceBlock ? performanceBlock + '\n' : ''}
-${goalSection}
+${goalSection}${complementaryBlock}
 
 PROGRAMME :
 - Méthodologie : ${methodologyLabels[ctx.methodology] ?? ctx.methodology}
@@ -401,6 +413,11 @@ interface MicroContext {
   }
   available_days: number[] // 0=dim, 1=lun … 6=sam
   week_start_date: string // YYYY-MM-DD (lundi)
+  /** Disciplines effectivement entraînées (cœur de l'objectif ∪ complémentaires).
+   *  Si absent, on retombe sur `profile.available_disciplines`. */
+  training_disciplines?: string[]
+  /** Sous-ensemble complémentaire (cross-training), dégressif en peak/taper. */
+  complementary_disciplines?: string[]
   prior_weeks?: PriorWeek[]
   plan_overview?: PlanWeekOverview[]
   athlete_zones?: string // pre-formatted zone table from calculateZones()
@@ -445,7 +462,20 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   const sessionsPerDay = ctx.available_days
     .map((d) => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`)
     .join('\n')
-  const disciplines = ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
+  const disciplines =
+    ctx.training_disciplines ?? ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
+
+  // Bloc disciplines complémentaires : progression structurée, mais dégressive
+  // en pic/affûtage pour protéger les séances clés de l'objectif.
+  const isPeakOrTaper = ctx.week.phase === 'peak' || ctx.week.phase === 'taper'
+  const complementaryBlock = ctx.complementary_disciplines?.length
+    ? `\nDISCIPLINES COMPLÉMENTAIRES (cross-training) : ${ctx.complementary_disciplines
+        .map((d) => DISCIPLINE_FR[d] ?? d)
+        .join(', ')}
+- Séances STRUCTURÉES et progressives (endurance + un peu d'intensité/technique), pas du simple footing/pédalage facile — l'athlète doit progresser dessus.
+- Elles restent SECONDAIRES : ne jamais empiéter sur les séances clés de l'objectif principal.
+- ${isPeakOrTaper ? 'Phase pic/affûtage → RÉDUIRE fortement (1 séance courte et facile max par discipline, voire aucune) pour préserver la fraîcheur sur l’objectif.' : 'Volume modéré et en progression cohérente avec les semaines précédentes.'}\n`
+    : ''
 
   // ── Plan overview block ──────────────────────────────────────────────────────
   let planOverviewBlock = ''
@@ -507,6 +537,7 @@ Cibles de la semaine :
 
 Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine disponibles
 Disciplines pratiquées : ${disciplines.join(', ')}
+${complementaryBlock}
 
 Jours d'entraînement disponibles :
 ${sessionsPerDay}

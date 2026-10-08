@@ -48,4 +48,22 @@ describe('buildMacroPrompt (multi-courses)', () => {
     })
     expect(out).not.toContain('SPÉCIALISATION TRAIL')
   })
+
+  it('ajoute le bloc disciplines complémentaires quand fourni', () => {
+    const out = buildMacroPrompt({
+      profile, mode: 'race', methodology: 'polarized', start_date: '2026-03-01', total_weeks: 25,
+      goals: [trail], disciplines: ['swim', 'bike', 'run', 'strength'],
+      complementary_disciplines: ['swim', 'bike'],
+    })
+    expect(out).toContain('DISCIPLINES COMPLÉMENTAIRES')
+    expect(out).toMatch(/natation/i)
+    expect(out).toMatch(/peak et taper|peak\/taper|affûtage/i)
+  })
+
+  it("n'ajoute pas le bloc complémentaire sans disciplines complémentaires", () => {
+    const out = buildMacroPrompt({
+      profile, mode: 'race', methodology: 'polarized', start_date: '2026-03-01', total_weeks: 25, goals: [trail],
+    })
+    expect(out).not.toContain('DISCIPLINES COMPLÉMENTAIRES')
+  })
 })

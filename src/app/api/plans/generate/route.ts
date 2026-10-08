@@ -4,7 +4,7 @@ import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan } from '@/lib/schemas/plan'
 import { generateMacroWeeks } from '@/lib/plan/macro'
 import { buildGoalContexts } from '@/lib/plan/goal-context'
-import { disciplinesForGoals } from '@/lib/plan/disciplines'
+import { disciplinesForGoals, resolveTrainingDisciplines } from '@/lib/plan/disciplines'
 import { buildMacroPrompt, type PerformanceData } from '@/lib/gemini/prompts'
 import { differenceInWeeks, addWeeks, format, parseISO } from 'date-fns'
 
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   const parsed = PlanGenerationSchema.safeParse(body)
   if (!parsed.success) return apiError(parsed.error.issues[0].message, 400)
 
-  const { mode, goal_ids, primary_goal_id, methodology, start_date } = parsed.data
+  const { mode, goal_ids, primary_goal_id, complementary_disciplines, methodology, start_date } =
+    parsed.data
 
   if (mode === 'race' && (!goal_ids?.length || !primary_goal_id))
     return apiError('Courses requises pour le mode course', 400)
@@ -84,12 +85,19 @@ export async function POST(request: Request) {
 
   const goalContexts = mode === 'race' ? buildGoalContexts(goalRows, primary_goal_id!) : []
 
-  // Disciplines à entraîner = union des sports des courses, restreinte aux
-  // disciplines dont dispose l'athlète (le renforcement reste toujours inclus).
+  // Disciplines à entraîner = cœur des sports des courses + éventuelles
+  // disciplines complémentaires (cross-training) choisies par l'athlète,
+  // restreintes aux disciplines dont il dispose (le renfo reste toujours ok).
   const availableDisciplines = (profile.available_disciplines as string[] | null) ?? null
-  const scopedDisciplines = disciplinesForGoals(goalContexts).filter(
+  const goalDisciplines = disciplinesForGoals(goalContexts).filter(
     (d) => d === 'strength' || !availableDisciplines?.length || availableDisciplines.includes(d),
   )
+  const { training: scopedDisciplines, complementary: complementaryDisciplines } =
+    resolveTrainingDisciplines({
+      goalDisciplines,
+      requested: complementary_disciplines,
+      available: availableDisciplines,
+    })
 
   // Build Gemini prompt, generate and normalize the macro structure.
   // `generateMacroWeeks` validates phases against the strict lowercase CHECK
@@ -105,6 +113,9 @@ export async function POST(request: Request) {
       total_weeks,
       goals: goalContexts.length ? goalContexts : undefined,
       disciplines: goalContexts.length ? scopedDisciplines : undefined,
+      complementary_disciplines: complementaryDisciplines.length
+        ? complementaryDisciplines
+        : undefined,
       performance: physiology ?? undefined,
       recent_activity_summary: activitySummary || undefined,
       recent_wellness_summary: wellnessSummary || undefined,
@@ -131,7 +142,12 @@ export async function POST(request: Request) {
       methodology,
       periodization: 'linear',
       status: 'active',
-      params: { mode, total_weeks },
+      params: {
+        mode,
+        total_weeks,
+        training_disciplines: goalContexts.length ? scopedDisciplines : null,
+        complementary_disciplines: complementaryDisciplines,
+      },
       summary: { phases_count: validPhases.length, weeks_count: normalizedWeeks.length },
     })
     .select()

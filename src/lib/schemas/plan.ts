@@ -5,6 +5,12 @@ export const PlanGenerationSchema = z
     mode: z.enum(['race', 'maintenance']),
     goal_ids: z.array(z.string().uuid()).min(1).max(3).optional(),
     primary_goal_id: z.string().uuid().optional(),
+    // Disciplines complémentaires (cross-training) à entraîner en plus de
+    // l'objectif, avec progression structurée mais dégressive en peak/taper.
+    complementary_disciplines: z
+      .array(z.enum(['swim', 'bike', 'run', 'strength']))
+      .max(4)
+      .optional(),
     methodology: z.enum(['polarized', 'pyramidal', 'threshold']).default('polarized'),
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })

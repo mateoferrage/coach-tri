@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { format } from 'date-fns'
 import { GoalSlot, type Goal, type SlotMode } from './GoalSlot'
@@ -50,10 +50,29 @@ const SLOT_META: Record<SlotKey, { title: string; description?: string; optional
   C: { title: 'Objectif C — secondaire (optionnel)', optional: true },
 }
 
-export function ProgramForm({ goals }: { goals: Goal[] }) {
+const DISCIPLINE_LABELS: Record<string, string> = {
+  swim: 'Natation',
+  bike: 'Vélo',
+  run: 'Course à pied',
+  strength: 'Renforcement',
+}
+const COMPLEMENTARY_CHOICES = ['swim', 'bike', 'run', 'strength'] as const
+
+export function ProgramForm({
+  goals,
+  availableDisciplines,
+}: {
+  goals: Goal[]
+  availableDisciplines: string[]
+}) {
   const router = useRouter()
   const [mode, setMode] = useState<'race' | 'maintenance'>('race')
   const [loading, setLoading] = useState(false)
+  // Dévoilement progressif : objectifs secondaires et disciplines
+  // complémentaires n'apparaissent qu'à la demande.
+  const [visibleSecondaries, setVisibleSecondaries] = useState(0) // 0 → aucun, max 2 (B, C)
+  const [showComplementary, setShowComplementary] = useState(false)
+  const [complementary, setComplementary] = useState<string[]>([])
 
   const initialMode: SlotMode = goals.length > 0 ? 'existing' : 'new'
   const [slotModes, setSlotModes] = useState<Record<SlotKey, SlotMode>>({
@@ -181,6 +200,7 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
           mode,
           goal_ids,
           primary_goal_id,
+          complementary_disciplines: complementary.length ? complementary : undefined,
           methodology: settings.methodology,
           start_date: settings.start_date,
         }
@@ -228,9 +248,9 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
           </TabsTrigger>
         </TabsList>
 
-        {/* Race mode : un slot par objectif (A requis, B/C optionnels) */}
+        {/* Race mode : objectif principal d'emblée, le reste à la demande */}
         <TabsContent value="race" className="space-y-4 mt-4">
-          {SLOTS.map((slot) => (
+          {SLOTS.slice(0, 1 + visibleSecondaries).map((slot) => (
             <GoalSlot
               key={slot}
               priority={slot}
@@ -246,6 +266,69 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
               fieldsetRef={fieldsetRefs[slot]}
             />
           ))}
+
+          {/* Boutons de dévoilement progressif */}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {visibleSecondaries < 2 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setVisibleSecondaries((n) => Math.min(2, n + 1))}
+              >
+                + Ajouter un objectif secondaire
+              </Button>
+            )}
+            {!showComplementary && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowComplementary(true)}
+              >
+                + Ajouter des disciplines complémentaires
+              </Button>
+            )}
+          </div>
+
+          {/* Disciplines complémentaires (cross-training) */}
+          {showComplementary && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Disciplines complémentaires</CardTitle>
+                <CardDescription>
+                  Entraînées en plus de ton objectif, avec une vraie progression. Elles se
+                  réduisent automatiquement en fin de prépa (pic / affûtage) pour protéger ton
+                  objectif. Celles déjà couvertes par ton objectif sont ignorées.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {COMPLEMENTARY_CHOICES.filter(
+                  (d) => !availableDisciplines.length || availableDisciplines.includes(d),
+                ).map((d) => {
+                  const active = complementary.includes(d)
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        setComplementary((prev) =>
+                          prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-full border-2 text-sm transition-colors ${
+                        active
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border text-muted-foreground hover:border-primary/40'
+                      }`}
+                    >
+                      {DISCIPLINE_LABELS[d] ?? d}
+                    </button>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Maintenance mode */}
