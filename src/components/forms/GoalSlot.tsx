@@ -102,7 +102,9 @@ export function GoalSlot({
             )}
           </TabsContent>
 
-          <TabsContent value="new" className="mt-4">
+          {/* keepMounted : le fieldset reste monté même quand l'onglet « existante »
+              est actif, pour que son ref impératif soit toujours attaché au submit. */}
+          <TabsContent value="new" keepMounted className="mt-4 data-[hidden]:hidden">
             <GoalFieldset ref={fieldsetRef} priority={priority} />
           </TabsContent>
         </Tabs>

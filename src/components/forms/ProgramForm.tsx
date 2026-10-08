@@ -90,22 +90,30 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
       .filter((x): x is string => !!x)
   }
 
-  // Résout un slot : 'skip' (vide/optionnel), 'invalid' (à compléter),
-  // ou les données à utiliser (course existante ou nouvelle à créer).
+  // Résout un slot : 'skip' (vide/optionnel), { invalid } (à compléter, avec
+  // raison), ou les données à utiliser (course existante ou nouvelle à créer).
   async function resolveSlot(
     slot: SlotKey,
-  ): Promise<'skip' | 'invalid' | { existingId: string } | { create: GoalFormData }> {
+  ): Promise<'skip' | { invalid: string } | { existingId: string } | { create: GoalFormData }> {
     const required = slot === 'A'
     if (slotModes[slot] === 'existing') {
       const id = existingIds[slot]
-      if (!id) return required ? 'invalid' : 'skip'
-      return { existingId: id }
+      if (id) return { existingId: id }
+      return required
+        ? { invalid: `Objectif ${slot} : choisis une course existante ou passe sur « Nouvelle course ».` }
+        : 'skip'
     }
     const ref = fieldsetRefs[slot].current
-    if (!ref) return required ? 'invalid' : 'skip'
+    if (!ref) {
+      return required
+        ? { invalid: `Objectif ${slot} : le formulaire « Nouvelle course » n'est pas prêt, réessaie.` }
+        : 'skip'
+    }
     if (!required && ref.isPristine()) return 'skip'
     const ok = await ref.validate()
-    if (!ok) return 'invalid'
+    if (!ok) {
+      return { invalid: `Objectif ${slot} : complète les champs requis (nom, date, type).` }
+    }
     return { create: ref.getValues() }
   }
 
@@ -136,12 +144,15 @@ export function ProgramForm({ goals }: { goals: Goal[] }) {
         >
         for (const slot of SLOTS) {
           const r = await resolveSlot(slot)
-          if (r === 'invalid') {
-            toast.error(
-              slot === 'A'
-                ? 'Complète ou choisis la course principale (objectif A).'
-                : `Complète l'objectif ${slot} ou repasse-le sur « Aucune ».`,
-            )
+          if (typeof r === 'object' && 'invalid' in r) {
+            console.error('[ProgramForm] slot invalide', {
+              slot,
+              mode: slotModes[slot],
+              existingId: existingIds[slot],
+              hasRef: !!fieldsetRefs[slot].current,
+              reason: r.invalid,
+            })
+            toast.error(r.invalid)
             return
           }
           resolutions[slot] = r
