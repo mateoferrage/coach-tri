@@ -3,14 +3,39 @@
 export const PHASE_VALUES = ['prep', 'base', 'build', 'peak', 'taper', 'race'] as const
 export type Phase = (typeof PHASE_VALUES)[number]
 
+// Synonymes / libellés non canoniques fréquemment produits par le LLM.
+// Ex. un bloc « transition » entre deux courses est traité comme de la prépa.
+const PHASE_SYNONYMS: Record<string, Phase> = {
+  transition: 'prep',
+  preparation: 'prep',
+  prepa: 'prep',
+  intro: 'prep',
+  affutage: 'taper',
+  competition: 'race',
+  course: 'race',
+}
+
 /**
- * Normalise une valeur de phase issue du LLM (casse/espaces non fiables) vers
- * la valeur canonique attendue par la base. Renvoie `null` si la valeur n'est
- * pas reconnue — l'appelant décide quoi en faire (erreur ou skip).
+ * Normalise une valeur de phase issue du LLM vers la valeur canonique attendue
+ * par la base. Le LLM produit souvent des libellés enrichis (« BASE 1 »,
+ * « BUILD 2 (Trail Focus) », « TAPER (Tri Test) », « TRANSITION (Post-Trail) »),
+ * surtout en multi-course. On extrait donc le mot-clé de phase plutôt que
+ * d'exiger une correspondance exacte. Renvoie `null` si rien n'est reconnu —
+ * l'appelant décide quoi en faire (erreur ou skip).
  */
 export function normalizePhase(raw: string): Phase | null {
   const v = raw.trim().toLowerCase()
-  return (PHASE_VALUES as readonly string[]).includes(v) ? (v as Phase) : null
+  if ((PHASE_VALUES as readonly string[]).includes(v)) return v as Phase
+  // Mot-clé canonique présent dans le libellé (ex. « build 2 (trail) » → build).
+  for (const p of PHASE_VALUES) {
+    if (new RegExp(`\\b${p}\\b`).test(v)) return p
+  }
+  // Synonymes, accents retirés (affûtage → affutage, récup → recup…).
+  const ascii = v.normalize('NFD').replace(/\p{Diacritic}/gu, '')
+  for (const [syn, p] of Object.entries(PHASE_SYNONYMS)) {
+    if (ascii.includes(syn)) return p
+  }
+  return null
 }
 
 export interface DerivedPhase {
