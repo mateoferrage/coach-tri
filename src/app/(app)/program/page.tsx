@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { PhaseBar } from '@/components/plan/PhaseBar'
 import { WeekView } from '@/components/plan/WeekView'
 import { StopProgramButton } from '@/components/plan/StopProgramButton'
+import { AddRaceDialog } from '@/components/plan/AddRaceDialog'
 import { differenceInWeeks, parseISO, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -33,6 +34,42 @@ export default async function ProgramPage() {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()) as { data: Record<string, unknown> | null }
+
+  // Fetch attached goal ids for the active plan (if any)
+  const { data: planGoalsData } = plan
+    ? await supabase
+        .from('plan_goals')
+        .select('goal_id')
+        .eq('plan_id', plan.id as string)
+    : { data: null }
+
+  const rawCurrentGoalIds = planGoalsData?.map((r: Record<string, unknown>) => r.goal_id as string) ?? []
+  const currentGoalIds =
+    rawCurrentGoalIds.length > 0
+      ? rawCurrentGoalIds
+      : plan && (plan.goal_id as string | null)
+        ? [plan.goal_id as string]
+        : []
+
+  // Fetch all active goals for user
+  const { data: allGoalsData } = plan
+    ? await supabase
+        .from('goals')
+        .select('id, race_name, race_date, sport')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+    : { data: null }
+
+  const availableGoals = (allGoalsData ?? [])
+    .filter(
+      (g: Record<string, unknown>) => !currentGoalIds.includes(g.id as string),
+    )
+    .map((g: Record<string, unknown>) => ({
+      id: g.id as string,
+      race_name: g.race_name as string,
+      race_date: g.race_date as string,
+      sport: g.sport as string | undefined,
+    }))
 
   if (!plan) {
     return (
@@ -106,12 +143,22 @@ export default async function ProgramPage() {
               : ''}
           </p>
         </div>
-        <Link
-          href="/program/new"
-          className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-sm font-medium px-3 py-1.5 hover:bg-muted transition-colors"
-        >
-          Nouveau programme
-        </Link>
+        <div className="flex items-center gap-2">
+          {(plan.goal_id as string | null) && (
+            <AddRaceDialog
+              planId={plan.id as string}
+              currentGoalIds={currentGoalIds}
+              primaryGoalId={plan.goal_id as string}
+              availableGoals={availableGoals}
+            />
+          )}
+          <Link
+            href="/program/new"
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-sm font-medium px-3 py-1.5 hover:bg-muted transition-colors"
+          >
+            Nouveau programme
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

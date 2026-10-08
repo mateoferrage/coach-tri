@@ -1,11 +1,26 @@
 import { z } from 'zod'
 
-export const PlanGenerationSchema = z.object({
-  mode: z.enum(['race', 'maintenance']),
-  goal_id: z.string().uuid().optional(), // required if mode === 'race'
-  methodology: z.enum(['polarized', 'pyramidal', 'threshold']).default('polarized'),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-})
+export const PlanGenerationSchema = z
+  .object({
+    mode: z.enum(['race', 'maintenance']),
+    goal_ids: z.array(z.string().uuid()).min(1).max(3).optional(),
+    primary_goal_id: z.string().uuid().optional(),
+    methodology: z.enum(['polarized', 'pyramidal', 'threshold']).default('polarized'),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .superRefine((v, ctx) => {
+    if (v.mode === 'race') {
+      if (!v.goal_ids?.length) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['goal_ids'], message: 'Au moins une course requise en mode course' })
+        return
+      }
+      if (!v.primary_goal_id) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['primary_goal_id'], message: 'Course principale requise' })
+      } else if (!v.goal_ids.includes(v.primary_goal_id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['primary_goal_id'], message: 'La course principale doit faire partie des courses' })
+      }
+    }
+  })
 
 export type PlanGeneration = z.infer<typeof PlanGenerationSchema>
 

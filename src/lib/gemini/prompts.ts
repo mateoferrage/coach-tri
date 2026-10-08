@@ -2,6 +2,7 @@ import {
   KNOWLEDGE_BASE_CORE,
   KNOWLEDGE_BASE_MICRO,
   KNOWLEDGE_BASE_CHAT,
+  KNOWLEDGE_BASE_TRAIL,
 } from '@/lib/coach/knowledge'
 import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
@@ -70,7 +71,7 @@ export function buildEquipmentBlock(eq: EquipmentData): string {
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
 export const TRIATHLON_COACH_SYSTEM = `
-Tu es un coach triathlon expert certifié, spécialisé dans la préparation des athlètes de tous niveaux (débutant à élite).
+Tu es un coach expert certifié en triathlon ET en course à pied / trail / ultra, spécialisé dans la préparation des athlètes de tous niveaux (débutant à élite). Tu maîtrises aussi bien l'équilibre des trois disciplines du triathlon que la préparation spécifique au dénivelé (D+ et D-), à la technicité du terrain et aux formats ultra.
 
 ## Principes de périodisation triathlon
 
@@ -103,6 +104,7 @@ Tu es un coach triathlon expert certifié, spécialisé dans la préparation des
 - Natation : technique, endurance, éducatifs, vitesse, CSS, seuil
 - Vélo : SFR, endurance, tempo, FTP, VO2max, sprint, sortie longue
 - Course : foulée, endurance, progression, allure seuil, VMA, fractionné
+- Course (trail/ultra) : côtes, descente technique, rando-course, sortie longue avec D+, allure spécifique trail
 
 Réponds toujours en JSON valide et uniquement en JSON. Pas de texte en dehors du JSON.
 
@@ -181,6 +183,58 @@ export function buildPerformanceBlock(p: PerformanceData): string {
   return `PERFORMANCES DE RÉFÉRENCE (niveau actuel de l'athlète) :\n${lines.join('\n')}`
 }
 
+export interface GoalContext {
+  role: 'primary' | 'secondary'
+  sport: 'triathlon' | 'running'
+  race_name: string
+  race_type: string
+  race_date: string
+  swim_distance_m?: number | null
+  bike_distance_m?: number | null
+  run_distance_m?: number | null
+  elevation_gain_m?: number | null
+  elevation_loss_m?: number | null
+  surface?: string | null
+  terrain?: string | null
+  max_altitude_m?: number | null
+  cutoff_time_s?: number | null
+  estimated_finish_time_s?: number | null
+}
+
+function fmtHms(sec?: number | null): string {
+  if (sec == null) return '?'
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`
+}
+
+const SURFACE_FR: Record<string, string> = {
+  road: 'route', gravel: 'chemin roulant', technical: 'sentier technique', mountain: 'montagne',
+}
+
+/** Décrit une course (tri ou running/trail) pour le prompt macro. */
+function describeGoal(g: GoalContext): string {
+  const roleFr =
+    g.role === 'primary'
+      ? 'Course principale — OBJECTIF PRINCIPAL (pic de forme)'
+      : 'Course secondaire — objectif intermédiaire'
+  const lines = [`${roleFr} — ${g.race_name} (${g.race_type}, ${g.race_date})`]
+  if (g.sport === 'running') {
+    lines.push(`  Course à pied : ${g.run_distance_m ?? '?'}m, D+ ${g.elevation_gain_m ?? '?'}m, D- ${g.elevation_loss_m ?? '?'}m`)
+    const detail = [
+      g.surface && `technicité ${SURFACE_FR[g.surface] ?? g.surface}`,
+      g.terrain && `profil ${g.terrain}`,
+      g.max_altitude_m != null && `altitude max ${g.max_altitude_m}m`,
+      g.cutoff_time_s != null && `barrière horaire ${fmtHms(g.cutoff_time_s)}`,
+      g.estimated_finish_time_s != null && `temps estimé ${fmtHms(g.estimated_finish_time_s)}`,
+    ].filter(Boolean)
+    if (detail.length) lines.push(`  ${detail.join(', ')}`)
+  } else {
+    lines.push(`  Triathlon : ${g.swim_distance_m ?? '?'}m nage / ${g.bike_distance_m ?? '?'}m vélo / ${g.run_distance_m ?? '?'}m course${g.terrain ? ` (terrain ${g.terrain})` : ''}`)
+  }
+  return lines.join('\n')
+}
+
 interface MacroContext {
   profile: {
     first_name: string | null
@@ -194,15 +248,10 @@ interface MacroContext {
   methodology: string
   start_date: string
   total_weeks: number
-  goal?: {
-    race_name: string
-    race_type: string
-    race_date: string
-    swim_distance_m: number | null
-    bike_distance_m: number | null
-    run_distance_m: number | null
-    terrain: string | null
-  }
+  goals?: GoalContext[]
+  /** Disciplines à entraîner (dérivées des courses ∩ profil). Si absent, on
+   *  retombe sur les disciplines du profil (mode maintien). */
+  disciplines?: string[]
   performance?: PerformanceData
   recent_activity_summary?: string
   recent_wellness_summary?: string
@@ -213,8 +262,9 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     swim: 'natation',
     bike: 'vélo',
     run: 'course à pied',
+    strength: 'renforcement',
   }
-  const disciplines = (ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
+  const disciplines = (ctx.disciplines ?? ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
     .map((d) => disciplineLabels[d] ?? d)
     .join(', ')
 
@@ -234,20 +284,20 @@ export function buildMacroPrompt(ctx: MacroContext): string {
   const performanceBlock = ctx.performance ? buildPerformanceBlock(ctx.performance) : ''
 
   const goalSection =
-    ctx.mode === 'race' && ctx.goal
-      ? `
-OBJECTIF DE COURSE :
-- Nom : ${ctx.goal.race_name}
-- Type : ${ctx.goal.race_type}
-- Date : ${ctx.goal.race_date}
-- Distances : ${ctx.goal.swim_distance_m ?? '?'}m nage / ${ctx.goal.bike_distance_m ?? '?'}m vélo / ${ctx.goal.run_distance_m ?? '?'}m course
-- Terrain : ${ctx.goal.terrain ?? 'non précisé'}
-`.trim()
+    ctx.mode === 'race' && ctx.goals?.length
+      ? `OBJECTIF(S) DE COURSE :\n${ctx.goals
+          .slice()
+          .sort((a, b) => (a.role === 'primary' ? 0 : 1) - (b.role === 'primary' ? 0 : 1))
+          .map(describeGoal)
+          .join('\n')}`
       : 'MODE : Maintien de forme (programme continu sans objectif de course)'
+
+  const hasRunningGoal = ctx.goals?.some((g) => g.sport === 'running') ?? false
+  const trailBlock = hasRunningGoal ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}` : ''
 
   return `
 BASE DE CONNAISSANCES (méthodologies + zones de référence) :
-${KNOWLEDGE_BASE_CORE}
+${KNOWLEDGE_BASE_CORE}${trailBlock}
 
 ---
 

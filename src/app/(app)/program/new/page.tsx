@@ -13,7 +13,7 @@ export default async function NewProgramPage() {
 
   const { data: goals } = (await supabase
     .from('goals')
-    .select('id, race_name, race_date, race_type, status')
+    .select('id, race_name, race_date, race_type, sport, status')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('race_date', { ascending: true })) as { data: Array<Record<string, unknown>> | null }

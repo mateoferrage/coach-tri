@@ -321,7 +321,11 @@ export type Database = {
           bike_elevation_m: number | null
           bike_target_time_s: number | null
           created_at: string
+          cutoff_time_s: number | null
+          elevation_loss_m: number | null
+          estimated_finish_time_s: number | null
           id: string
+          max_altitude_m: number | null
           priority: string
           race_date: string
           race_name: string
@@ -329,7 +333,9 @@ export type Database = {
           run_distance_m: number | null
           run_elevation_m: number | null
           run_target_time_s: number | null
+          sport: string
           status: string
+          surface: string | null
           swim_distance_m: number | null
           swim_target_time_s: number | null
           t1_target_time_s: number | null
@@ -345,7 +351,11 @@ export type Database = {
           bike_elevation_m?: number | null
           bike_target_time_s?: number | null
           created_at?: string
+          cutoff_time_s?: number | null
+          elevation_loss_m?: number | null
+          estimated_finish_time_s?: number | null
           id?: string
+          max_altitude_m?: number | null
           priority?: string
           race_date: string
           race_name: string
@@ -353,7 +363,9 @@ export type Database = {
           run_distance_m?: number | null
           run_elevation_m?: number | null
           run_target_time_s?: number | null
+          sport?: string
           status?: string
+          surface?: string | null
           swim_distance_m?: number | null
           swim_target_time_s?: number | null
           t1_target_time_s?: number | null
@@ -369,7 +381,11 @@ export type Database = {
           bike_elevation_m?: number | null
           bike_target_time_s?: number | null
           created_at?: string
+          cutoff_time_s?: number | null
+          elevation_loss_m?: number | null
+          estimated_finish_time_s?: number | null
           id?: string
+          max_altitude_m?: number | null
           priority?: string
           race_date?: string
           race_name?: string
@@ -377,7 +393,9 @@ export type Database = {
           run_distance_m?: number | null
           run_elevation_m?: number | null
           run_target_time_s?: number | null
+          sport?: string
           status?: string
+          surface?: string | null
           swim_distance_m?: number | null
           swim_target_time_s?: number | null
           t1_target_time_s?: number | null
@@ -518,6 +536,39 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_goals: {
+        Row: {
+          plan_id: string
+          goal_id: string
+          created_at: string
+        }
+        Insert: {
+          plan_id: string
+          goal_id: string
+          created_at?: string
+        }
+        Update: {
+          plan_id?: string
+          goal_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_goals_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_goals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
             referencedColumns: ["id"]
           },
         ]

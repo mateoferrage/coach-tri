@@ -4,6 +4,7 @@ import { SESSIONS_LIB } from './sessions-lib'
 import { NUTRITION } from './nutrition'
 import { SWIM_TECHNIQUE } from './swim'
 import { MAINTENANCE } from './maintenance'
+import { TRAIL_KNOWLEDGE } from './trail'
 
 /**
  * Full knowledge base — all 6 reference documents combined.
@@ -27,4 +28,7 @@ export const KNOWLEDGE_BASE_MICRO = [ZONES_REF, SESSIONS_LIB].join('\n\n---\n\n'
 /** Methodologies + maintenance — most relevant for chat and macro-generation. */
 export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, MAINTENANCE].join('\n\n---\n\n')
 
-export { METHODOLOGIES, ZONES_REF, SESSIONS_LIB, NUTRITION, SWIM_TECHNIQUE, MAINTENANCE }
+/** Trail/running specialisation — injected conditionally when a running goal is present. */
+export const KNOWLEDGE_BASE_TRAIL = TRAIL_KNOWLEDGE
+
+export { METHODOLOGIES, ZONES_REF, SESSIONS_LIB, NUTRITION, SWIM_TECHNIQUE, MAINTENANCE, TRAIL_KNOWLEDGE }
