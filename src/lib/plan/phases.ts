@@ -3,14 +3,45 @@
 export const PHASE_VALUES = ['prep', 'base', 'build', 'peak', 'taper', 'race'] as const
 export type Phase = (typeof PHASE_VALUES)[number]
 
+// Synonymes / libellés non canoniques fréquemment produits par le LLM.
+// Ex. un bloc « transition » entre deux courses est traité comme de la prépa.
+const PHASE_SYNONYMS: Record<string, Phase> = {
+  transition: 'prep',
+  preparation: 'prep',
+  prepa: 'prep',
+  intro: 'prep',
+  affutage: 'taper',
+  competition: 'race',
+  course: 'race',
+}
+
 /**
- * Normalise une valeur de phase issue du LLM (casse/espaces non fiables) vers
- * la valeur canonique attendue par la base. Renvoie `null` si la valeur n'est
- * pas reconnue — l'appelant décide quoi en faire (erreur ou skip).
+ * Normalise une valeur de phase issue du LLM vers la valeur canonique attendue
+ * par la base. Le LLM produit souvent des libellés enrichis, surtout en
+ * multi-course — avec espaces, parenthèses, chiffres OU underscores :
+ * « BASE 1 », « BUILD 2 (Trail Focus) », « BASE_VENTOUX », « TAPER_TRI »…
+ * On découpe donc le libellé en tokens (tout ce qui n'est pas une lettre) et
+ * on cherche un mot-clé de phase, canonique d'abord puis synonyme. Renvoie
+ * `null` si rien n'est reconnu — l'appelant décide quoi en faire.
  */
 export function normalizePhase(raw: string): Phase | null {
   const v = raw.trim().toLowerCase()
-  return (PHASE_VALUES as readonly string[]).includes(v) ? (v as Phase) : null
+  if ((PHASE_VALUES as readonly string[]).includes(v)) return v as Phase
+  // Accents retirés puis découpe sur tout séparateur non-alphabétique
+  // (espace, underscore, tiret, parenthèse, chiffre…).
+  const tokens = v
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .split(/[^a-z]+/)
+    .filter(Boolean)
+  // Un mot-clé canonique l'emporte sur un synonyme (signal plus fort).
+  for (const tok of tokens) {
+    if ((PHASE_VALUES as readonly string[]).includes(tok)) return tok as Phase
+  }
+  for (const tok of tokens) {
+    if (PHASE_SYNONYMS[tok]) return PHASE_SYNONYMS[tok]
+  }
+  return null
 }
 
 export interface DerivedPhase {

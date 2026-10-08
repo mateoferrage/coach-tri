@@ -55,7 +55,7 @@ export default async function DashboardPage() {
     supabase
       .from('plans')
       .select(
-        'id, name, start_date, end_date, status, goal:goals(race_name, race_date), plan_phases(*), plan_weeks(id, week_num, phase)',
+        'id, name, start_date, end_date, status, goal:goals!plans_goal_id_fkey(race_name, race_date), plan_phases(*), plan_weeks(id, week_num, phase)',
       )
       .eq('user_id', user!.id)
       .eq('status', 'active')

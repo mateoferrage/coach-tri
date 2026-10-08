@@ -14,6 +14,11 @@ const PostSchema = z.object({
   message: z.string().min(1).max(2000),
 })
 
+// Durée de vie d'un message de chat : au-delà, il disparaît de l'affichage et
+// du contexte de l'IA (filtre à la lecture, aucune suppression en base).
+const CHAT_TTL_MS = 24 * 60 * 60 * 1000
+const chatCutoff = () => new Date(Date.now() - CHAT_TTL_MS).toISOString()
+
 interface ChatResponse {
   message: string
   proposedAction: {
@@ -39,6 +44,7 @@ export async function GET(request: Request) {
     .select('id, role, content, proposed_action, action_status, created_at')
     .eq('user_id', user.id)
     .is('archived_at', null)
+    .gte('created_at', chatCutoff())
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -81,7 +87,7 @@ export async function POST(request: Request) {
 
     supabase
       .from('plans')
-      .select('id, name, start_date, plan_weeks(week_num, phase), goal:goals(race_name, race_date)')
+      .select('id, name, start_date, plan_weeks(week_num, phase), goal:goals!plans_goal_id_fkey(race_name, race_date)')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -103,6 +109,7 @@ export async function POST(request: Request) {
       .select('role, content')
       .eq('user_id', user.id)
       .is('archived_at', null)
+      .gte('created_at', chatCutoff())
       .order('created_at', { ascending: false })
       .limit(10),
 
