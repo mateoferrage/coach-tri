@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
+import { todayIn } from '@/lib/utils/today'
 import { buttonVariants } from '@/components/ui/button'
 import { TodayBoard } from '@/components/dashboard/TodayBoard'
 import { WeekLoad } from '@/components/plan/WeekLoad'
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayIn()
 
   const [profileRes, planRes] = await Promise.all([
     supabase.from('profiles').select('first_name').eq('id', user!.id).single(),
@@ -106,7 +107,7 @@ export default async function DashboardPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground first-letter:uppercase">
-            {format(new Date(), 'EEEE d MMMM', { locale: fr })}
+            {format(parseISO(today), 'EEEE d MMMM', { locale: fr })}
           </p>
           <h1 className="text-3xl md:text-4xl">Bonjour {firstName ?? 'à toi'}</h1>
         </div>
