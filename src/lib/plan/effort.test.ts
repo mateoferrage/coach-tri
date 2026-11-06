@@ -18,6 +18,12 @@ describe('effortSegments', () => {
     expect(effortSegments({ ...base, target_zone: 'zone 5' })[1].zone).toBe(5)
   })
 
+  it('comprend « zones » au pluriel et les plages « Z3-4 »', () => {
+    expect(effortSegments({ ...base, target_zone: 'Zones 3-4' })[1].zone).toBe(4)
+    expect(effortSegments({ ...base, target_zone: 'Z3-4' })[1].zone).toBe(4)
+    expect(effortSegments({ ...base, target_zone: 'Z10' })[1].zone).toBe(2)
+  })
+
   it('se rabat sur le type de séance si target_zone est vide ou invalide', () => {
     expect(effortSegments({ ...base, target_zone: 'Z7' })[1].zone).toBe(2)
     expect(effortSegments({ ...base, target_zone: '' })[1].zone).toBe(2)

@@ -25,10 +25,12 @@ const ZONE_BY_TYPE: Record<string, Zone> = {
   test: 5,
 }
 
-/** Zone la plus haute citée dans un texte libre (« Z2-Z3 » → 3), ou null. */
+/** Zone la plus haute citée dans un texte libre (« Z2-Z3 », « Zones 3-4 » → 3, 4), ou null. */
 function parseTargetZone(text: string | null): Zone | null {
   if (!text) return null
-  const zones = [...text.matchAll(/z(?:one)?\s*([1-5])(?!\d)/gi)].map((m) => Number(m[1]))
+  const zones = [...text.matchAll(/z(?:ones?)?\s*([1-5])(?:\s*-\s*z?\s*([1-5]))?(?!\d)/gi)].flatMap(
+    (m) => [m[1], m[2]].filter(Boolean).map(Number),
+  )
   return zones.length ? (Math.max(...zones) as Zone) : null
 }
 

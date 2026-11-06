@@ -5,7 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { AskCoachButton } from '@/components/coach/AskCoachButton'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 import { EffortProfile } from '@/components/plan/EffortProfile'
-import { DISCIPLINE_LABEL, SESSION_TYPE_LABEL } from '@/lib/plan/display'
+import { DISCIPLINE_LABEL, sessionTitle } from '@/lib/plan/display'
 import { effortSegments } from '@/lib/plan/effort'
 import type { DashboardSession } from '@/lib/plan/week-summary'
 import { cn } from '@/lib/utils/cn'
@@ -16,10 +16,6 @@ interface SessionHeroProps {
   /** Ex. « Semaine 1 sur 27 · Préparation ». */
   weekLabel: string
   variant?: 'blue' | 'white'
-}
-
-export function sessionTitle(s: DashboardSession): string {
-  return s.title ?? SESSION_TYPE_LABEL[s.session_type] ?? DISCIPLINE_LABEL[s.discipline] ?? 'Séance'
 }
 
 export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: SessionHeroProps) {

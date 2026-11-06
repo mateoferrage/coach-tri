@@ -25,6 +25,16 @@ describe('findCurrentWeek', () => {
     expect(findCurrentWeek(weeks, '2026-11-16')).toBeNull()
     expect(findCurrentWeek([], '2026-11-06')).toBeNull()
   })
+
+  it('garde la dernière semaine commencée quand la date tombe entre deux semaines', () => {
+    const gapped: PlanWeekRef[] = [
+      { id: 'a', week_num: 1, phase: 'prep', start_date: '2026-11-02' },
+      { id: 'b', week_num: 2, phase: 'prep', start_date: '2026-11-16' },
+    ]
+    expect(findCurrentWeek(gapped, '2026-11-10')?.id).toBe('a')
+    expect(findCurrentWeek(gapped, '2026-11-22')?.id).toBe('b')
+    expect(findCurrentWeek(gapped, '2026-11-23')).toBeNull()
+  })
 })
 
 function mk(over: Partial<DashboardSession> & Pick<DashboardSession, 'id'>): DashboardSession {
@@ -119,6 +129,15 @@ describe('buildWeekRows', () => {
     )
     expect(r.find((row) => row.session?.id === 'x')?.status).toBe('missed')
   })
+
+  it('garde le statut repos pour un jour de repos marqué sauté', () => {
+    const r = buildWeekRows(
+      [mk({ id: 'r', session_date: '2026-11-03', discipline: 'rest', status: 'skipped' })],
+      '2026-11-02',
+      '2026-11-06',
+    )
+    expect(r.find((row) => row.session?.id === 'r')?.status).toBe('rest')
+  })
 })
 
 describe('pickDefaultSessionId', () => {
@@ -130,10 +149,15 @@ describe('pickDefaultSessionId', () => {
     expect(pickDefaultSessionId(buildWeekRows(sessions, '2026-11-02', '2026-11-01'))).toBe('wed')
   })
 
-  it('sinon la première séance de la semaine, ou null sans séance', () => {
+  it('sinon la première séance hors repos de la semaine, ou null sans séance', () => {
     const allDone = sessions.map((s) => ({ ...s, status: 'done' as const }))
-    expect(pickDefaultSessionId(buildWeekRows(allDone, '2026-11-02', '2026-11-20'))).toBe('mon')
+    expect(pickDefaultSessionId(buildWeekRows(allDone, '2026-11-02', '2026-11-20'))).toBe('tue')
     expect(pickDefaultSessionId(buildWeekRows([], '2026-11-02', '2026-11-06'))).toBeNull()
+  })
+
+  it('se rabat sur une séance de repos s’il n’y a rien d’autre', () => {
+    const onlyRest = sessions.filter((s) => s.discipline === 'rest')
+    expect(pickDefaultSessionId(buildWeekRows(onlyRest, '2026-11-02', '2026-11-06'))).toBe('mon')
   })
 })
 

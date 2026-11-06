@@ -43,21 +43,22 @@ export interface WeekLoadSummary {
 const iso = (d: Date) => format(d, 'yyyy-MM-dd')
 const DAY_PART_ORDER: Record<string, number> = { morning: 0, midday: 1, evening: 2 }
 
-/** Semaine du plan qui contient `today` ; la première avant le début ; null après la fin. */
+/**
+ * Semaine du plan en cours à `today` : la dernière commencée (même si `today` tombe
+ * entre deux semaines) ; la première avant le début ; null après la fin de la dernière.
+ */
 export function findCurrentWeek(weeks: PlanWeekRef[], today: string): PlanWeekRef | null {
   const sorted = [...weeks].sort((a, b) => a.week_num - b.week_num)
   if (sorted.length === 0) return null
-  if (today < sorted[0].start_date) return sorted[0]
-  return (
-    sorted.find((w) => today >= w.start_date && today < iso(addDays(parseISO(w.start_date), 7))) ??
-    null
-  )
+  const last = sorted[sorted.length - 1]
+  if (today >= iso(addDays(parseISO(last.start_date), 7))) return null
+  return sorted.findLast((w) => w.start_date <= today) ?? sorted[0]
 }
 
 function statusOf(s: DashboardSession, today: string): DayStatus {
   if (s.status === 'done') return 'done'
-  if (s.status === 'skipped') return 'missed'
   if (s.discipline === 'rest') return 'rest'
+  if (s.status === 'skipped') return 'missed'
   if (s.session_date === today) return 'today'
   return s.session_date < today ? 'missed' : 'planned'
 }
@@ -99,12 +100,16 @@ export function buildWeekRows(
   return rows
 }
 
-/** Séance affichée par défaut : du jour, sinon prévue, sinon la première ; null sans séance. */
+/**
+ * Séance affichée par défaut : du jour, sinon prévue, sinon la première hors repos,
+ * sinon un repos ; null sans séance.
+ */
 export function pickDefaultSessionId(rows: WeekRow[]): string | null {
   const withSession = rows.filter((r) => r.session)
   const pick =
     withSession.find((r) => r.status === 'today') ??
     withSession.find((r) => r.status === 'planned') ??
+    withSession.find((r) => r.session!.discipline !== 'rest') ??
     withSession[0]
   return pick?.session?.id ?? null
 }

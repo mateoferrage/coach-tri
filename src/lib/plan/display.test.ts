@@ -5,6 +5,7 @@ import {
   SESSION_TYPE_LABEL,
   formatDuration,
   formatWeekRange,
+  sessionTitle,
 } from './display'
 
 describe('formatDuration', () => {
@@ -14,6 +15,22 @@ describe('formatDuration', () => {
     expect(formatDuration(60)).toBe('1 h')
     expect(formatDuration(90)).toBe('1 h 30')
     expect(formatDuration(125)).toBe('2 h 05')
+  })
+
+  it('arrondit les durées non entières', () => {
+    expect(formatDuration(44.6)).toBe('45 min')
+    expect(formatDuration(89.6)).toBe('1 h 30')
+    expect(formatDuration(59.7)).toBe('1 h')
+  })
+})
+
+describe('sessionTitle', () => {
+  it('prend le titre, sinon le type de séance, sinon la discipline, sinon « Séance »', () => {
+    const base = { title: null, session_type: 'zzz', discipline: 'zzz' }
+    expect(sessionTitle({ ...base, title: 'Fartlek' })).toBe('Fartlek')
+    expect(sessionTitle({ ...base, session_type: 'tempo' })).toBe('Tempo')
+    expect(sessionTitle({ ...base, discipline: 'swim' })).toBe('Natation')
+    expect(sessionTitle(base)).toBe('Séance')
   })
 })
 

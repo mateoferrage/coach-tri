@@ -2,10 +2,9 @@ import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Check } from 'lucide-react'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
-import { DISCIPLINE_LABEL, formatDuration } from '@/lib/plan/display'
+import { DISCIPLINE_LABEL, formatDuration, sessionTitle } from '@/lib/plan/display'
 import type { DayStatus, WeekRow } from '@/lib/plan/week-summary'
 import { cn } from '@/lib/utils/cn'
-import { sessionTitle } from '@/components/plan/SessionHero'
 
 interface DayRowProps {
   row: WeekRow

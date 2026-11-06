@@ -34,12 +34,22 @@ export const PHASE_LABEL: Record<string, string> = {
 }
 
 /** 0 → « — », 45 → « 45 min », 90 → « 1 h 30 », 125 → « 2 h 05 ». */
-export function formatDuration(minutes: number): string {
+export function formatDuration(rawMinutes: number): string {
+  const minutes = Math.round(rawMinutes)
   if (minutes <= 0) return '—'
   if (minutes < 60) return `${minutes} min`
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`
+}
+
+/** Titre d'une séance : le sien, sinon son type, sinon sa discipline. */
+export function sessionTitle(s: {
+  title: string | null
+  session_type: string
+  discipline: string
+}): string {
+  return s.title ?? SESSION_TYPE_LABEL[s.session_type] ?? DISCIPLINE_LABEL[s.discipline] ?? 'Séance'
 }
 
 /** Semaine de 7 jours à partir de `startDate` : « du 2 au 8 novembre ». */
