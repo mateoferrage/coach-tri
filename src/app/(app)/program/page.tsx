@@ -2,12 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { SectionLabel } from '@/components/common/SectionLabel'
 import { PhaseBar } from '@/components/plan/PhaseBar'
 import { WeekView } from '@/components/plan/WeekView'
 import { StopProgramButton } from '@/components/plan/StopProgramButton'
 import { AddRaceDialog } from '@/components/plan/AddRaceDialog'
 import { differenceInWeeks, parseISO, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { PHASE_LABEL } from '@/lib/plan/display'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Programme — Coach Tri' }
@@ -72,15 +76,12 @@ export default async function ProgramPage() {
 
   if (!plan) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-        <h1 className="text-2xl font-bold">Aucun programme actif</h1>
+      <div className="flex flex-col items-center justify-center space-y-4 py-20 text-center">
+        <h1 className="text-3xl md:text-4xl">Aucun programme actif</h1>
         <p className="text-muted-foreground">
           Créez votre premier programme pour commencer à vous entraîner.
         </p>
-        <Link
-          href="/program/new"
-          className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-medium px-4 py-2 transition-all hover:bg-primary/80"
-        >
+        <Link href="/program/new" className={buttonVariants({ variant: 'highlight', size: 'lg' })}>
           Créer un programme
         </Link>
       </div>
@@ -117,32 +118,45 @@ export default async function ProgramPage() {
       0,
     )
 
-  const PHASE_LABELS: Record<string, string> = {
-    prep: 'Préparation',
-    base: 'Base',
-    build: 'Construction',
-    peak: 'Pic',
-    taper: 'Affûtage',
-    race: 'Course',
-    maintenance: 'Maintien',
-  }
+  const currentPhaseLabel = currentPhase
+    ? (PHASE_LABEL[currentPhase.phase as string] ?? (currentPhase.phase as string))
+    : null
+  const secondaryRaces = (allGoalsData ?? []).filter(
+    (g: Record<string, unknown>) =>
+      currentGoalIds.includes(g.id as string) && g.id !== (plan.goal_id as string | null),
+  )
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {goal ? (goal.race_name as string) : 'Programme Maintien'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-medium text-muted-foreground">
             {total_weeks} semaines · {format(startDate, 'd MMM yyyy', { locale: fr })}
             {plan.end_date
               ? ` → ${format(parseISO(plan.end_date as string), 'd MMM yyyy', { locale: fr })}`
               : ''}
           </p>
+          <h1 className="text-3xl md:text-4xl">
+            {goal ? (goal.race_name as string) : 'Programme Maintien'}
+          </h1>
+          {total_weeks > 0 && (
+            <p className="text-sm font-semibold text-primary-ink">
+              Semaine {currentWeekNum} sur {total_weeks}
+              {currentPhaseLabel ? ` · ${currentPhaseLabel}` : ''}
+            </p>
+          )}
+          {secondaryRaces.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="Autres courses du programme">
+              {secondaryRaces.map((g: Record<string, unknown>) => (
+                <li key={g.id as string}>
+                  <Badge variant="outline">{g.race_name as string}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {(plan.goal_id as string | null) && (
             <AddRaceDialog
               planId={plan.id as string}
@@ -151,51 +165,33 @@ export default async function ProgramPage() {
               availableGoals={availableGoals}
             />
           )}
-          <Link
-            href="/program/new"
-            className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-sm font-medium px-3 py-1.5 hover:bg-muted transition-colors"
-          >
+          <Link href="/program/new" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
             Nouveau programme
           </Link>
         </div>
-      </div>
+      </header>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{currentWeekNum}</div>
-            <div className="text-xs text-muted-foreground mt-1">Semaine en cours</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">
-              {PHASE_LABELS[currentPhase?.phase as string] ?? '—'}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Phase actuelle</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{doneSessions}</div>
-            <div className="text-xs text-muted-foreground mt-1">Séances complétées</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">{totalHoursDone.toFixed(0)}h</div>
-            <div className="text-xs text-muted-foreground mt-1">Volume accumulé</div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { value: String(currentWeekNum), label: 'Semaine en cours' },
+          { value: currentPhaseLabel ?? '—', label: 'Phase actuelle' },
+          { value: String(doneSessions), label: 'Séances complétées' },
+          { value: `${totalHoursDone.toFixed(0)} h`, label: 'Volume accumulé' },
+        ].map((stat) => (
+          <Card key={stat.label} size="sm">
+            <CardContent className="text-center">
+              <div className="font-display text-2xl font-bold tabular-nums">{stat.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{stat.label}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Phase bar */}
       {phases.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Périodisation
-          </h2>
+        <div className="space-y-3">
+          <SectionLabel>Périodisation</SectionLabel>
           <PhaseBar
             phases={phases as unknown as Parameters<typeof PhaseBar>[0]['phases']}
             total_weeks={total_weeks}
@@ -216,9 +212,7 @@ export default async function ProgramPage() {
 
         return (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Semaines
-            </h2>
+            <SectionLabel>Semaines</SectionLabel>
 
             {currentWeek && (
               <WeekView
@@ -240,9 +234,9 @@ export default async function ProgramPage() {
 
             {pastWeeks.length > 0 && (
               <>
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-2">
+                <SectionLabel as="h3" className="pt-3 text-muted-foreground">
                   Semaines passées
-                </h3>
+                </SectionLabel>
                 {pastWeeks.map((week) => (
                   <WeekView
                     key={week.id as string}
