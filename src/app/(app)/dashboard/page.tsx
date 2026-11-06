@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { differenceInWeeks, parseISO } from 'date-fns'
-import CoachChat from '@/components/coach/CoachChat'
 import {
   ACCENT as MINT,
   SURFACE as DARK,
@@ -316,12 +315,6 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
-
-      {/* Coach IA */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">Ton coach</h2>
-        <CoachChat />
-      </section>
     </div>
   )
 }

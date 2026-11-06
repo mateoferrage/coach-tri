@@ -1,6 +1,14 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppNav } from '@/components/common/AppNav'
+import { CoachDrawerProvider } from '@/components/coach/CoachDrawer'
+import { buildRaceSummary } from '@/lib/plan/nav-summary'
+
+interface ActivePlanNav {
+  start_date: string
+  goal: { race_name: string | null; race_date: string | null } | null
+  plan_weeks: { id: string }[] | null
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -10,15 +18,36 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect('/login')
 
+  const { data } = await supabase
+    .from('plans')
+    .select('start_date, goal:goals!plans_goal_id_fkey(race_name, race_date), plan_weeks(id)')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const plan = data as unknown as ActivePlanNav | null
+  const race = plan
+    ? buildRaceSummary(
+        {
+          raceName: plan.goal?.race_name ?? null,
+          raceDate: plan.goal?.race_date ?? null,
+          startDate: plan.start_date,
+          totalWeeks: plan.plan_weeks?.length ?? 0,
+        },
+        new Date(),
+      )
+    : null
+
   return (
-    <div className="relative flex min-h-screen flex-col">
-      {/* Filigrane topographique — signature DA Sommet (courbes de niveau).
-          `absolute` (et non `fixed`) → défile avec le contenu. */}
-      <div className="topo-lines pointer-events-none absolute inset-0 z-0 opacity-[0.14]" />
-      <AppNav user={user} />
-      <main className="relative z-10 flex-1 container mx-auto max-w-6xl px-4 py-8 pb-24 md:pb-8">
-        {children}
-      </main>
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <AppNav user={user} race={race} />
+      <CoachDrawerProvider>
+        <main className="container mx-auto min-w-0 max-w-6xl flex-1 px-4 py-8 pb-[calc(9rem_+_env(safe-area-inset-bottom))] md:px-8 md:pb-24">
+          {children}
+        </main>
+      </CoachDrawerProvider>
     </div>
   )
 }

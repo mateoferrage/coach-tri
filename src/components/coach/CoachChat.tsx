@@ -1,16 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import {
-  ACCENT as MINT,
-  SURFACE as DARK,
-  SURFACE_DEEP as DARKER,
-  DIVIDER as DIV,
-  TEXT_FAINT as MUTED,
-  withAlpha,
-} from '@/lib/theme'
+import { ArrowUp, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils/cn'
 
 interface ProposedAction {
   type: 'cancel_session' | 'move_session' | 'adjust_session' | 'regenerate_week'
@@ -27,9 +22,22 @@ interface Message {
   created_at: string
 }
 
-export default function CoachChat() {
+interface CoachChatProps {
+  /** Texte placé dans le champ à l'ouverture (ex. « Parler de cette séance »). */
+  initialInput?: string
+  /** Questions proposées sous forme de pastilles ; un clic remplit le champ. */
+  suggestions?: string[]
+  /** Ref du champ, pour que le tiroir y place le focus à l'ouverture. */
+  inputRef?: RefObject<HTMLTextAreaElement | null>
+}
+
+export default function CoachChat({
+  initialInput = '',
+  suggestions = [],
+  inputRef,
+}: CoachChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(initialInput)
   const [sending, setSending] = useState(false)
   const [confirming, setConfirming] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -143,182 +151,139 @@ export default function CoachChat() {
   }
 
   return (
-    <div
-      className="card-elev rounded-2xl overflow-hidden flex flex-col"
-      style={{ backgroundColor: DARK, border: `1px solid ${DIV}`, height: '420px' }}
-    >
-      {/* Header */}
-      <div
-        className="px-5 py-3 flex items-center gap-2 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${DIV}`, backgroundColor: DARKER }}
-      >
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-          style={{
-            backgroundColor: `${withAlpha(MINT, 12)}`,
-            border: `1px solid ${withAlpha(MINT, 30)}`,
-          }}
-        >
-          🤖
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: MINT }}>
-            Coach IA
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-3">
-          {sending && (
-            <div className="flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: MINT, animationDelay: `${i * 150}ms` }}
-                />
-              ))}
-            </div>
-          )}
-          <button
-            onClick={resetConversation}
-            className="text-xs uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ color: MUTED }}
-            title="Démarrer une nouvelle conversation"
-          >
-            Nouvelle conv.
-          </button>
-        </div>
-      </div>
-
+    <div className="flex h-full min-h-0 flex-col">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {messages.length === 0 && !sending && (
-          <p className="text-center text-xs py-8" style={{ color: MUTED }}>
-            Parle-moi de ta forme, d&apos;un empêchement, ou demande un conseil !
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Parle-moi de ta forme, d&apos;un empêchement, ou demande un conseil.
           </p>
         )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-          >
-            <div
-              className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-              style={
-                msg.role === 'user'
-                  ? {
-                      backgroundColor: `${withAlpha(MINT, 16)}`,
-                      color: 'oklch(0.287 0.047 217.9)',
-                      border: `1px solid ${withAlpha(MINT, 30)}`,
-                    }
-                  : {
-                      backgroundColor: DARKER,
-                      color: 'oklch(0.287 0.047 217.9)',
-                      border: `1px solid ${DIV}`,
-                    }
-              }
-            >
-              {msg.content}
-            </div>
-
-            {/* Proposed action */}
-            {msg.role === 'assistant' && msg.proposed_action && (
-              <div
-                className="max-w-[85%] rounded-xl px-3 py-2 text-xs space-y-2"
-                style={{
-                  backgroundColor: `${withAlpha(MINT, 8)}`,
-                  border: `1px solid ${withAlpha(MINT, 22)}`,
-                }}
-              >
-                <p className="font-bold" style={{ color: MINT }}>
-                  Action proposée
-                </p>
-                <p style={{ color: 'oklch(0.504 0.038 203.1)' }}>
-                  {msg.proposed_action.description}
+        <ol className="flex flex-col gap-5">
+          {messages.map((msg) => {
+            const fromUser = msg.role === 'user'
+            return (
+              <li key={msg.id} className="flex flex-col gap-1.5">
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tracking-[0.06em] uppercase',
+                    fromUser ? 'text-muted-foreground' : 'text-primary-ink',
+                  )}
+                >
+                  {fromUser ? 'Toi' : 'Coach'}
+                </span>
+                <p
+                  className={cn(
+                    'text-[15px] leading-relaxed whitespace-pre-wrap',
+                    fromUser
+                      ? 'text-muted-foreground'
+                      : 'border-l-4 border-primary pl-3.5 text-foreground',
+                  )}
+                >
+                  {msg.content}
                 </p>
 
-                {msg.action_status === 'pending' && (
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={() => handleAction(msg.id, 'confirmed')}
-                      disabled={confirming === msg.id}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: MINT, color: DARK }}
-                    >
-                      {confirming === msg.id ? '...' : 'Confirmer'}
-                    </button>
-                    <button
-                      onClick={() => handleAction(msg.id, 'rejected')}
-                      disabled={confirming === msg.id}
-                      className="flex-1 rounded-lg py-1.5 text-xs font-semibold uppercase tracking-widest transition-opacity disabled:opacity-50"
-                      style={{
-                        backgroundColor: `${DIV}`,
-                        color: 'oklch(0.504 0.038 203.1)',
-                        border: `1px solid ${DIV}`,
-                      }}
-                    >
-                      Refuser
-                    </button>
+                {!fromUser && msg.proposed_action && (
+                  <div className="mt-1 flex flex-col gap-2 rounded-lg border border-border p-3 text-sm">
+                    <span className="text-xs font-bold tracking-[0.1em] text-primary-ink uppercase">
+                      Action proposée
+                    </span>
+                    <p>{msg.proposed_action.description}</p>
+
+                    {msg.action_status === 'pending' && (
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          variant="highlight"
+                          size="sm"
+                          onClick={() => handleAction(msg.id, 'confirmed')}
+                          disabled={confirming === msg.id}
+                        >
+                          {confirming === msg.id ? 'En cours…' : 'Appliquer'}
+                        </Button>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleAction(msg.id, 'rejected')}
+                          disabled={confirming === msg.id}
+                        >
+                          Ignorer
+                        </Button>
+                      </div>
+                    )}
+                    {msg.action_status === 'confirmed' && (
+                      <p className="flex items-center gap-1.5 text-xs font-bold text-primary-ink">
+                        <Check size={14} strokeWidth={2.5} />
+                        Action appliquée
+                      </p>
+                    )}
+                    {msg.action_status === 'rejected' && (
+                      <p className="text-xs text-muted-foreground">Action ignorée</p>
+                    )}
                   </div>
                 )}
+              </li>
+            )
+          })}
+        </ol>
 
-                {msg.action_status === 'confirmed' && (
-                  <p className="text-xs font-bold" style={{ color: MINT }}>
-                    ✓ Action effectuée
-                  </p>
-                )}
-                {msg.action_status === 'rejected' && (
-                  <p className="text-xs" style={{ color: MUTED }}>
-                    Refusée
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+        {sending && (
+          <p className="mt-5 font-mono text-xs text-primary-ink" aria-live="polite">
+            Le coach écrit…
+          </p>
+        )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div
-        className="px-4 py-3 flex gap-2 items-end flex-shrink-0"
-        style={{ borderTop: `1px solid ${DIV}`, backgroundColor: DARKER }}
-      >
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Comment tu te sens ? Un empêchement ?"
-          rows={1}
-          disabled={sending}
-          className="flex-1 resize-none rounded-xl px-3 py-2.5 text-sm outline-none disabled:opacity-50"
-          style={{
-            backgroundColor: DARKER,
-            border: `1px solid ${DIV}`,
-            color: 'oklch(0.287 0.047 217.9)',
-            maxHeight: '80px',
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={!input.trim() || sending}
-          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-opacity disabled:opacity-30"
-          style={{ backgroundColor: MINT, color: DARK }}
-          aria-label="Envoyer"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      {/* Saisie */}
+      <div className="flex flex-col gap-3 border-t border-border px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setInput(s)
+                  inputRef?.current?.focus()
+                }}
+                className="rounded-full border-[1.5px] border-primary bg-card px-3 py-1 text-xs font-semibold text-primary-ink transition-colors hover:bg-primary hover:text-primary-foreground"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-2 rounded-3xl border-[1.5px] border-primary bg-card py-1.5 pr-1.5 pl-4 focus-within:ring-3 focus-within:ring-primary/25">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Pose une question au coach"
+            aria-label="Message au coach"
+            rows={1}
+            disabled={sending}
+            className="max-h-24 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none placeholder:text-muted-foreground disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={send}
+            disabled={!input.trim() || sending}
+            aria-label="Envoyer"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-highlight text-highlight-foreground transition-colors hover:bg-highlight-deep disabled:opacity-40"
           >
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
+            <ArrowUp size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={resetConversation}
+          className="self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          Nouvelle conversation
         </button>
       </div>
     </div>
