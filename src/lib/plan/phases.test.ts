@@ -17,6 +17,26 @@ describe('normalizePhase', () => {
     expect(normalizePhase('recovery')).toBeNull()
     expect(normalizePhase('')).toBeNull()
   })
+  it('extracts the keyword from enriched multi-race labels', () => {
+    expect(normalizePhase('BASE 1')).toBe('base')
+    expect(normalizePhase('BUILD 1 (Trail Focus)')).toBe('build')
+    expect(normalizePhase('PEAK (Trail Ventoux)')).toBe('peak')
+    expect(normalizePhase('TAPER (Tri Test)')).toBe('taper')
+  })
+  it('extracts the keyword from underscore-joined labels', () => {
+    expect(normalizePhase('BASE_VENTOUX')).toBe('base')
+    expect(normalizePhase('BUILD_VENTOUX')).toBe('build')
+    expect(normalizePhase('PEAK_VENTOUX')).toBe('peak')
+    expect(normalizePhase('TAPER_VENTOUX')).toBe('taper')
+    expect(normalizePhase('BUILD_TRI')).toBe('build')
+    expect(normalizePhase('TAPER_TRI')).toBe('taper')
+  })
+  it('maps transition/prépa/affûtage/compétition synonyms', () => {
+    expect(normalizePhase('TRANSITION (Post-Trail)')).toBe('prep')
+    expect(normalizePhase('Préparation générale')).toBe('prep')
+    expect(normalizePhase('Affûtage')).toBe('taper')
+    expect(normalizePhase('Compétition')).toBe('race')
+  })
 })
 
 describe('derivePhasesFromWeeks', () => {

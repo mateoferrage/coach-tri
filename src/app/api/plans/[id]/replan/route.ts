@@ -103,10 +103,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   })
 
   // 8. Update attachments: replace plan_goals, repoint plan.goal_id
-  const { error: delGoalsError } = await admin
-    .from('plan_goals')
-    .delete()
-    .eq('plan_id', plan_id)
+  const { error: delGoalsError } = await admin.from('plan_goals').delete().eq('plan_id', plan_id)
   if (delGoalsError)
     return apiError(`Échec mise à jour des courses : ${delGoalsError.message}`, 500)
   const { error: insGoalsError } = await admin
@@ -123,13 +120,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // 9. Delete out-of-horizon weeks (cascade removes their sessions)
   if (scope.deleteWeeks.length) {
-    const deleteIds = weeks
-      .filter((w) => scope.deleteWeeks.includes(w.week_num))
-      .map((w) => w.id)
+    const deleteIds = weeks.filter((w) => scope.deleteWeeks.includes(w.week_num)).map((w) => w.id)
     if (deleteIds.length) {
       const { error: delWeeksError } = await admin.from('plan_weeks').delete().in('id', deleteIds)
       if (delWeeksError)
-        return apiError(`Échec suppression des semaines hors horizon : ${delWeeksError.message}`, 500)
+        return apiError(
+          `Échec suppression des semaines hors horizon : ${delWeeksError.message}`,
+          500,
+        )
     }
   }
 

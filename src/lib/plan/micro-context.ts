@@ -43,37 +43,45 @@ export async function buildMicroInputForWeek(params: {
   const { supabase, admin, userId, plan_id, week, available_days } = params
   const week_num = week.week_num
 
-  const [profileResult, allPlanWeeksResult, wellnessResult, physiologyResult, garminStatsResult] =
-    await Promise.all([
-      supabase
-        .from('profiles')
-        .select('level, weekly_hours_avg, available_disciplines, equipment')
-        .eq('id', userId)
-        .single(),
-      admin
-        .from('plan_weeks')
-        .select(
-          'id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date',
-        )
-        .eq('plan_id', plan_id)
-        .order('week_num', { ascending: true }),
-      admin
-        .from('garmin_wellness')
-        .select('date, hrv_rmssd, body_battery_start, resting_hr')
-        .eq('user_id', userId)
-        .order('date', { ascending: false })
-        .limit(7),
-      // Physiology — use the view that returns the most recent measure
-      admin
-        .from('physiology_current')
-        .select(
-          'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr',
-        )
-        .eq('user_id', userId)
-        .maybeSingle(),
-      // Garmin stats for VO2max fallback when no physiology data
-      admin.from('garmin_stats').select('vo2max_run').eq('user_id', userId).maybeSingle(),
-    ])
+  const [
+    profileResult,
+    allPlanWeeksResult,
+    wellnessResult,
+    physiologyResult,
+    garminStatsResult,
+    planResult,
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('level, weekly_hours_avg, available_disciplines, equipment')
+      .eq('id', userId)
+      .single(),
+    admin
+      .from('plan_weeks')
+      .select(
+        'id, week_num, phase, is_recovery_week, planned_volume_hours, planned_tss, start_date',
+      )
+      .eq('plan_id', plan_id)
+      .order('week_num', { ascending: true }),
+    admin
+      .from('garmin_wellness')
+      .select('date, hrv_rmssd, body_battery_start, resting_hr')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(7),
+    // Physiology — use the view that returns the most recent measure
+    admin
+      .from('physiology_current')
+      .select(
+        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr',
+      )
+      .eq('user_id', userId)
+      .maybeSingle(),
+    // Garmin stats for VO2max fallback when no physiology data
+    admin.from('garmin_stats').select('vo2max_run').eq('user_id', userId).maybeSingle(),
+    // Config disciplines du plan (persistée dans params à la génération)
+    admin.from('plans').select('params').eq('id', plan_id).maybeSingle(),
+  ])
 
   const profile = profileResult.data
   const equipmentRaw = profile?.equipment as EquipmentData | null
@@ -85,6 +93,10 @@ export async function buildMicroInputForWeek(params: {
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
   const garminStats = garminStatsResult.data
+  const planParams = (planResult.data?.params ?? null) as {
+    training_disciplines?: string[] | null
+    complementary_disciplines?: string[] | null
+  } | null
 
   // ── Athlete training zones ─────────────────────────────────────────────────
   const zones = calculateZones({
@@ -262,6 +274,10 @@ export async function buildMicroInputForWeek(params: {
     },
     available_days,
     week_start_date: week.start_date,
+    training_disciplines: planParams?.training_disciplines ?? undefined,
+    complementary_disciplines: planParams?.complementary_disciplines?.length
+      ? planParams.complementary_disciplines
+      : undefined,
     prior_weeks: priorWeeks.length ? priorWeeks : undefined,
     plan_overview: planOverview.length ? planOverview : undefined,
     athlete_zones: athleteZones,

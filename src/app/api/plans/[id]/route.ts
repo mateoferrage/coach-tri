@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .select(
       `
       *,
-      goal:goals(*),
+      goal:goals!plans_goal_id_fkey(*),
       plan_phases(*),
       plan_weeks(*, sessions(*))
     `,

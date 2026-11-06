@@ -15,7 +15,7 @@ describe('computeReplanScope', () => {
     expect(r.createWeeks).toEqual([])
   })
 
-  it('étend l\'horizon quand la nouvelle course est plus lointaine', () => {
+  it("étend l'horizon quand la nouvelle course est plus lointaine", () => {
     const r = computeReplanScope({
       existingWeekNums: weekNums,
       cutoffWeek: 3,
@@ -25,7 +25,7 @@ describe('computeReplanScope', () => {
     expect(r.createWeeks).toEqual([13, 14, 15, 16])
   })
 
-  it('raccourcit l\'horizon quand le nouveau pic est plus proche', () => {
+  it("raccourcit l'horizon quand le nouveau pic est plus proche", () => {
     const r = computeReplanScope({
       existingWeekNums: weekNums,
       cutoffWeek: 3,

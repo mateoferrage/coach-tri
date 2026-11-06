@@ -24,7 +24,7 @@ export default async function ProgramPage() {
     .select(
       `
       *,
-      goal:goals(race_name, race_date, race_type),
+      goal:goals!plans_goal_id_fkey(race_name, race_date, race_type),
       plan_phases(*),
       plan_weeks(*, sessions(*))
     `,
@@ -43,7 +43,8 @@ export default async function ProgramPage() {
         .eq('plan_id', plan.id as string)
     : { data: null }
 
-  const rawCurrentGoalIds = planGoalsData?.map((r: Record<string, unknown>) => r.goal_id as string) ?? []
+  const rawCurrentGoalIds =
+    planGoalsData?.map((r: Record<string, unknown>) => r.goal_id as string) ?? []
   const currentGoalIds =
     rawCurrentGoalIds.length > 0
       ? rawCurrentGoalIds
@@ -61,9 +62,7 @@ export default async function ProgramPage() {
     : { data: null }
 
   const availableGoals = (allGoalsData ?? [])
-    .filter(
-      (g: Record<string, unknown>) => !currentGoalIds.includes(g.id as string),
-    )
+    .filter((g: Record<string, unknown>) => !currentGoalIds.includes(g.id as string))
     .map((g: Record<string, unknown>) => ({
       id: g.id as string,
       race_name: g.race_name as string,

@@ -14,7 +14,7 @@ export async function GET() {
     .select(
       `
       *,
-      goal:goals(*),
+      goal:goals!plans_goal_id_fkey(*),
       plan_phases(*),
       plan_weeks(*, sessions(*))
     `,
