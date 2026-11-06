@@ -81,6 +81,8 @@ export default async function DashboardPage() {
       .maybeSingle(),
   ])
 
+  if (planRes.error) throw planRes.error
+
   const firstName = (profileRes.data as { first_name: string | null } | null)?.first_name
   const plan = planRes.data as unknown as { id: string; plan_weeks: PlanWeekRef[] | null } | null
   const weeks = plan?.plan_weeks ?? []
@@ -88,11 +90,12 @@ export default async function DashboardPage() {
 
   let sessions: DashboardSession[] = []
   if (week) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('sessions')
       .select(SESSION_FIELDS)
       .eq('user_id', user!.id)
       .eq('plan_week_id', week.id)
+    if (error) throw error
     sessions = (data ?? []) as unknown as DashboardSession[]
   }
 
@@ -121,6 +124,13 @@ export default async function DashboardPage() {
           text="Crée ton programme : le coach le construit à partir de ta course et de tes disponibilités."
           href="/program/new"
           cta="Créer mon programme"
+        />
+      ) : weeks.length === 0 ? (
+        <EmptyState
+          title="Programme en préparation"
+          text="Ton programme est en cours de génération. Reviens dans quelques instants."
+          href="/program"
+          cta="Voir le programme"
         />
       ) : !week ? (
         <EmptyState

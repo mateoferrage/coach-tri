@@ -50,11 +50,11 @@ export function WeekLoad({ load }: { load: WeekLoadSummary }) {
             {load.byDiscipline.map((d) => (
               <li
                 key={d.discipline}
-                className="grid grid-cols-[7rem_1fr_4.5rem] items-center gap-3 text-sm"
+                className="grid grid-cols-[6.5rem_1fr_4.5rem] items-center gap-3 text-sm"
               >
-                <span className="flex items-center gap-1.5 font-medium">
+                <span className="flex min-w-0 items-center gap-1.5 font-medium">
                   <DisciplineIcon discipline={d.discipline} size={14} />
-                  {DISCIPLINE_LABEL[d.discipline] ?? d.discipline}
+                  <span className="truncate">{DISCIPLINE_LABEL[d.discipline] ?? d.discipline}</span>
                 </span>
                 <span className="h-2 overflow-hidden rounded-full bg-muted">
                   <span

@@ -14,7 +14,9 @@ const PART_LABEL = ['échauffement', 'corps de séance', 'retour au calme']
 /** Barres du profil d'effort : largeur = durée, hauteur et couleur = zone. */
 export function EffortProfile({ segments, durationMin, surface = 'white' }: EffortProfileProps) {
   if (segments.length === 0) return null
-  const description = segments.map((s, i) => `${PART_LABEL[i] ?? 'bloc'} Z${s.zone}`).join(', ')
+  const description = segments
+    .map((s, i) => `${PART_LABEL[i] ?? 'bloc'} ${Math.round(s.share * durationMin)} min Z${s.zone}`)
+    .join(', ')
   return (
     <div className="flex flex-col gap-1.5">
       <div
@@ -37,8 +39,10 @@ export function EffortProfile({ segments, durationMin, surface = 'white' }: Effo
       </div>
       <div
         className={cn(
-          'flex justify-between font-mono text-[11px] font-semibold',
-          surface === 'blue' ? 'text-primary-foreground' : 'text-muted-foreground',
+          'flex justify-between font-mono font-semibold',
+          surface === 'blue'
+            ? 'text-[13px] text-primary-foreground'
+            : 'text-[11px] text-muted-foreground',
         )}
       >
         <span>0</span>

@@ -10,9 +10,10 @@ interface AskCoachButtonProps {
   prefill: string
   /** `blue` : bouton contour blanc posé sur fond bleu. */
   tone?: 'blue' | 'white'
+  className?: string
 }
 
-export function AskCoachButton({ prefill, tone = 'white' }: AskCoachButtonProps) {
+export function AskCoachButton({ prefill, tone = 'white', className }: AskCoachButtonProps) {
   const { open } = useCoachDrawer()
   return (
     <button
@@ -22,7 +23,8 @@ export function AskCoachButton({ prefill, tone = 'white' }: AskCoachButtonProps)
         buttonVariants({ variant: 'outline-primary', size: 'lg' }),
         'font-bold',
         tone === 'blue' &&
-          'border-primary-foreground bg-transparent text-primary-foreground hover:bg-primary-foreground/15',
+          'border-primary-foreground bg-transparent text-primary-foreground hover:bg-primary-ink',
+        className,
       )}
     >
       <MessageCircle />

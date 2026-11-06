@@ -39,13 +39,13 @@ export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: S
     >
       <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-semibold">
         {isToday ? (
-          <span className="rounded-full bg-highlight px-3 py-1 text-xs font-bold text-highlight-foreground">
+          <span className="rounded-full bg-highlight px-3 py-1 text-[13px] font-bold text-highlight-foreground">
             Aujourd&apos;hui
           </span>
         ) : (
           <span
             className={cn(
-              'rounded-full px-3 py-1 text-xs font-bold capitalize',
+              'rounded-full px-3 py-1 text-[13px] font-bold capitalize',
               blue ? 'bg-card text-foreground' : 'bg-accent text-primary-ink',
             )}
           >
@@ -61,7 +61,7 @@ export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: S
       <div>
         <h2
           className={cn(
-            'text-4xl leading-[0.95] tracking-[-0.03em] [font-stretch:118%] md:text-5xl',
+            'text-3xl leading-[0.95] tracking-[-0.03em] break-words hyphens-auto [font-stretch:118%] sm:text-4xl md:text-5xl',
             !blue && 'text-primary',
           )}
         >
@@ -99,13 +99,21 @@ export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: S
       <div className="flex flex-wrap gap-2.5">
         <Link
           href={`/session/${session.id}`}
-          className={buttonVariants({ variant: 'highlight', size: 'lg' })}
+          className={cn(
+            buttonVariants({ variant: 'highlight', size: 'lg' }),
+            blue && 'focus-visible:border-primary-foreground focus-visible:ring-primary-foreground',
+          )}
         >
           Voir la séance
         </Link>
         <AskCoachButton
           prefill={`À propos de ma séance « ${title} » : `}
           tone={blue ? 'blue' : 'white'}
+          className={
+            blue
+              ? 'focus-visible:border-primary-foreground focus-visible:ring-primary-foreground'
+              : undefined
+          }
         />
       </div>
     </section>

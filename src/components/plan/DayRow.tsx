@@ -86,11 +86,11 @@ export function DayRow({ row, selected = false, onSelect }: DayRowProps) {
 
   return (
     <li className="border-t border-border first:border-t-0">
-      {s && onSelect ? (
+      {s && s.discipline !== 'rest' && onSelect ? (
         <button
           type="button"
           onClick={onSelect}
-          aria-pressed={selected}
+          aria-current={selected ? 'true' : undefined}
           className={cn(
             cls,
             'cursor-pointer rounded-md transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',

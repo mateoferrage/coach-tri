@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { DayRow } from '@/components/plan/DayRow'
 import { SessionHero } from '@/components/plan/SessionHero'
@@ -18,13 +18,29 @@ interface TodayBoardProps {
 /** Carte de la séance sélectionnée + liste de la semaine ; un clic sur un jour change la carte. */
 export function TodayBoard({ rows, defaultSessionId, weekLabel, weekRange }: TodayBoardProps) {
   const [selectedId, setSelectedId] = useState(defaultSessionId)
+  const heroRef = useRef<HTMLDivElement>(null)
   const selected = rows.find((r) => r.session?.id === selectedId) ?? rows.find((r) => r.session)
+
+  function select(id: string) {
+    setSelectedId(id)
+    // Sous lg, la carte est au-dessus de la liste : on la ramène à l'écran.
+    if (!window.matchMedia('(min-width: 1024px)').matches) {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      heroRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+    }
+  }
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1.35fr_1fr]">
-      {selected?.session && (
-        <SessionHero session={selected.session} isToday={selected.isToday} weekLabel={weekLabel} />
-      )}
+      <div ref={heroRef} aria-live="polite" className="scroll-mt-20">
+        {selected?.session && (
+          <SessionHero
+            session={selected.session}
+            isToday={selected.isToday}
+            weekLabel={weekLabel}
+          />
+        )}
+      </div>
       <section
         aria-labelledby="week-title"
         className="rounded-xl border border-border px-2 pt-4 pb-2"
@@ -41,7 +57,11 @@ export function TodayBoard({ rows, defaultSessionId, weekLabel, weekRange }: Tod
               key={row.key}
               row={row}
               selected={!!row.session && row.session.id === selected?.session?.id}
-              onSelect={row.session ? () => setSelectedId(row.session!.id) : undefined}
+              onSelect={
+                row.session && row.session.discipline !== 'rest'
+                  ? () => select(row.session!.id)
+                  : undefined
+              }
             />
           ))}
         </ul>
