@@ -105,7 +105,7 @@ export function AppNav({ user, race }: AppNavProps) {
 
         <div className="mt-auto flex flex-col gap-4">
           {race && (
-            <div className="flex flex-col gap-1.5 rounded-xl bg-sidebar-accent p-3.5 text-[13px] font-semibold">
+            <div className="flex flex-col gap-1.5 rounded-xl border-[1.5px] border-sidebar-border p-3.5 text-[13px] font-semibold">
               <span>Objectif principal</span>
               <b className="text-base leading-tight font-bold">{race.raceName}</b>
               <Countdown daysLeft={race.daysLeft} className="self-start px-3 py-1 text-lg" />
@@ -157,7 +157,7 @@ export function AppNav({ user, race }: AppNavProps) {
               href={href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[13px] text-sidebar-foreground transition-colors',
+                'relative flex flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2.5 text-[13px] tracking-tight text-sidebar-foreground transition-colors',
                 active ? 'font-bold' : 'font-semibold',
               )}
             >
@@ -165,7 +165,7 @@ export function AppNav({ user, race }: AppNavProps) {
                 <span className="absolute inset-x-4 top-0 h-[3px] rounded-b bg-highlight" />
               )}
               <Icon size={19} strokeWidth={active ? 2.4 : 1.8} />
-              {shortLabel}
+              <span className="max-w-full truncate">{shortLabel}</span>
             </Link>
           )
         })}
