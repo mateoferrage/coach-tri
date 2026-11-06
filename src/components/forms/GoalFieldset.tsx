@@ -208,7 +208,9 @@ export const GoalFieldset = forwardRef<GoalFieldsetHandle, { priority: 'A' | 'B'
         <div className="space-y-2">
           <Label>Nom de la course</Label>
           <Input
-            placeholder={sport === 'triathlon' ? 'Ex: Ironman 70.3 Nice' : 'Ex: UTMB, Paris Marathon…'}
+            placeholder={
+              sport === 'triathlon' ? 'Ex: Ironman 70.3 Nice' : 'Ex: UTMB, Paris Marathon…'
+            }
             {...goalForm.register('race_name')}
           />
           {goalForm.formState.errors.race_name && (
@@ -265,15 +267,24 @@ export const GoalFieldset = forwardRef<GoalFieldsetHandle, { priority: 'A' | 'B'
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Nage (m)</Label>
-              <Input type="number" {...goalForm.register('swim_distance_m', { valueAsNumber: true })} />
+              <Input
+                type="number"
+                {...goalForm.register('swim_distance_m', { valueAsNumber: true })}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Vélo (m)</Label>
-              <Input type="number" {...goalForm.register('bike_distance_m', { valueAsNumber: true })} />
+              <Input
+                type="number"
+                {...goalForm.register('bike_distance_m', { valueAsNumber: true })}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Course (m)</Label>
-              <Input type="number" {...goalForm.register('run_distance_m', { valueAsNumber: true })} />
+              <Input
+                type="number"
+                {...goalForm.register('run_distance_m', { valueAsNumber: true })}
+              />
             </div>
           </div>
         )}

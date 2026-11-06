@@ -17,20 +17,23 @@ describe('assembleGoalIds', () => {
   })
 
   it('ignore les secondaires vides', () => {
-    expect(
-      assembleGoalIds({ primaryId: 'a', secondaryIds: [undefined, 'b', undefined] }),
-    ).toEqual({ goal_ids: ['a', 'b'], primary_goal_id: 'a' })
+    expect(assembleGoalIds({ primaryId: 'a', secondaryIds: [undefined, 'b', undefined] })).toEqual({
+      goal_ids: ['a', 'b'],
+      primary_goal_id: 'a',
+    })
   })
 
   it('déduplique et retire la principale des secondaires', () => {
-    expect(
-      assembleGoalIds({ primaryId: 'a', secondaryIds: ['a', 'b', 'b', 'c'] }),
-    ).toEqual({ goal_ids: ['a', 'b', 'c'], primary_goal_id: 'a' })
+    expect(assembleGoalIds({ primaryId: 'a', secondaryIds: ['a', 'b', 'b', 'c'] })).toEqual({
+      goal_ids: ['a', 'b', 'c'],
+      primary_goal_id: 'a',
+    })
   })
 
   it('limite à 2 secondaires', () => {
-    expect(
-      assembleGoalIds({ primaryId: 'a', secondaryIds: ['b', 'c', 'd'] }),
-    ).toEqual({ goal_ids: ['a', 'b', 'c'], primary_goal_id: 'a' })
+    expect(assembleGoalIds({ primaryId: 'a', secondaryIds: ['b', 'c', 'd'] })).toEqual({
+      goal_ids: ['a', 'b', 'c'],
+      primary_goal_id: 'a',
+    })
   })
 })

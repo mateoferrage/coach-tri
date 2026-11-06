@@ -209,7 +209,10 @@ function fmtHms(sec?: number | null): string {
 }
 
 const SURFACE_FR: Record<string, string> = {
-  road: 'route', gravel: 'chemin roulant', technical: 'sentier technique', mountain: 'montagne',
+  road: 'route',
+  gravel: 'chemin roulant',
+  technical: 'sentier technique',
+  mountain: 'montagne',
 }
 
 /** Décrit une course (tri ou running/trail) pour le prompt macro. */
@@ -220,7 +223,9 @@ function describeGoal(g: GoalContext): string {
       : 'Course secondaire — objectif intermédiaire'
   const lines = [`${roleFr} — ${g.race_name} (${g.race_type}, ${g.race_date})`]
   if (g.sport === 'running') {
-    lines.push(`  Course à pied : ${g.run_distance_m ?? '?'}m, D+ ${g.elevation_gain_m ?? '?'}m, D- ${g.elevation_loss_m ?? '?'}m`)
+    lines.push(
+      `  Course à pied : ${g.run_distance_m ?? '?'}m, D+ ${g.elevation_gain_m ?? '?'}m, D- ${g.elevation_loss_m ?? '?'}m`,
+    )
     const detail = [
       g.surface && `technicité ${SURFACE_FR[g.surface] ?? g.surface}`,
       g.terrain && `profil ${g.terrain}`,
@@ -230,7 +235,9 @@ function describeGoal(g: GoalContext): string {
     ].filter(Boolean)
     if (detail.length) lines.push(`  ${detail.join(', ')}`)
   } else {
-    lines.push(`  Triathlon : ${g.swim_distance_m ?? '?'}m nage / ${g.bike_distance_m ?? '?'}m vélo / ${g.run_distance_m ?? '?'}m course${g.terrain ? ` (terrain ${g.terrain})` : ''}`)
+    lines.push(
+      `  Triathlon : ${g.swim_distance_m ?? '?'}m nage / ${g.bike_distance_m ?? '?'}m vélo / ${g.run_distance_m ?? '?'}m course${g.terrain ? ` (terrain ${g.terrain})` : ''}`,
+    )
   }
   return lines.join('\n')
 }
@@ -267,7 +274,10 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     run: 'course à pied',
     strength: 'renforcement',
   }
-  const disciplines = (ctx.disciplines ?? ctx.profile.available_disciplines ?? ['swim', 'bike', 'run'])
+  const disciplines = (
+    ctx.disciplines ??
+    ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
+  )
     .map((d) => disciplineLabels[d] ?? d)
     .join(', ')
 
@@ -296,7 +306,9 @@ export function buildMacroPrompt(ctx: MacroContext): string {
       : 'MODE : Maintien de forme (programme continu sans objectif de course)'
 
   const hasRunningGoal = ctx.goals?.some((g) => g.sport === 'running') ?? false
-  const trailBlock = hasRunningGoal ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}` : ''
+  const trailBlock = hasRunningGoal
+    ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}`
+    : ''
 
   const complementaryBlock = ctx.complementary_disciplines?.length
     ? `\n\nDISCIPLINES COMPLÉMENTAIRES (cross-training) : ${ctx.complementary_disciplines
@@ -462,8 +474,8 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   const sessionsPerDay = ctx.available_days
     .map((d) => `  - ${DAY_NAMES[d]} ${dayDateMap[d]}`)
     .join('\n')
-  const disciplines =
-    ctx.training_disciplines ?? ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
+  const disciplines = ctx.training_disciplines ??
+    ctx.profile.available_disciplines ?? ['swim', 'bike', 'run']
 
   // Bloc disciplines complémentaires : progression structurée, mais dégressive
   // en pic/affûtage pour protéger les séances clés de l'objectif.

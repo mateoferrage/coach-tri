@@ -31,4 +31,12 @@ export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, MAINTENANCE].join('\n\n---\n\
 /** Trail/running specialisation — injected conditionally when a running goal is present. */
 export const KNOWLEDGE_BASE_TRAIL = TRAIL_KNOWLEDGE
 
-export { METHODOLOGIES, ZONES_REF, SESSIONS_LIB, NUTRITION, SWIM_TECHNIQUE, MAINTENANCE, TRAIL_KNOWLEDGE }
+export {
+  METHODOLOGIES,
+  ZONES_REF,
+  SESSIONS_LIB,
+  NUTRITION,
+  SWIM_TECHNIQUE,
+  MAINTENANCE,
+  TRAIL_KNOWLEDGE,
+}

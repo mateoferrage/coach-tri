@@ -119,13 +119,17 @@ export function ProgramForm({
       const id = existingIds[slot]
       if (id) return { existingId: id }
       return required
-        ? { invalid: `Objectif ${slot} : choisis une course existante ou passe sur « Nouvelle course ».` }
+        ? {
+            invalid: `Objectif ${slot} : choisis une course existante ou passe sur « Nouvelle course ».`,
+          }
         : 'skip'
     }
     const ref = fieldsetRefs[slot].current
     if (!ref) {
       return required
-        ? { invalid: `Objectif ${slot} : le formulaire « Nouvelle course » n'est pas prêt, réessaie.` }
+        ? {
+            invalid: `Objectif ${slot} : le formulaire « Nouvelle course » n'est pas prêt, réessaie.`,
+          }
         : 'skip'
     }
     if (!required && ref.isPristine()) return 'skip'
@@ -297,9 +301,9 @@ export function ProgramForm({
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Disciplines complémentaires</CardTitle>
                 <CardDescription>
-                  Entraînées en plus de ton objectif, avec une vraie progression. Elles se
-                  réduisent automatiquement en fin de prépa (pic / affûtage) pour protéger ton
-                  objectif. Celles déjà couvertes par ton objectif sont ignorées.
+                  Entraînées en plus de ton objectif, avec une vraie progression. Elles se réduisent
+                  automatiquement en fin de prépa (pic / affûtage) pour protéger ton objectif.
+                  Celles déjà couvertes par ton objectif sont ignorées.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">

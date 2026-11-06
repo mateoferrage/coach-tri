@@ -21,8 +21,8 @@ export default async function NewProgramPage() {
     supabase.from('profiles').select('available_disciplines').eq('id', user.id).single(),
   ])
   const goals = goalsRes.data as Array<Record<string, unknown>> | null
-  const availableDisciplines =
-    ((profileRes.data?.available_disciplines as string[] | null) ?? []) as string[]
+  const availableDisciplines = ((profileRes.data?.available_disciplines as string[] | null) ??
+    []) as string[]
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

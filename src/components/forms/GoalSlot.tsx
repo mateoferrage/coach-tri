@@ -84,7 +84,9 @@ export function GoalSlot({
                 onValueChange={(v) => onExistingIdChange(v ? String(v) : undefined)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={optional ? 'Aucune (optionnel)' : 'Choisir une course...'} />
+                  <SelectValue
+                    placeholder={optional ? 'Aucune (optionnel)' : 'Choisir une course...'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {optional && <SelectItem value="">Aucune</SelectItem>}

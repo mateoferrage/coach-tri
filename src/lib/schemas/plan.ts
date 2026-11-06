@@ -17,13 +17,25 @@ export const PlanGenerationSchema = z
   .superRefine((v, ctx) => {
     if (v.mode === 'race') {
       if (!v.goal_ids?.length) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['goal_ids'], message: 'Au moins une course requise en mode course' })
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['goal_ids'],
+          message: 'Au moins une course requise en mode course',
+        })
         return
       }
       if (!v.primary_goal_id) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['primary_goal_id'], message: 'Course principale requise' })
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['primary_goal_id'],
+          message: 'Course principale requise',
+        })
       } else if (!v.goal_ids.includes(v.primary_goal_id)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['primary_goal_id'], message: 'La course principale doit faire partie des courses' })
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['primary_goal_id'],
+          message: 'La course principale doit faire partie des courses',
+        })
       }
     }
   })

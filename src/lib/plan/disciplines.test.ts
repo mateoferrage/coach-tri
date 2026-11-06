@@ -65,7 +65,10 @@ describe('resolveTrainingDisciplines', () => {
 
   it('sans demande → complémentaires vides, training = objectif', () => {
     expect(
-      resolveTrainingDisciplines({ goalDisciplines: ['run', 'strength'], available: ['swim', 'bike'] }),
+      resolveTrainingDisciplines({
+        goalDisciplines: ['run', 'strength'],
+        available: ['swim', 'bike'],
+      }),
     ).toEqual({ training: ['run', 'strength'], complementary: [] })
   })
 

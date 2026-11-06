@@ -136,7 +136,9 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       goal_id: primary_goal_id ?? null,
-      name: primaryGoal ? `Programme ${primaryGoal.race_name}` : `Programme Maintien — ${start_date}`,
+      name: primaryGoal
+        ? `Programme ${primaryGoal.race_name}`
+        : `Programme Maintien — ${start_date}`,
       start_date,
       end_date,
       methodology,
