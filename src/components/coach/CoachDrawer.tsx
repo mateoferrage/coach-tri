@@ -60,7 +60,7 @@ export function CoachDrawerProvider({ children }: { children: React.ReactNode })
       {children}
 
       <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
-        <Dialog.Trigger className="fixed right-5 bottom-[calc(4.75rem_+_env(safe-area-inset-bottom))] z-40 flex items-center gap-2.5 rounded-full bg-highlight py-3.5 pr-5 pl-4 text-[15px] font-bold text-highlight-foreground shadow-[0_12px_28px_-10px_oklch(0.555_0.188_32.7/70%)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-foreground md:right-6 md:bottom-6">
+        <Dialog.Trigger className="fixed right-5 bottom-[calc(4.75rem_+_env(safe-area-inset-bottom))] z-40 flex items-center gap-2.5 rounded-full bg-highlight py-3.5 pr-5 pl-4 text-base font-bold text-highlight-foreground shadow-[0_12px_28px_-10px_oklch(0.555_0.188_32.7/70%)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-foreground md:right-6 md:bottom-6">
           <span className="size-2.5 rounded-full bg-highlight-foreground shadow-[0_0_0_3px_oklch(1_0_0/35%)]" />
           Coach
         </Dialog.Trigger>
