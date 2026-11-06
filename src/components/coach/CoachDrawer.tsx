@@ -34,12 +34,24 @@ function suggestionsFor(pathname: string): string[] {
 export function CoachDrawerProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const [prefill, setPrefill] = useState('')
+  const [session, setSession] = useState({ prefill: '', key: 0 })
+  const isOpenRef = useRef(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Déjà ouvert : on garde la conversation en cours (le préremplissage est ignoré).
   const open = useCallback((text?: string) => {
-    setPrefill(text ?? '')
+    if (isOpenRef.current) return
+    isOpenRef.current = true
+    setSession((s) => ({ prefill: text ?? '', key: s.key + 1 }))
     setIsOpen(true)
+  }, [])
+
+  // Pas de remise à zéro à la fermeture : CoachChat ne se remonte pas pendant l'animation de sortie.
+  // Ouverture par le bouton Coach : nouvelle session sans préremplissage.
+  const handleOpenChange = useCallback((next: boolean) => {
+    if (next && !isOpenRef.current) setSession((s) => ({ prefill: '', key: s.key + 1 }))
+    isOpenRef.current = next
+    setIsOpen(next)
   }, [])
   const value = useMemo(() => ({ open }), [open])
 
@@ -47,13 +59,7 @@ export function CoachDrawerProvider({ children }: { children: React.ReactNode })
     <CoachDrawerContext.Provider value={value}>
       {children}
 
-      <Dialog.Root
-        open={isOpen}
-        onOpenChange={(next) => {
-          setIsOpen(next)
-          if (!next) setPrefill('')
-        }}
-      >
+      <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
         <Dialog.Trigger className="fixed right-5 bottom-[calc(4.75rem_+_env(safe-area-inset-bottom))] z-40 flex items-center gap-2.5 rounded-full bg-highlight py-3.5 pr-5 pl-4 text-[15px] font-bold text-highlight-foreground shadow-[0_12px_28px_-10px_oklch(0.555_0.188_32.7/70%)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-foreground md:right-6 md:bottom-6">
           <span className="size-2.5 rounded-full bg-highlight-foreground shadow-[0_0_0_3px_oklch(1_0_0/35%)]" />
           Coach
@@ -83,8 +89,8 @@ export function CoachDrawerProvider({ children }: { children: React.ReactNode })
             </div>
             <div className="min-h-0 flex-1">
               <CoachChat
-                key={prefill}
-                initialInput={prefill}
+                key={session.key}
+                initialInput={session.prefill}
                 suggestions={suggestionsFor(pathname)}
                 inputRef={inputRef}
               />

@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col md:flex-row">
       <AppNav user={user} race={race} />
       <CoachDrawerProvider>
-        <main className="container mx-auto min-w-0 max-w-6xl flex-1 px-4 py-8 pb-36 md:px-8 md:pb-24">
+        <main className="container mx-auto min-w-0 max-w-6xl flex-1 px-4 py-8 pb-[calc(9rem_+_env(safe-area-inset-bottom))] md:px-8 md:pb-24">
           {children}
         </main>
       </CoachDrawerProvider>
