@@ -7,10 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --font-display: var(--font-sans);
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-archivo), var(--font-hanken), sans-serif;
+  --font-display: var(--font-archivo), var(--font-hanken), sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -28,12 +28,16 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-highlight: var(--highlight);
+  --color-highlight-deep: var(--highlight-deep);
+  --color-highlight-foreground: var(--highlight-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
+  --color-primary-ink: var(--primary-ink);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
@@ -43,51 +47,52 @@
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.6);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-  /* Police de titres = Outfit (sans) — repli si --font-sans absent */
-  --font-display: var(--font-sans);
-
-  /* ── DA Coach Tri — Piste A « Lagune » (clair, teal Zendesk) ── */
-  --background: oklch(0.94 0.004 220); /* gris clair quasi neutre (mélange gris / blanc cassé) */
-  --foreground: oklch(0.287 0.047 217.9); /* canard profond — texte */
-  --card: oklch(1 0 0); /* panneau blanc */
-  --card-foreground: oklch(0.287 0.047 217.9);
+  /* ── DA Coach Tri — « Élan » : Sky Blue / Cloudy White / Amber Red ── */
+  --background: oklch(0.994 0.001 286.4); /* #FDFDFE Cloudy White */
+  --foreground: oklch(0.213 0.038 251.4); /* #0B1A2A bleu nuit */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.213 0.038 251.4);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.287 0.047 217.9);
-  --primary: oklch(0.306 0.051 209.3); /* canard profond — accent/boutons */
-  --primary-foreground: oklch(1 0 0); /* texte clair sur canard */
-  --secondary: oklch(0.945 0.012 186); /* surface relevée (teinte sauge) */
-  --secondary-foreground: oklch(0.287 0.047 217.9);
-  --muted: oklch(0.955 0.009 186);
-  --muted-foreground: oklch(0.504 0.038 203.1); /* teal atténué */
-  --accent: oklch(0.9 0.03 188); /* aplat doux (tint) */
-  --accent-foreground: oklch(0.287 0.047 217.9);
-  --destructive: oklch(0.58 0.2 25); /* rouge erreur (assombri pour fond clair) */
-  --border: oklch(0.287 0.047 217.9 / 14%); /* hairline sombre sur clair */
-  --input: oklch(0.287 0.047 217.9 / 20%);
-  --ring: oklch(0.306 0.051 209.3); /* focus = canard */
-  --chart-1: oklch(0.306 0.051 209.3); /* canard */
-  --chart-2: oklch(0.546 0.094 183.4); /* teal-vert */
-  --chart-3: oklch(0.559 0.101 237.5); /* bleu glacier */
-  --chart-4: oklch(0.624 0.121 64.7); /* ambre */
-  --chart-5: oklch(0.54 0.024 203.9); /* acier */
-  --radius: 0.75rem;
+  --popover-foreground: oklch(0.213 0.038 251.4);
+  --primary: oklch(0.669 0.184 248.8); /* #0099FF Sky Blue — aplats, boutons */
+  --primary-foreground: oklch(1 0 0);
+  --primary-ink: oklch(0.542 0.151 249.3); /* #0072C2 — petit texte bleu (AA) */
+  --secondary: oklch(0.96 0.021 241.3); /* #E6F4FF */
+  --secondary-foreground: oklch(0.213 0.038 251.4);
+  --muted: oklch(0.973 0.01 247.9); /* #F1F7FD */
+  --muted-foreground: oklch(0.52 0.035 250); /* #5A6B7D */
+  --accent: oklch(0.96 0.021 241.3); /* #E6F4FF — survol, sélection */
+  --accent-foreground: oklch(0.213 0.038 251.4);
+  --highlight: oklch(0.627 0.201 33); /* #E8492A Amber Red — touches uniquement */
+  --highlight-deep: oklch(0.555 0.188 32.7); /* #C9361A */
+  --highlight-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.2 25); /* erreurs, distinct du rouge ambré */
+  --border: oklch(0.932 0.01 252.8); /* #E4E9EF */
+  --input: oklch(0.213 0.038 251.4 / 18%);
+  --ring: oklch(0.669 0.184 248.8);
+  --chart-1: oklch(0.669 0.184 248.8);
+  --chart-2: oklch(0.542 0.151 249.3);
+  --chart-3: oklch(0.782 0.124 240);
+  --chart-4: oklch(0.627 0.201 33);
+  --chart-5: oklch(0.52 0.035 250);
+  --radius: 0.625rem;
 
-  /* Sidebar / nav — canard sombre (header DA « Sommet », texte clair) */
-  --sidebar: oklch(0.306 0.051 209.3); /* canard profond — bandeau nav */
-  --sidebar-foreground: oklch(0.97 0.008 200); /* crème teintée — texte sur canard */
-  --sidebar-primary: oklch(0.72 0.1 184); /* teal glacier lumineux — actif/accent */
-  --sidebar-primary-foreground: oklch(0.306 0.051 209.3); /* canard sur accent clair */
-  --sidebar-accent: oklch(0.36 0.052 209.3); /* canard relevé — survol/surface */
-  --sidebar-accent-foreground: oklch(0.97 0.008 200);
-  --sidebar-border: oklch(0.97 0.008 200 / 14%); /* hairline clair sur canard */
-  --sidebar-ring: oklch(0.72 0.1 184);
+  /* Menu latéral — bandeau Sky Blue, texte blanc */
+  --sidebar: oklch(0.669 0.184 248.8);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(1 0 0); /* entrée active : fond blanc */
+  --sidebar-primary-foreground: oklch(0.213 0.038 251.4);
+  --sidebar-accent: oklch(1 0 0 / 14%); /* survol, carte de course */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 22%);
+  --sidebar-ring: oklch(1 0 0);
 }
 
 @layer base {
@@ -101,49 +106,24 @@
     @apply font-sans;
   }
 
-  /* Titres condensés */
+  /* Titres : Archivo élargi, serré */
   h1,
   h2,
   h3 {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
-    @apply font-semibold tracking-tight;
-    letter-spacing: -0.01em;
-  }
-
-  /* Cards : liseré sombre subtil */
-  [data-slot='card'] {
-    ring-color: oklch(0.287 0.047 217.9 / 8%);
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 }
 
 @layer components {
   /*
-   * Motif topographique en filigrane (courbes de niveau).
-   * À poser sur un conteneur sombre ; régler l'intensité via l'opacité.
-   */
-  .topo-lines {
-    /*
-     * Le SVG sert de masque (alpha) → la couleur des courbes = `currentColor`,
-     * pilotable par contexte (teal atténué sur fond clair, crème sur le header).
-     * Défaut : teal atténué (couleur du label « Tableau de bord »).
-     */
-    color: oklch(0.504 0.038 203.1);
-    background-color: currentColor;
-    -webkit-mask-image: url('/topo.svg');
-    mask-image: url('/topo.svg');
-    -webkit-mask-size: 600px 600px;
-    mask-size: 600px 600px;
-    -webkit-mask-repeat: repeat;
-    mask-repeat: repeat;
-  }
-
-  /*
-   * Élévation des cartes : ombre canard douce pour détacher le premier plan
-   * du filigrane topographique en arrière-plan.
+   * Ancienne élévation des cartes. Neutralisée (spec : pas d'ombres hors tiroir
+   * et bouton flottant). Classe supprimée à l'étape 3 avec ses usages.
    */
   .card-elev {
-    box-shadow:
-      0 1px 2px oklch(0.287 0.047 217.9 / 6%),
-      0 8px 24px oklch(0.287 0.047 217.9 / 8%);
+    box-shadow: none;
   }
 }
