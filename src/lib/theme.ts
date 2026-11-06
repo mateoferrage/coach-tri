@@ -1,42 +1,81 @@
 /**
- * DA Coach Tri — palette partagée (Piste A « Lagune » — clair, teal Zendesk)
+ * DA Coach Tri — « Élan » (Sky Blue, Cloudy White, Amber Red)
  *
- * Source de vérité pour les couleurs utilisées en style inline (surfaces claires
- * où les classes Tailwind sémantiques ne suffisent pas). Les tokens CSS
- * équivalents vivent dans `globals.css`.
+ * Source de vérité pour les couleurs utilisées en style inline. Les tokens CSS
+ * équivalents vivent dans `globals.css`. Toutes les valeurs sont en oklch :
+ * `withAlpha()` en dépend.
  */
 
-// ── Surfaces ───────────────────────────────────────────────
-export const SLATE = 'oklch(0.94 0.004 220)' // fond page — gris clair quasi neutre (gris / blanc cassé)
-export const SURFACE = 'oklch(1 0 0)' // panneau blanc
-export const SURFACE_DEEP = 'oklch(0.9 0.028 195)' // bandeaux/inserts — brume lagune (teal clair, démarqué du blanc)
-export const DIVIDER = 'oklch(0.287 0.047 217.9 / 14%)' // séparateur sombre sur clair
+// ── Palette Élan ───────────────────────────────────────────
+export const SKY = 'oklch(0.669 0.184 248.8)' // #0099FF — aplats, menu, données
+export const SKY_INK = 'oklch(0.542 0.151 249.3)' // #0072C2 — petit texte bleu sur blanc (AA)
+export const SKY_TINT = 'oklch(0.960 0.021 241.3)' // #E6F4FF — survol, sélection, panneau coach
+export const CLOUD = 'oklch(0.994 0.001 286.4)' // #FDFDFE — fond
+export const AMBER_RED = 'oklch(0.627 0.201 33.0)' // #E8492A — aujourd'hui, action principale, Z4-Z5
+export const AMBER_RED_DEEP = 'oklch(0.555 0.188 32.7)' // #C9361A — survol, texte rouge sur blanc
+export const INK = 'oklch(0.213 0.038 251.4)' // #0B1A2A — texte
+export const INK_MUTED = 'oklch(0.520 0.035 250.0)' // #5A6B7D — texte secondaire
+export const LINE = 'oklch(0.932 0.010 252.8)' // #E4E9EF — filets
 
-// ── Texte ──────────────────────────────────────────────────
-export const TEXT = 'oklch(0.287 0.047 217.9)' // canard profond
-export const TEXT_MUTED = 'oklch(0.504 0.038 203.1)' // teal atténué
-export const TEXT_FAINT = 'oklch(0.287 0.047 217.9 / 70%)' // canard estompé (labels 2nd) — min 70% pour passer WCAG AA 4.5:1
-
-// ── Accents ────────────────────────────────────────────────
-export const ACCENT = 'oklch(0.306 0.051 209.3)' // canard profond — accent/boutons
-export const ACCENT_FG = 'oklch(1 0 0)' // texte clair sur canard
-export const GLACIER = 'oklch(0.546 0.094 183.4)' // teal-vert (2nd)
+// ── Alias historiques ─────────────────────────────────────
+// Remappés sur la palette Élan pour ne rien casser pendant la transition.
+// Supprimés à l'étape 3, quand chaque page aura été reprise.
+export const SLATE = CLOUD
+export const SURFACE = 'oklch(1 0 0)'
+export const SURFACE_DEEP = SKY_TINT
+export const DIVIDER = LINE
+export const TEXT = INK
+export const TEXT_MUTED = INK_MUTED
+export const TEXT_FAINT = 'oklch(0.430 0.042 248.8)' // #3E5266 — AA sur blanc
+export const ACCENT = SKY_INK // bleu lisible : ACCENT sert aussi de couleur de texte
+export const ACCENT_FG = 'oklch(1 0 0)'
+export const GLACIER = SKY
 
 /**
- * Système couleur + picto par discipline.
- * `icon` = emoji conservé comme repli ; `color` = teinte de la pastille/liseré.
+ * Libellé + picto par discipline.
+ * Plus de couleur par discipline (spec Élan) : toutes passent en bleu, le repos
+ * en gris. `icon` (emoji) est conservé jusqu'à l'étape 3, où il est remplacé
+ * par `DisciplineIcon` (lucide).
  */
 export const DISCIPLINE: Record<string, { label: string; color: string; icon: string }> = {
-  swim: { label: 'Natation', color: 'oklch(0.559 0.101 237.5)', icon: '🏊' }, // bleu glacier
-  bike: { label: 'Vélo', color: 'oklch(0.546 0.094 183.4)', icon: '🚴' }, // teal-vert
-  run: { label: 'Course à pied', color: 'oklch(0.624 0.121 64.7)', icon: '🏃' }, // ambre
-  brick: { label: 'Enchaînement', color: 'oklch(0.520 0.075 215)', icon: '⚡' }, // cyan profond
-  strength: { label: 'Renforcement', color: 'oklch(0.540 0.024 203.9)', icon: '💪' }, // acier
-  rest: { label: 'Récupération', color: 'oklch(0.620 0.018 200)', icon: '😴' }, // muet
+  swim: { label: 'Natation', color: SKY_INK, icon: '🏊' },
+  bike: { label: 'Vélo', color: SKY_INK, icon: '🚴' },
+  run: { label: 'Course à pied', color: SKY_INK, icon: '🏃' },
+  brick: { label: 'Enchaînement', color: SKY_INK, icon: '⚡' },
+  strength: { label: 'Renforcement', color: SKY_INK, icon: '💪' },
+  rest: { label: 'Récupération', color: INK_MUTED, icon: '😴' },
 }
 
 export function disciplineColor(d: string | null | undefined): string {
   return DISCIPLINE[d ?? '']?.color ?? ACCENT
+}
+
+// ── Échelle d'intensité ───────────────────────────────────
+export type IntensitySurface = 'white' | 'blue'
+
+const INTENSITY_ON_WHITE = [
+  'oklch(0.930 0.021 241.4)', // Z1 #DCEAF5
+  'oklch(0.885 0.064 238.5)', // Z2 #B3E0FF
+  'oklch(0.782 0.124 240.0)', // Z3 #66C2FF
+  AMBER_RED, // Z4
+  AMBER_RED, // Z5
+] as const
+
+const INTENSITY_ON_BLUE = [
+  'oklch(1 0 0 / 40%)',
+  'oklch(1 0 0 / 40%)',
+  'oklch(1 0 0 / 72%)',
+  AMBER_RED,
+  AMBER_RED,
+] as const
+
+/**
+ * Couleur d'une zone d'intensité (1 à 5) selon la surface où elle est posée.
+ * Les valeurs hors échelle sont arrondies puis bornées ; NaN vaut Z1.
+ */
+export function intensityColor(zone: number, surface: IntensitySurface = 'white'): string {
+  const z = Number.isFinite(zone) ? Math.min(5, Math.max(1, Math.round(zone))) : 1
+  return (surface === 'blue' ? INTENSITY_ON_BLUE : INTENSITY_ON_WHITE)[z - 1]
 }
 
 /** Système couleur + label par type d'événement personnel (agenda). */
