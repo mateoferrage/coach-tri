@@ -22,6 +22,12 @@ export interface Goal {
 
 export type SlotMode = 'existing' | 'new'
 
+/** Onglets « choix d'option » (Élan) : pastilles bordées, sélection bleue claire. */
+export const CHOICE_TABS_LIST_CLASS =
+  'w-full gap-2 bg-transparent p-0 group-data-horizontal/tabs:h-auto'
+export const CHOICE_TAB_CLASS =
+  'h-10 flex-1 rounded-full border-[1.5px] border-border bg-card px-3 font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground data-active:border-primary data-active:bg-accent data-active:text-primary-ink group-data-[variant=default]/tabs-list:data-active:shadow-none'
+
 interface GoalSlotProps {
   priority: 'A' | 'B' | 'C'
   title: string
@@ -63,21 +69,21 @@ export function GoalSlot({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-base font-bold">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-4">
         <Tabs value={mode} onValueChange={(v) => onModeChange(v as SlotMode)}>
-          <TabsList className="w-full">
-            <TabsTrigger value="existing" className="flex-1" disabled={!hasGoals}>
+          <TabsList className={CHOICE_TABS_LIST_CLASS}>
+            <TabsTrigger value="existing" className={CHOICE_TAB_CLASS} disabled={!hasGoals}>
               Course existante
             </TabsTrigger>
-            <TabsTrigger value="new" className="flex-1">
+            <TabsTrigger value="new" className={CHOICE_TAB_CLASS}>
               Nouvelle course
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="existing" className="mt-4">
+          <TabsContent value="existing" className="mt-2">
             {hasGoals ? (
               <Select
                 value={existingId ?? ''}
@@ -106,7 +112,7 @@ export function GoalSlot({
 
           {/* keepMounted : le fieldset reste monté même quand l'onglet « existante »
               est actif, pour que son ref impératif soit toujours attaché au submit. */}
-          <TabsContent value="new" keepMounted className="mt-4 data-[hidden]:hidden">
+          <TabsContent value="new" keepMounted className="mt-2 data-[hidden]:hidden">
             <GoalFieldset ref={fieldsetRef} priority={priority} />
           </TabsContent>
         </Tabs>

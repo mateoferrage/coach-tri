@@ -99,7 +99,7 @@ function TimeInput({
                 setH(n)
                 fire(n, m, s)
               }}
-              className="w-14 text-center px-1"
+              className="w-14 px-1 text-center tabular-nums"
             />
             <span className="text-muted-foreground text-xs">h</span>
           </>
@@ -114,7 +114,7 @@ function TimeInput({
             setM(n)
             fire(h, n, s)
           }}
-          className="w-14 text-center px-1"
+          className="w-14 px-1 text-center tabular-nums"
         />
         <span className="text-muted-foreground text-xs">min</span>
         <Input
@@ -127,7 +127,7 @@ function TimeInput({
             setS(n)
             fire(h, m, n)
           }}
-          className="w-14 text-center px-1"
+          className="w-14 px-1 text-center tabular-nums"
         />
         <span className="text-muted-foreground text-xs">s</span>
       </div>
@@ -214,7 +214,9 @@ export const GoalFieldset = forwardRef<GoalFieldsetHandle, { priority: 'A' | 'B'
             {...goalForm.register('race_name')}
           />
           {goalForm.formState.errors.race_name && (
-            <p className="text-xs text-red-500">{goalForm.formState.errors.race_name.message}</p>
+            <p className="text-xs text-destructive">
+              {goalForm.formState.errors.race_name.message}
+            </p>
           )}
         </div>
 
@@ -422,9 +424,9 @@ export const GoalFieldset = forwardRef<GoalFieldsetHandle, { priority: 'A' | 'B'
         </div>
 
         {watchTargetType === 'time' && (
-          <div className="space-y-4 p-4 bg-muted rounded-lg border border-border">
+          <div className="space-y-4 rounded-xl border border-border bg-muted p-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Temps total cible</p>
+              <p className="text-sm font-semibold">Temps total cible</p>
               <TimeInput
                 label=""
                 valueSeconds={goalForm.getValues('target_time_seconds')}

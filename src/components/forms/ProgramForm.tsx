@@ -12,7 +12,17 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { format } from 'date-fns'
-import { GoalSlot, type Goal, type SlotMode } from './GoalSlot'
+import { Loader2, Plus, Sparkles } from 'lucide-react'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { cn } from '@/lib/utils/cn'
+import {
+  CHOICE_TAB_CLASS,
+  CHOICE_TABS_LIST_CLASS,
+  GoalSlot,
+  type Goal,
+  type SlotMode,
+} from './GoalSlot'
 import type { GoalFieldsetHandle, GoalFormData } from './GoalFieldset'
 import { assembleGoalIds } from '@/lib/plan/goal-slots'
 
@@ -240,155 +250,193 @@ export function ProgramForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Mode selector */}
-      <Tabs value={mode} onValueChange={(v) => setMode(v as 'race' | 'maintenance')}>
-        <TabsList className="w-full">
-          <TabsTrigger value="race" className="flex-1">
-            Préparation course
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="flex-1">
-            Maintien de forme
-          </TabsTrigger>
-        </TabsList>
+      <section aria-labelledby="program-mode-label" className="space-y-3">
+        <SectionLabel id="program-mode-label">Type de programme</SectionLabel>
+        <Tabs value={mode} onValueChange={(v) => setMode(v as 'race' | 'maintenance')}>
+          <TabsList className={CHOICE_TABS_LIST_CLASS}>
+            <TabsTrigger value="race" className={CHOICE_TAB_CLASS}>
+              Préparation course
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className={CHOICE_TAB_CLASS}>
+              Maintien de forme
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Race mode : objectif principal d'emblée, le reste à la demande */}
-        <TabsContent value="race" className="space-y-4 mt-4">
-          {SLOTS.slice(0, 1 + visibleSecondaries).map((slot) => (
-            <GoalSlot
-              key={slot}
-              priority={slot}
-              title={SLOT_META[slot].title}
-              description={SLOT_META[slot].description}
-              optional={SLOT_META[slot].optional}
-              goals={goals}
-              excludeIds={excludeFor(slot)}
-              mode={slotModes[slot]}
-              onModeChange={(m) => setSlotModes((prev) => ({ ...prev, [slot]: m }))}
-              existingId={existingIds[slot]}
-              onExistingIdChange={(id) => setExistingIds((prev) => ({ ...prev, [slot]: id }))}
-              fieldsetRef={fieldsetRefs[slot]}
-            />
-          ))}
+          {/* Race mode : objectif principal d'emblée, le reste à la demande */}
+          <TabsContent value="race" className="mt-4 space-y-4">
+            {SLOTS.slice(0, 1 + visibleSecondaries).map((slot) => (
+              <GoalSlot
+                key={slot}
+                priority={slot}
+                title={SLOT_META[slot].title}
+                description={SLOT_META[slot].description}
+                optional={SLOT_META[slot].optional}
+                goals={goals}
+                excludeIds={excludeFor(slot)}
+                mode={slotModes[slot]}
+                onModeChange={(m) => setSlotModes((prev) => ({ ...prev, [slot]: m }))}
+                existingId={existingIds[slot]}
+                onExistingIdChange={(id) => setExistingIds((prev) => ({ ...prev, [slot]: id }))}
+                fieldsetRef={fieldsetRefs[slot]}
+              />
+            ))}
 
-          {/* Boutons de dévoilement progressif */}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {visibleSecondaries < 2 && (
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setVisibleSecondaries((n) => Math.min(2, n + 1))}
-              >
-                + Ajouter un objectif secondaire
-              </Button>
+            {/* Boutons de dévoilement progressif */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {visibleSecondaries < 2 && (
+                <Button
+                  type="button"
+                  variant="outline-primary"
+                  className="flex-1"
+                  onClick={() => setVisibleSecondaries((n) => Math.min(2, n + 1))}
+                >
+                  <Plus aria-hidden />
+                  Ajouter un objectif secondaire
+                </Button>
+              )}
+              {!showComplementary && (
+                <Button
+                  type="button"
+                  variant="outline-primary"
+                  className="flex-1"
+                  onClick={() => setShowComplementary(true)}
+                >
+                  <Plus aria-hidden />
+                  Ajouter des disciplines complémentaires
+                </Button>
+              )}
+            </div>
+
+            {/* Disciplines complémentaires (cross-training) */}
+            {showComplementary && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-bold">Disciplines complémentaires</CardTitle>
+                  <CardDescription>
+                    Entraînées en plus de ton objectif, avec une vraie progression. Elles se
+                    réduisent automatiquement en fin de prépa (pic / affûtage) pour protéger ton
+                    objectif. Celles déjà couvertes par ton objectif sont ignorées.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                  {COMPLEMENTARY_CHOICES.filter(
+                    (d) => !availableDisciplines.length || availableDisciplines.includes(d),
+                  ).map((d) => {
+                    const active = complementary.includes(d)
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() =>
+                          setComplementary((prev) =>
+                            prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                          )
+                        }
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                          active
+                            ? 'border-primary bg-accent text-primary-ink'
+                            : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                        )}
+                      >
+                        <DisciplineIcon discipline={d} className="size-4" />
+                        {DISCIPLINE_LABELS[d] ?? d}
+                      </button>
+                    )
+                  })}
+                </CardContent>
+              </Card>
             )}
-            {!showComplementary && (
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowComplementary(true)}
-              >
-                + Ajouter des disciplines complémentaires
-              </Button>
-            )}
-          </div>
+          </TabsContent>
 
-          {/* Disciplines complémentaires (cross-training) */}
-          {showComplementary && (
+          {/* Maintenance mode */}
+          <TabsContent value="maintenance" className="mt-4">
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Disciplines complémentaires</CardTitle>
-                <CardDescription>
-                  Entraînées en plus de ton objectif, avec une vraie progression. Elles se réduisent
-                  automatiquement en fin de prépa (pic / affûtage) pour protéger ton objectif.
-                  Celles déjà couvertes par ton objectif sont ignorées.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {COMPLEMENTARY_CHOICES.filter(
-                  (d) => !availableDisciplines.length || availableDisciplines.includes(d),
-                ).map((d) => {
-                  const active = complementary.includes(d)
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() =>
-                        setComplementary((prev) =>
-                          prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-                        )
-                      }
-                      className={`px-3 py-1.5 rounded-full border-2 text-sm transition-colors ${
-                        active
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-border text-muted-foreground hover:border-primary/40'
-                      }`}
-                    >
-                      {DISCIPLINE_LABELS[d] ?? d}
-                    </button>
-                  )
-                })}
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Programme continu sans date de fin. L&apos;IA génère 12 semaines de base,
+                  renouvelables automatiquement selon vos données Garmin.
+                </p>
               </CardContent>
             </Card>
-          )}
-        </TabsContent>
-
-        {/* Maintenance mode */}
-        <TabsContent value="maintenance" className="mt-4">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">
-                Programme continu sans date de fin. L&apos;IA génère 12 semaines de base,
-                renouvelables automatiquement selon vos données Garmin.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      </section>
 
       {/* Program settings (common) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Paramètres du programme</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Date de début</Label>
-            <Input type="date" {...settingsForm.register('start_date')} />
-          </div>
+      <section
+        aria-labelledby="program-settings-label"
+        className="space-y-5 border-t border-border pt-8"
+      >
+        <SectionLabel id="program-settings-label">Paramètres du programme</SectionLabel>
 
-          <div className="space-y-3">
-            <Label>Méthodologie</Label>
-            {METHODOLOGIES.map((m) => (
-              <button
-                key={m.value}
-                type="button"
-                onClick={() =>
-                  settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])
-                }
-                className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
-                  selectedMethodology === m.value
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <p className="font-medium text-sm">{m.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{m.desc}</p>
-              </button>
-            ))}
+        <div className="space-y-2">
+          <Label htmlFor="program-start-date">Date de début</Label>
+          <Input
+            id="program-start-date"
+            type="date"
+            className="sm:max-w-xs"
+            {...settingsForm.register('start_date')}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <Label>Méthodologie</Label>
+          <div className="space-y-2">
+            {METHODOLOGIES.map((m) => {
+              const active = selectedMethodology === m.value
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])
+                  }
+                  className={cn(
+                    'w-full rounded-xl border-[1.5px] p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                    active
+                      ? 'border-primary bg-accent'
+                      : 'border-border bg-card hover:border-primary/40',
+                  )}
+                >
+                  <p
+                    className={cn(
+                      'text-sm font-semibold',
+                      active ? 'text-primary-ink' : 'text-foreground',
+                    )}
+                  >
+                    {m.label}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{m.desc}</p>
+                </button>
+              )
+            })}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <Button
-        className="w-full"
+        variant="highlight"
         size="lg"
+        className="w-full"
         disabled={loading}
         onClick={() => settingsForm.handleSubmit(onGenerate)()}
       >
-        {loading ? '✨ Génération en cours…' : "✨ Générer mon programme avec l'IA"}
+        {loading ? (
+          <>
+            <Loader2 aria-hidden className="animate-spin" />
+            Génération en cours…
+          </>
+        ) : (
+          <>
+            <Sparkles aria-hidden />
+            Générer mon programme avec l&apos;IA
+          </>
+        )}
       </Button>
     </div>
   )
