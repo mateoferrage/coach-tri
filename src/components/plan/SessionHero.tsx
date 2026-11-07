@@ -16,9 +16,17 @@ interface SessionHeroProps {
   /** Ex. « Semaine 1 sur 27 · Préparation ». */
   weekLabel: string
   variant?: 'blue' | 'white'
+  /** Bouton « Voir la séance » (inutile sur la page de la séance elle-même). */
+  showOpenLink?: boolean
 }
 
-export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: SessionHeroProps) {
+export function SessionHero({
+  session,
+  isToday,
+  weekLabel,
+  variant = 'blue',
+  showOpenLink = true,
+}: SessionHeroProps) {
   const blue = variant === 'blue'
   const segments = effortSegments(session)
   const maxZone = segments.length ? Math.max(...segments.map((s) => s.zone)) : null
@@ -97,15 +105,18 @@ export function SessionHero({ session, isToday, weekLabel, variant = 'blue' }: S
       />
 
       <div className="flex flex-wrap gap-2.5">
-        <Link
-          href={`/session/${session.id}`}
-          className={cn(
-            buttonVariants({ variant: 'highlight', size: 'lg' }),
-            blue && 'focus-visible:border-primary-foreground focus-visible:ring-primary-foreground',
-          )}
-        >
-          Voir la séance
-        </Link>
+        {showOpenLink && (
+          <Link
+            href={`/session/${session.id}`}
+            className={cn(
+              buttonVariants({ variant: 'highlight', size: 'lg' }),
+              blue &&
+                'focus-visible:border-primary-foreground focus-visible:ring-primary-foreground',
+            )}
+          >
+            Voir la séance
+          </Link>
+        )}
         <AskCoachButton
           prefill={`À propos de ma séance « ${title} » : `}
           tone={blue ? 'blue' : 'white'}

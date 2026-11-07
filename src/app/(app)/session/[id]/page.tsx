@@ -1,50 +1,31 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionLabel } from '@/components/common/SectionLabel'
 import { SessionActions } from '@/components/plan/SessionActions'
+import { SessionHero } from '@/components/plan/SessionHero'
 import { GarminLinker } from '@/components/plan/GarminLinker'
+import { PHASE_LABEL, SESSION_TYPE_LABEL, sessionTitle } from '@/lib/plan/display'
+import { effortSegments } from '@/lib/plan/effort'
+import type { DashboardSession } from '@/lib/plan/week-summary'
+import { intensityColor } from '@/lib/theme'
+import { todayIn } from '@/lib/utils/today'
+import { cn } from '@/lib/utils/cn'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { ACCENT, withAlpha } from '@/lib/theme'
 
 export const metadata = { title: 'Séance — Coach Tri' }
 
-const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: '🏊',
-  bike: '🚴',
-  run: '🏃',
-  brick: '⚡',
-  strength: '💪',
-  rest: '😴',
-}
-const DISCIPLINE_LABEL: Record<string, string> = {
-  swim: 'Natation',
-  bike: 'Vélo',
-  run: 'Course à pied',
-  brick: 'Enchaînement',
-  strength: 'Renforcement',
-  rest: 'Récupération',
-}
-const SESSION_TYPE_LABEL: Record<string, string> = {
-  easy: 'Endurance facile',
-  tempo: 'Tempo',
-  threshold: 'Seuil',
-  vo2: 'VO2max',
-  race_pace: 'Allure course',
-  technique: 'Technique',
-  long: 'Sortie longue',
-  recovery: 'Récupération active',
-  test: 'Test',
-}
-const STATUS_BADGE: Record<
-  string,
-  { label: string; variant: 'default' | 'secondary' | 'outline' }
-> = {
-  planned: { label: 'Planifiée', variant: 'outline' },
-  done: { label: 'Complétée', variant: 'default' },
-  skipped: { label: 'Passée', variant: 'secondary' },
-  modified: { label: 'Modifiée', variant: 'secondary' },
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  planned: { label: 'Planifiée', className: 'border-border text-foreground' },
+  done: { label: 'Complétée', className: 'bg-primary text-primary-foreground' },
+  skipped: { label: 'Passée', className: 'border-border text-muted-foreground' },
+  modified: {
+    label: 'Modifiée',
+    className: 'border-highlight/40 bg-highlight/10 text-highlight-deep',
+  },
 }
 
 const RPE_LABELS: Record<number, string> = {
@@ -59,6 +40,8 @@ const RPE_LABELS: Record<number, string> = {
   9: 'Très intense',
   10: 'Maximal',
 }
+
+const ZONES = [1, 2, 3, 4, 5] as const
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
@@ -116,134 +99,160 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   } | null
   const targetValues = session.target_values as Record<string, unknown> | null
   const badge = STATUS_BADGE[session.status as string] ?? STATUS_BADGE.planned
+  const heroSession = session as unknown as DashboardSession
+  const planWeek = session.plan_week as Record<string, unknown> | null
+  const phaseLabel = PHASE_LABEL[planWeek?.phase as string]
+  const weekLabel = [
+    planWeek?.week_num ? `Semaine ${planWeek.week_num as number}` : null,
+    phaseLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const mainZone = effortSegments(heroSession)[1]?.zone ?? null
   const rpe = session.expected_rpe as number | null
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <span>{format(date, 'EEEE d MMMM yyyy', { locale: fr })}</span>
-          <span>·</span>
-          <span>Semaine {(session.plan_week as Record<string, unknown>)?.week_num as number}</span>
-        </div>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <span>{DISCIPLINE_EMOJI[session.discipline as string]}</span>
-              {session.title as string}
-            </h1>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Badge variant="secondary">{DISCIPLINE_LABEL[session.discipline as string]}</Badge>
-              <Badge variant="outline">{SESSION_TYPE_LABEL[session.session_type as string]}</Badge>
-              <Badge variant={badge.variant}>{badge.label}</Badge>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <h1 className="sr-only">{sessionTitle(heroSession)}</h1>
 
-      {/* Key metrics */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">
-              {session.duration_min as number}
-              <span className="text-sm font-normal ml-1">min</span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Durée prévue</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">
-              {(session.planned_tss as number | null) ?? '—'}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">TSS estimé</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <div className="text-2xl font-bold">
-              {rpe ?? '—'}
-              <span className="text-sm font-normal">/10</span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">RPE cible</div>
-            {rpe && <div className="text-xs text-muted-foreground">{RPE_LABELS[rpe]}</div>}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Zone cible */}
-      {(session.target_zone as string | null | undefined) && (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Zone cible :</span>
-          <Badge variant="outline" className="font-mono">
-            {session.target_zone as string}
+      {/* Retour + statut */}
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/program"
+          className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-primary-ink hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          Programme
+        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="text-sm font-medium text-muted-foreground capitalize">
+            {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
+          </span>
+          <Badge variant="outline" className={badge.className}>
+            {badge.label}
           </Badge>
-          {targetValues &&
-            Object.entries(targetValues).map(([key, val]) => {
-              let label = ''
-              if (key === 'hr') label = `FC ${(val as number[]).join('–')} bpm`
-              if (key === 'watts') label = `${(val as number[]).join('–')} W`
-              if (key === 'pace') label = `Allure ${String(val)}/km`
-              if (!label) return null
-              return (
-                <span key={key} className="text-muted-foreground text-xs">
-                  {label}
-                </span>
-              )
-            })}
         </div>
-      )}
+      </div>
+
+      <SessionHero
+        session={heroSession}
+        isToday={(session.session_date as string) === todayIn()}
+        weekLabel={weekLabel}
+        variant="white"
+        showOpenLink={false}
+      />
+
+      {/* Type, zone cible et RPE */}
+      <section
+        aria-labelledby="targets-title"
+        className="rounded-xl border border-border bg-card p-5"
+      >
+        <SectionLabel id="targets-title">Objectifs</SectionLabel>
+        <dl className="mt-3 divide-y divide-border text-sm">
+          <div className="flex items-baseline justify-between gap-3 py-2.5">
+            <dt className="text-muted-foreground">Type</dt>
+            <dd className="font-semibold">
+              {SESSION_TYPE_LABEL[session.session_type as string] ??
+                (session.session_type as string)}
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3 py-2.5">
+            <dt className="text-muted-foreground">RPE cible</dt>
+            <dd className="text-right">
+              <span className="font-display font-bold tabular-nums">{rpe ?? '—'}</span>
+              <span className="text-muted-foreground">/10</span>
+              {rpe && <span className="ml-2 text-muted-foreground">{RPE_LABELS[rpe]}</span>}
+            </dd>
+          </div>
+          {(session.target_zone as string | null | undefined) && (
+            <div className="flex flex-wrap items-end justify-between gap-3 py-2.5">
+              <dt className="flex flex-col gap-1">
+                <span className="text-muted-foreground">Zone cible</span>
+                <span className="font-mono font-semibold">{session.target_zone as string}</span>
+                {targetValues &&
+                  Object.entries(targetValues).map(([key, val]) => {
+                    let label = ''
+                    if (key === 'hr') label = `FC ${(val as number[]).join('–')} bpm`
+                    if (key === 'watts') label = `${(val as number[]).join('–')} W`
+                    if (key === 'pace') label = `Allure ${String(val)}/km`
+                    if (!label) return null
+                    return (
+                      <span key={key} className="text-xs text-muted-foreground tabular-nums">
+                        {label}
+                      </span>
+                    )
+                  })}
+              </dt>
+              {mainZone && (
+                <dd
+                  role="img"
+                  aria-label={`Zone principale : Z${mainZone} sur 5`}
+                  className="flex items-end gap-1"
+                >
+                  {ZONES.map((z) => (
+                    <span key={z} className="flex flex-col items-center gap-1">
+                      <span
+                        className={cn('block w-6 rounded-t-[3px]', z !== mainZone && 'bg-muted')}
+                        style={{
+                          height: `${z * 6}px`,
+                          backgroundColor: z === mainZone ? intensityColor(z, 'white') : undefined,
+                        }}
+                      />
+                      <span
+                        className={cn(
+                          'font-mono text-[11px] font-semibold',
+                          z === mainZone ? 'text-foreground' : 'text-muted-foreground',
+                        )}
+                      >
+                        Z{z}
+                      </span>
+                    </span>
+                  ))}
+                </dd>
+              )}
+            </div>
+          )}
+        </dl>
+      </section>
 
       {/* Structure de séance */}
       {structure && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Déroulé de la séance</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
+        <section
+          aria-labelledby="structure-title"
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <SectionLabel id="structure-title" className="sr-only">
+            Déroulé de la séance
+          </SectionLabel>
+          <div className="divide-y divide-border text-sm">
             {structure.warmup && (
-              <div>
-                <p className="font-medium text-foreground mb-1">🔥 Échauffement</p>
-                <p className="text-muted-foreground leading-relaxed">{structure.warmup}</p>
+              <div className="py-3 first:pt-0 last:pb-0">
+                <SectionLabel as="h3" className="mb-1.5">
+                  Échauffement
+                </SectionLabel>
+                <p className="leading-relaxed text-foreground">{structure.warmup}</p>
               </div>
             )}
             {structure.main && (
-              <div>
-                <p className="font-medium text-foreground mb-1">⚡ Bloc principal</p>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              <div className="py-3 first:pt-0 last:pb-0">
+                <SectionLabel as="h3" className="mb-1.5">
+                  Corps de séance
+                </SectionLabel>
+                <p className="leading-relaxed whitespace-pre-line text-foreground">
                   {structure.main}
                 </p>
               </div>
             )}
             {structure.cooldown && (
-              <div>
-                <p className="font-medium text-foreground mb-1">🧊 Retour au calme</p>
-                <p className="text-muted-foreground leading-relaxed">{structure.cooldown}</p>
+              <div className="py-3 first:pt-0 last:pb-0">
+                <SectionLabel as="h3" className="mb-1.5">
+                  Retour au calme
+                </SectionLabel>
+                <p className="leading-relaxed text-foreground">{structure.cooldown}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Note coach */}
-      {(session.coaching_note as string | null | undefined) && (
-        <Card style={{ backgroundColor: withAlpha(ACCENT, 8), borderColor: withAlpha(ACCENT, 25) }}>
-          <CardContent
-            className="pt-4 text-sm italic"
-            style={{ color: 'oklch(0.287 0.047 217.9)' }}
-          >
-            💡{' '}
-            <span
-              style={{ color: ACCENT }}
-              className="font-semibold not-italic uppercase tracking-widest text-xs mr-1"
-            >
-              Note du coach
-            </span>
-            {session.coaching_note as string}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
       {/* Lier une activité Garmin */}

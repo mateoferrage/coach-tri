@@ -2,22 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  ACCENT as MINT,
-  SURFACE as DARK,
-  DIVIDER as DIV,
-  TEXT_FAINT as MUTED,
-  withAlpha,
-} from '@/lib/theme'
+import { Link2, Loader2, Plus } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 
-const DISCIPLINE_EMOJI: Record<string, string> = {
-  swim: '🏊',
-  bike: '🚴',
-  run: '🏃',
-  triathlon: '🏁',
-  strength: '💪',
-  other: '⚡',
-}
 const DISCIPLINE_LABEL: Record<string, string> = {
   swim: 'Natation',
   bike: 'Vélo',
@@ -27,11 +17,14 @@ const DISCIPLINE_LABEL: Record<string, string> = {
   other: 'Activité',
 }
 
-const VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  excellent: { label: 'Excellent', color: MINT, bg: 'oklch(0.306 0.051 209.3 / 10%)' },
-  good: { label: 'Bonne séance', color: 'oklch(0.52 0.13 157)', bg: 'oklch(0.52 0.13 157 / 10%)' },
-  average: { label: 'Correcte', color: 'oklch(0.60 0.13 75)', bg: 'oklch(0.60 0.13 75 / 12%)' },
-  poor: { label: 'À revoir', color: 'oklch(0.55 0.20 25)', bg: 'oklch(0.55 0.20 25 / 10%)' },
+const VERDICT_CONFIG: Record<
+  string,
+  { label: string; variant: 'default' | 'secondary' | 'outline' | 'highlight' }
+> = {
+  excellent: { label: 'Excellent', variant: 'default' },
+  good: { label: 'Bonne séance', variant: 'secondary' },
+  average: { label: 'Correcte', variant: 'outline' },
+  poor: { label: 'À revoir', variant: 'highlight' },
 }
 
 interface GarminActivity {
@@ -141,101 +134,83 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
   const verdictCfg = review ? (VERDICT_CONFIG[review.verdict] ?? VERDICT_CONFIG.good) : null
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-        Activité Garmin liée
-      </p>
+    <section aria-labelledby="garmin-title" className="space-y-3">
+      <SectionLabel id="garmin-title">Activité Garmin liée</SectionLabel>
 
       {linked ? (
         /* ── Activité liée ── */
-        <div
-          className="rounded-xl p-4 flex items-start justify-between gap-3"
-          style={{ backgroundColor: DARK, border: `1px solid ${withAlpha(MINT, 25)}` }}
-        >
-          <div className="flex items-start gap-3">
-            <span className="text-xl flex-shrink-0">
-              {DISCIPLINE_EMOJI[linked.activity_type] ?? '⚡'}
-            </span>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: MINT }}>
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-primary bg-accent p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <DisciplineIcon
+              discipline={linked.activity_type}
+              className="mt-0.5 size-5 shrink-0 text-primary-ink"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
                 {linked.name ?? DISCIPLINE_LABEL[linked.activity_type] ?? 'Activité'}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                 {formatDateTime(linked.started_at)} ·{' '}
                 {fmt(linked.duration_s, linked.distance_m, linked.activity_type)}
               </p>
             </div>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => handleLink(null)}
             disabled={pending}
-            className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg transition-opacity hover:opacity-70 flex-shrink-0"
-            style={{ color: MUTED, border: `1px solid ${DIV}` }}
+            className="shrink-0"
           >
             Délier
-          </button>
+          </Button>
         </div>
       ) : (
         /* ── Pas encore liée ── */
         <div>
           {!open ? (
-            <button
-              onClick={() => setOpen(true)}
-              className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{
-                backgroundColor: DARK,
-                border: `1px dashed ${withAlpha(MINT, 25)}`,
-                color: MINT,
-              }}
-            >
-              + Lier une activité Garmin
-            </button>
+            <Button variant="outline-primary" onClick={() => setOpen(true)} className="w-full">
+              <Plus aria-hidden />
+              Lier une activité Garmin
+            </Button>
           ) : (
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-            >
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
               {candidates.length === 0 ? (
-                <p className="px-4 py-5 text-xs text-center" style={{ color: MUTED }}>
+                <p className="px-4 py-5 text-center text-sm text-muted-foreground">
                   Aucune activité Garmin trouvée à ±3 jours de cette séance.
                 </p>
               ) : (
-                <ul className="divide-y" style={{ borderColor: DIV }}>
+                <ul>
                   {candidates.map((c) => (
-                    <li key={c.id}>
+                    <li key={c.id} className="border-t border-border first:border-t-0">
                       <button
                         onClick={() => handleLink(c.id)}
                         disabled={pending}
-                        className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-foreground/5"
+                        className="flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 text-left transition-colors hover:border-primary hover:bg-accent focus-visible:border-primary focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50"
                       >
-                        <span className="text-lg flex-shrink-0">
-                          {DISCIPLINE_EMOJI[c.activity_type] ?? '⚡'}
-                        </span>
-                        <div className="min-w-0">
-                          <p
-                            className="text-sm font-bold truncate"
-                            style={{ color: 'oklch(0.287 0.047 217.9 / 85%)' }}
-                          >
+                        <DisciplineIcon
+                          discipline={c.activity_type}
+                          className="size-5 shrink-0 text-primary-ink"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             {c.name ?? DISCIPLINE_LABEL[c.activity_type] ?? 'Activité'}
                           </p>
-                          <p className="text-[11px] mt-0.5" style={{ color: MUTED }}>
+                          <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                             {formatDateTime(c.started_at)} ·{' '}
                             {fmt(c.duration_s, c.distance_m, c.activity_type)}
                           </p>
                         </div>
+                        <Link2 aria-hidden className="size-4 shrink-0 text-primary-ink" />
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
-              <div className="px-4 py-2" style={{ borderTop: `1px solid ${DIV}` }}>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                >
+              <div className="border-t border-border px-2 py-1.5">
+                <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
                   Annuler
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -246,88 +221,48 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
       {linked && (
         <div className="space-y-2">
           {!review && !reviewLoading && !reviewError && (
-            <button
-              onClick={fetchReview}
-              className="w-full rounded-xl py-3 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{
-                backgroundColor: DARK,
-                border: `1px dashed ${withAlpha(MINT, 25)}`,
-                color: MINT,
-              }}
-            >
+            <Button variant="outline-primary" onClick={fetchReview} className="w-full">
               Demander le retour du coach
-            </button>
+            </Button>
           )}
 
           {reviewLoading && (
             <div
-              className="rounded-xl px-4 py-4 flex items-center gap-3"
-              style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
+              role="status"
+              className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-4"
             >
-              <span className="text-base animate-spin inline-block">⏳</span>
-              <p className="text-xs" style={{ color: MUTED }}>
-                Le coach analyse ta séance…
-              </p>
+              <Loader2 aria-hidden className="size-4 text-primary-ink motion-safe:animate-spin" />
+              <p className="text-sm text-muted-foreground">Le coach analyse ta séance…</p>
             </div>
           )}
 
           {reviewError && !reviewLoading && (
-            <div
-              className="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-              style={{ backgroundColor: DARK, border: `1px solid oklch(0.55 0.20 25 / 30%)` }}
-            >
-              <p className="text-xs" style={{ color: 'oklch(0.55 0.20 25)' }}>
-                {reviewError}
-              </p>
-              <button
-                onClick={fetchReview}
-                className="text-[10px] font-bold uppercase tracking-widest flex-shrink-0"
-                style={{ color: MINT }}
-              >
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-destructive/10 px-4 py-3">
+              <p className="text-sm text-destructive">{reviewError}</p>
+              <Button variant="ghost" size="sm" onClick={fetchReview} className="shrink-0">
                 Réessayer
-              </button>
+              </Button>
             </div>
           )}
 
           {review && !reviewLoading && verdictCfg && (
-            <div
-              className="rounded-xl px-4 py-4 space-y-2"
-              style={{
-                backgroundColor: verdictCfg.bg,
-                border: `1px solid ${withAlpha(verdictCfg.color, 25)}`,
-              }}
-            >
+            <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4">
               <div className="flex items-center gap-2">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: 'oklch(0.504 0.038 203.1)' }}
-                >
-                  Retour du coach
-                </p>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: withAlpha(verdictCfg.color, 15),
-                    color: verdictCfg.color,
-                  }}
-                >
-                  {verdictCfg.label}
+                <span className="font-mono text-[11px] tracking-[0.06em] text-primary-ink uppercase">
+                  Coach
                 </span>
+                <Badge variant={verdictCfg.variant}>{verdictCfg.label}</Badge>
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
+              <p className="border-l-4 border-primary pl-3.5 text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
                 {review.message}
               </p>
-              <button
-                onClick={fetchReview}
-                className="text-[10px] font-bold uppercase tracking-widest mt-1"
-                style={{ color: 'oklch(0.504 0.038 203.1)' }}
-              >
+              <Button variant="link" size="sm" onClick={fetchReview} className="self-start px-0">
                 Régénérer
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
-    </div>
+    </section>
   )
 }
