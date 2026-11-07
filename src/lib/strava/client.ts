@@ -92,7 +92,9 @@ function toRecord(raw: StravaRawActivity): StravaActivityRecord {
     strava_activity_id: raw.id,
     activity_type: normalizeType(raw.type),
     name: raw.name ?? null,
-    started_at: raw.start_date,
+    // Heure locale de départ, comme garmin_activities (startTimeLocal) : les deux sources doivent
+    // partager la même convention, sinon la fusion des doublons (±10 min) échoue d'1 à 2 h.
+    started_at: raw.start_date_local ?? raw.start_date,
     duration_s: toInt(raw.elapsed_time),
     distance_m: raw.distance ?? null,
     avg_hr: toInt(raw.average_heartrate),
