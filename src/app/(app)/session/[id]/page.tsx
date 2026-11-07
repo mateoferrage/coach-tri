@@ -29,7 +29,7 @@ const STATUS_BADGE: Record<
     variant: 'default',
     className: 'h-auto px-2.5 py-0.5 text-[13px] font-semibold',
   },
-  skipped: { label: 'Passée', className: 'border-border text-muted-foreground' },
+  skipped: { label: 'Sautée', className: 'border-border text-muted-foreground' },
   modified: {
     label: 'Modifiée',
     className: 'border-highlight/40 bg-highlight/10 text-highlight-deep',
