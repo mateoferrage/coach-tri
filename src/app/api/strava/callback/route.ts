@@ -4,6 +4,7 @@ import { exchangeCode } from '@/lib/strava/client'
 import { encryptStravaTokens } from '@/lib/strava/credentials'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { hasActivityScope } from '@/lib/strava/errors'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -17,6 +18,9 @@ export async function GET(request: Request) {
   const error = searchParams.get('error')
 
   if (error || !code) return redirect('/profile?strava_error=access_denied')
+  // Sans accès aux activités, la synchronisation échouerait : on le dit tout de suite.
+  const grantedScope = searchParams.get('scope')
+  if (!hasActivityScope(grantedScope)) return redirect('/profile?strava_error=missing_scope')
 
   // CSRF verification
   const stateParam = searchParams.get('state')
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
         athlete_id: tokens.athlete_id,
         ...encryptStravaTokens(tokens),
         expires_at: tokens.expires_at,
-        scope: 'read,activity:read',
+        scope: grantedScope,
       },
       { onConflict: 'user_id' },
     )
