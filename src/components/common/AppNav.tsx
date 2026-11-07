@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { formatCountdown, type RaceSummary } from '@/lib/plan/nav-summary'
 import { cn } from '@/lib/utils/cn'
+import { Logo } from '@/components/common/Logo'
 
 interface AppNavProps {
   user: User
@@ -31,20 +32,6 @@ const navLinks: { href: string; label: string; shortLabel: string; icon: LucideI
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/')
-}
-
-function Logo({ className }: { className?: string }) {
-  return (
-    <Link
-      href="/dashboard"
-      className={cn(
-        'font-display text-[19px] leading-none font-extrabold tracking-[-0.02em] text-sidebar-foreground [font-stretch:125%]',
-        className,
-      )}
-    >
-      COACH<span className="text-highlight">/</span>TRI
-    </Link>
-  )
 }
 
 function Countdown({ daysLeft, className }: { daysLeft: number; className?: string }) {
@@ -75,7 +62,7 @@ export function AppNav({ user, race }: AppNavProps) {
     <>
       {/* Bureau : colonne bleue */}
       <aside className="sticky top-0 hidden h-screen w-[210px] shrink-0 flex-col gap-7 bg-sidebar px-4 py-6 text-sidebar-foreground md:flex">
-        <Logo className="px-2" />
+        <Logo href="/dashboard" className="px-2 text-[19px]" />
 
         <nav aria-label="Navigation principale" className="flex flex-col gap-1">
           {navLinks.map(({ href, label, icon: Icon }) => {
@@ -130,7 +117,7 @@ export function AppNav({ user, race }: AppNavProps) {
 
       {/* Mobile : en-tête fin */}
       <header className="sticky top-0 z-40 flex min-h-14 items-center justify-between gap-3 bg-sidebar px-4 pt-[env(safe-area-inset-top)] text-sidebar-foreground md:hidden">
-        <Logo />
+        <Logo href="/dashboard" className="text-[19px]" />
         <div className="flex items-center gap-3">
           {race && <Countdown daysLeft={race.daysLeft} className="px-2.5 py-1 text-base" />}
           <button
