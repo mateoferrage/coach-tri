@@ -179,7 +179,10 @@ export async function getActivitiesForSync(
     `${STRAVA_API}/athlete/activities?after=${afterTimestamp}&per_page=${perPage}`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   )
-  if (!res.ok) throw new StravaApiError(`Strava sync fetch failed: ${res.status}`, res.status)
+  if (!res.ok) {
+    const body = (await res.text().catch(() => '')).slice(0, 500)
+    throw new StravaApiError(`Strava sync fetch failed: ${res.status}`, res.status, body)
+  }
   const raw = (await res.json()) as StravaRawActivity[]
   return raw.map(toRecord)
 }

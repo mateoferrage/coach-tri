@@ -3,6 +3,8 @@ export class StravaApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Début du corps de la réponse (Strava y précise la cause d'un 403). */
+    readonly body = '',
   ) {
     super(message)
     this.name = 'StravaApiError'
