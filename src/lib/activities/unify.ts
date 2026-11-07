@@ -90,56 +90,74 @@ export function normalizeStrava(row: StravaRow): UnifiedActivity {
 }
 
 const DEDUP_WINDOW_MS = 10 * 60 * 1000 // ±10 min
-const DEDUP_DISCIPLINES = new Set(['run', 'bike', 'swim'])
+const ENDURANCE = new Set(['run', 'bike', 'swim'])
 
-function canDedup(a: UnifiedActivity): boolean {
-  return !a.is_manual && DEDUP_DISCIPLINES.has(a.activity_type)
+const startDiff = (a: UnifiedActivity, b: UnifiedActivity) =>
+  Math.abs(Date.parse(a.started_at) - Date.parse(b.started_at))
+
+const isStravaOnly = (a: UnifiedActivity) => a.sources.length === 1 && a.sources[0] === 'strava'
+
+// Même séance : départs à ≤10 min et disciplines compatibles. Pas de garde-fou de durée :
+// Strava mesure le temps écoulé (repos inclus), Garmin le temps actif — l'écart peut
+// dépasser 50 % (surtout en natation). Strava classe tout ce qui n'est pas course, vélo
+// ou natation en « other » : il correspond alors à n'importe quel type Garmin hors endurance.
+function isSameSession(a: UnifiedActivity, b: UnifiedActivity): boolean {
+  if (startDiff(a, b) > DEDUP_WINDOW_MS) return false
+  if (a.activity_type === b.activity_type) return true
+  const [strava, other] = isStravaOnly(a) ? [a, b] : isStravaOnly(b) ? [b, a] : [null, null]
+  return strava?.activity_type === 'other' && !ENDURANCE.has(other!.activity_type)
 }
 
-// Même discipline + début à ≤10 min suffit. Pas de garde-fou de durée :
-// Strava mesure le temps écoulé (repos inclus), Garmin le temps actif —
-// l'écart peut dépasser 50 % (surtout en natation) sans qu'il s'agisse de
-// séances distinctes. Démarrer deux séances du même sport à <10 min est improbable.
-function isSameSession(garmin: UnifiedActivity, strava: UnifiedActivity): boolean {
-  if (garmin.activity_type !== strava.activity_type) return false
-  const diff = Math.abs(Date.parse(garmin.started_at) - Date.parse(strava.started_at))
-  return diff <= DEDUP_WINDOW_MS
+/** Index du candidat libre le plus proche dans le temps, ou null. */
+function closestMatch(
+  target: UnifiedActivity,
+  candidates: UnifiedActivity[],
+  used: Set<number>,
+): number | null {
+  let best: { idx: number; diff: number } | null = null
+  candidates.forEach((c, idx) => {
+    if (used.has(idx) || !isSameSession(target, c)) return
+    const diff = startDiff(target, c)
+    if (!best || diff < best.diff) best = { idx, diff }
+  })
+  return (best as { idx: number } | null)?.idx ?? null
 }
 
 export function mergeActivities(garmin: GarminRow[], strava: StravaRow[]): UnifiedActivity[] {
   const ug = garmin.map(normalizeGarmin)
   const us = strava.map(normalizeStrava)
   const usedStrava = new Set<number>()
-  const result: UnifiedActivity[] = []
+  const shown: UnifiedActivity[] = []
 
-  for (const gActivity of ug) {
-    let match: { idx: number; diff: number } | null = null
-    if (canDedup(gActivity)) {
-      us.forEach((sActivity, idx) => {
-        if (usedStrava.has(idx) || !canDedup(sActivity)) return
-        if (!isSameSession(gActivity, sActivity)) return
-        const diff = Math.abs(Date.parse(gActivity.started_at) - Date.parse(sActivity.started_at))
-        if (!match || diff < match.diff) match = { idx, diff }
-      })
+  // 1. Garmin synchronisée + Strava : une ligne Garmin enrichie de la puissance Strava.
+  for (const gActivity of ug.filter((a) => !a.is_manual)) {
+    const idx = closestMatch(gActivity, us, usedStrava)
+    if (idx === null) {
+      shown.push(gActivity)
+      continue
     }
-    if (match) {
-      const sActivity = us[(match as { idx: number; diff: number }).idx]
-      usedStrava.add((match as { idx: number; diff: number }).idx)
-      result.push({
-        ...gActivity,
-        avg_watts: sActivity.avg_watts,
-        suffer_score: sActivity.suffer_score,
-        sources: ['garmin', 'strava'],
-      })
-    } else {
-      result.push(gActivity)
-    }
+    usedStrava.add(idx)
+    shown.push({
+      ...gActivity,
+      avg_watts: us[idx].avg_watts,
+      suffer_score: us[idx].suffer_score,
+      sources: ['garmin', 'strava'],
+    })
   }
-
   us.forEach((sActivity, idx) => {
-    if (!usedStrava.has(idx)) result.push(sActivity)
+    if (!usedStrava.has(idx)) shown.push(sActivity)
   })
 
+  // 2. Saisies manuelles : masquées quand une activité synchronisée correspond.
+  const usedShown = new Set<number>()
+  const manualKept: UnifiedActivity[] = []
+  for (const manual of ug.filter((a) => a.is_manual)) {
+    const idx = closestMatch(manual, shown, usedShown)
+    if (idx === null) manualKept.push(manual)
+    else usedShown.add(idx)
+  }
+
+  const result = [...shown, ...manualKept]
   result.sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at))
   return result
 }
