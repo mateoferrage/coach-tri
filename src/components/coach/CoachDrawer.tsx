@@ -69,6 +69,7 @@ export function CoachDrawerProvider({ children }: { children: React.ReactNode })
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-[oklch(0.213_0.038_251.4/30%)] transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
           <Dialog.Popup
             initialFocus={inputRef}
+            aria-modal="true"
             className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-card pt-[env(safe-area-inset-top)] shadow-[-20px_0_50px_-20px_oklch(0.213_0.038_251.4/40%)] transition-transform duration-250 ease-out outline-none data-ending-style:translate-x-full data-starting-style:translate-x-full motion-reduce:transition-none md:w-[400px]"
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">

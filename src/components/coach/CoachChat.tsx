@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, type RefObject } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { ArrowUp, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
+import { mergeHistory, TEMP_ID_PREFIX } from '@/lib/coach/merge-history'
 
 interface ProposedAction {
   type: 'cancel_session' | 'move_session' | 'adjust_session' | 'regenerate_week'
@@ -47,7 +48,8 @@ export default function CoachChat({
     fetch('/api/chat?limit=20')
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setMessages(data as Message[])
+        // Fusion et non remplacement : un message envoyé avant cette réponse doit rester affiché.
+        if (Array.isArray(data)) setMessages((prev) => mergeHistory(data as Message[], prev))
       })
       .catch(() => {})
   }, [])
@@ -56,13 +58,29 @@ export default function CoachChat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Le champ grandit avec son contenu (texte prérempli compris), jusqu'à max-h-24.
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null)
+  const setFieldRef = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      fieldRef.current = el
+      if (inputRef) inputRef.current = el
+    },
+    [inputRef],
+  )
+  useLayoutEffect(() => {
+    const el = fieldRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [input])
+
   const send = useCallback(async () => {
     const msg = input.trim()
     if (!msg || sending) return
     setInput('')
     setSending(true)
 
-    const tempId = `tmp-${Date.now()}`
+    const tempId = `${TEMP_ID_PREFIX}${Date.now()}`
     setMessages((prev) => [
       ...prev,
       {
@@ -257,7 +275,7 @@ export default function CoachChat({
 
         <div className="flex items-end gap-2 rounded-3xl border-[1.5px] border-primary bg-card py-1.5 pr-1.5 pl-4 focus-within:ring-3 focus-within:ring-primary/25">
           <textarea
-            ref={inputRef}
+            ref={setFieldRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
@@ -272,7 +290,7 @@ export default function CoachChat({
             onClick={send}
             disabled={!input.trim() || sending}
             aria-label="Envoyer"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-highlight text-highlight-foreground transition-colors hover:bg-highlight-deep disabled:opacity-40"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-highlight text-highlight-foreground transition-colors hover:bg-highlight-deep disabled:bg-muted disabled:text-muted-foreground"
           >
             <ArrowUp size={18} strokeWidth={2.5} />
           </button>
