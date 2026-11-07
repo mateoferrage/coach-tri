@@ -45,7 +45,7 @@ export default async function OnboardingPage() {
             {isEditing ? 'Modifier mon profil' : 'Bienvenue sur Coach Tri'}
           </h1>
           <p className="mt-2 text-base font-semibold">
-            {isEditing ? 'Mets à jour tes informations' : 'Configurons votre profil en 3 étapes'}
+            {isEditing ? 'Mets à jour tes informations' : 'Configurons ton profil en 3 étapes'}
           </p>
         </div>
         <OnboardingFlow initialData={profile} isEditing={isEditing} />

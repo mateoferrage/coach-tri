@@ -29,7 +29,7 @@ export default async function NewProgramPage() {
       <div>
         <h1 className="text-3xl md:text-4xl">Nouveau programme</h1>
         <p className="mt-2 text-muted-foreground">
-          L&apos;IA va générer votre programme complet en quelques secondes.
+          L&apos;IA va générer ton programme complet en quelques secondes.
         </p>
       </div>
       <ProgramForm

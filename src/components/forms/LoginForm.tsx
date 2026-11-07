@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { authErrorMessage } from '@/lib/supabase/auth-errors'
 
 const LoginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -42,7 +43,7 @@ export function LoginForm() {
           password: data.password,
         })
         if (error) throw error
-        toast.success('Compte créé ! Vérifiez votre email pour confirmer.')
+        toast.success('Compte créé ! Vérifie ton e-mail pour confirmer.')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: data.email,
@@ -53,8 +54,7 @@ export function LoginForm() {
         router.refresh()
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Une erreur est survenue'
-      toast.error(message)
+      toast.error(authErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -71,7 +71,7 @@ export function LoginForm() {
           <Input
             id="email"
             type="email"
-            placeholder="vous@exemple.com"
+            placeholder="toi@exemple.com"
             className="h-10"
             {...register('email')}
           />

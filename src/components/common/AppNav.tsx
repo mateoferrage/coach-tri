@@ -73,10 +73,12 @@ export function AppNav({ user, race }: AppNavProps) {
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-base transition-colors',
+                  // Gras pour tous : le blanc sur bleu exige des libellés gras ≥ 16 px.
+                  // L'entrée active se distingue par son fond blanc et l'épaisseur de l'icône.
+                  'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-base font-bold transition-colors',
                   active
-                    ? 'bg-sidebar-primary font-bold text-sidebar-primary-foreground'
-                    : 'font-semibold text-sidebar-foreground hover:bg-sidebar-accent',
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent',
                 )}
               >
                 <Icon
@@ -106,9 +108,9 @@ export function AppNav({ user, race }: AppNavProps) {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex items-center gap-2 self-start rounded-md py-1 font-bold hover:underline focus-visible:outline-2 focus-visible:outline-sidebar-ring"
+              className="flex items-center gap-2 self-start rounded-md py-1 text-base font-bold hover:underline focus-visible:outline-2 focus-visible:outline-sidebar-ring"
             >
-              <LogOut size={14} />
+              <LogOut size={16} />
               Déconnexion
             </button>
           </div>

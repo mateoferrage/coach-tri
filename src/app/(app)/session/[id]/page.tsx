@@ -131,7 +131,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           Programme
         </Link>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className="text-sm font-medium text-muted-foreground capitalize">
+          <span className="inline-block text-sm font-medium text-muted-foreground first-letter:uppercase">
             {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
           </span>
           <Badge variant={badge.variant ?? 'outline'} className={badge.className}>

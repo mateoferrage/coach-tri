@@ -70,3 +70,15 @@ export function assignColumns<T>(
 
   return sorted.map(({ item, i }) => ({ item, ...result.get(i)! }))
 }
+
+/**
+ * Heure sur laquelle ouvrir la grille : une heure avant maintenant, ou plus tôt si une séance
+ * ou un créneau du jour commence avant (sinon la séance du matin reste cachée au-dessus).
+ * `nowHour` vaut `null` hors de la semaine en cours : on ouvre alors sur le premier créneau.
+ */
+export function initialScrollHour(starts: number[], nowHour: number | null): number {
+  const candidates = [...starts]
+  if (nowHour !== null) candidates.push(nowHour - 1)
+  if (candidates.length === 0) return START_HOUR
+  return Math.min(Math.max(Math.floor(Math.min(...candidates)), START_HOUR), END_HOUR)
+}
