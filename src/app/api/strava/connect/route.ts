@@ -29,7 +29,8 @@ export async function GET() {
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', callbackUrl)
   url.searchParams.set('response_type', 'code')
-  url.searchParams.set('approval_prompt', 'auto')
+  // « force » : Strava réaffiche l'écran d'autorisation, et donc la case d'accès aux activités.
+  url.searchParams.set('approval_prompt', 'force')
   url.searchParams.set('scope', scope)
   url.searchParams.set('state', state)
 

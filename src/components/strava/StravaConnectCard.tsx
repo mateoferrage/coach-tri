@@ -33,8 +33,13 @@ export function StravaConnectCard({
       )
       router.replace('/profile')
     }
-    if (searchParams.get('strava_error')) {
-      toast.error('Impossible de connecter Strava. Réessaie.')
+    const stravaError = searchParams.get('strava_error')
+    if (stravaError) {
+      toast.error(
+        stravaError === 'missing_scope'
+          ? 'Strava n’a pas donné accès à tes activités. Reconnecte-toi en cochant « Voir les données de tes activités ».'
+          : 'Impossible de connecter Strava. Réessaie.',
+      )
       router.replace('/profile')
     }
   }, [searchParams, router])

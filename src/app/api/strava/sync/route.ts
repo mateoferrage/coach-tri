@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { refreshIfNeeded, getActivitiesForSync, type StravaTokens } from '@/lib/strava/client'
 import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
+import { StravaApiError, stravaSyncErrorMessage } from '@/lib/strava/errors'
 
 export async function POST() {
   const supabase = await createClient()
@@ -45,8 +46,10 @@ export async function POST() {
   let activities
   try {
     activities = await getActivitiesForSync(tokens.access_token, afterTimestamp, 30)
-  } catch {
-    return apiError('Impossible de récupérer les activités Strava', 502)
+  } catch (err) {
+    const status = err instanceof StravaApiError ? err.status : null
+    console.error('[strava/sync] activities fetch failed', { status })
+    return apiError(stravaSyncErrorMessage(status), 502)
   }
 
   if (activities.length === 0) {
