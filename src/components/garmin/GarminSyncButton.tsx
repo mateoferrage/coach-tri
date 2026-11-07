@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function GarminSyncButton() {
   const router = useRouter()
@@ -24,12 +26,9 @@ export function GarminSyncButton() {
   }
 
   return (
-    <button
-      onClick={handleSync}
-      disabled={loading}
-      className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-    >
-      {loading ? '⏳ Sync…' : '↺ Sync Garmin'}
-    </button>
+    <Button variant="outline-primary" size="sm" onClick={handleSync} disabled={loading}>
+      <RefreshCw aria-hidden className={loading ? 'animate-spin' : undefined} />
+      {loading ? 'Sync…' : 'Sync Garmin'}
+    </Button>
   )
 }

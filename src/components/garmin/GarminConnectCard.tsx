@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Check, Loader2, Lock, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ACCENT as MINT, ACCENT_FG as DARK, withAlpha } from '@/lib/theme'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   connected: boolean
@@ -58,7 +60,7 @@ export function GarminConnectCard({
       const now = new Date().toISOString()
       setLastSync(now)
       toast.success(
-        `✅ Sync réussie — ${data.activities_synced ?? 0} activité(s), ${data.wellness_synced ?? 0} jour(s) de forme importés.`,
+        `Sync réussie — ${data.activities_synced ?? 0} activité(s), ${data.wellness_synced ?? 0} jour(s) de forme importés.`,
       )
       router.refresh()
     } catch (err) {
@@ -90,20 +92,22 @@ export function GarminConnectCard({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base">Garmin Connect</CardTitle>
+            <CardTitle className="font-display text-lg font-bold">Garmin Connect</CardTitle>
             <CardDescription className="mt-1">
               Activités, HRV, Body Battery, sommeil
             </CardDescription>
           </div>
-          {connected && (
-            <span
-              className="text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: withAlpha(MINT, 12), color: MINT }}
-            >
-              ● Connecté
-            </span>
+          {connected ? (
+            <Badge variant="outline" className="border-primary/40 text-primary-ink">
+              <Check aria-hidden />
+              Connecté
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">
+              Non connecté
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -113,67 +117,58 @@ export function GarminConnectCard({
           /* ── Connected state ────────────────────────────────────────────── */
           <div className="space-y-4">
             {/* Last sync info */}
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary text-sm">
-              <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: MINT }} />
-              <div>
-                <span className="text-muted-foreground text-xs">Dernière synchronisation</span>
-                <p className="font-semibold text-sm">
-                  {lastSync
-                    ? new Date(lastSync).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : 'Jamais — lance une première synchronisation'}
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Dernière synchronisation :{' '}
+              <span className="font-medium text-foreground">
+                {lastSync
+                  ? new Date(lastSync).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Jamais — lance une première synchronisation'}
+              </span>
+            </p>
 
             {/* What gets imported */}
-            <ul className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <ul className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
               {['Activités (14j)', 'HRV (RMSSD)', 'Body Battery', 'Sommeil & stress'].map(
                 (item) => (
                   <li key={item} className="flex items-center gap-1.5">
-                    <span style={{ color: MINT }}>✓</span> {item}
+                    <Check aria-hidden className="size-3.5 shrink-0 text-primary-ink" /> {item}
                   </li>
                 ),
               )}
             </ul>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleSync}
-                disabled={loading !== null}
-                className="flex-1 py-2.5 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ backgroundColor: MINT, color: DARK }}
-              >
-                {loading === 'sync' ? '⏳ Synchronisation…' : '↺ Synchroniser maintenant'}
-              </button>
-              <button
-                onClick={handleDisconnect}
-                disabled={loading !== null}
-                className="px-4 py-2.5 rounded-xl font-bold text-xs border transition-all text-destructive/60 border-destructive/20 hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
-              >
+            <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+              <Button onClick={handleSync} disabled={loading !== null} className="flex-1">
+                <RefreshCw
+                  aria-hidden
+                  className={loading === 'sync' ? 'animate-spin' : undefined}
+                />
+                {loading === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'}
+              </Button>
+              <Button variant="destructive" onClick={handleDisconnect} disabled={loading !== null}>
                 {loading === 'disconnect' ? '…' : 'Déconnecter'}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           /* ── Connect form ───────────────────────────────────────────────── */
           <form onSubmit={handleConnect} className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Connecte ton compte Garmin Connect pour importer automatiquement tes activités et
               données de forme dans Coach Tri.
             </p>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Email Garmin Connect
-              </Label>
+              <Label htmlFor="garmin-email">Email Garmin Connect</Label>
               <Input
+                id="garmin-email"
                 type="email"
                 placeholder="vous@exemple.com"
                 value={email}
@@ -184,10 +179,9 @@ export function GarminConnectCard({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Mot de passe
-              </Label>
+              <Label htmlFor="garmin-password">Mot de passe</Label>
               <Input
+                id="garmin-password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -197,22 +191,18 @@ export function GarminConnectCard({
               />
             </div>
 
-            <p className="text-xs text-muted-foreground flex items-start gap-1.5">
-              <span>🔒</span>
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Lock aria-hidden className="mt-0.5 size-3.5 shrink-0" />
               <span>
                 Identifiants chiffrés AES-256 côté serveur. Jamais stockés en clair, jamais partagés
                 avec des tiers.
               </span>
             </p>
 
-            <button
-              type="submit"
-              disabled={loading !== null}
-              className="w-full py-2.5 rounded-xl font-semibold uppercase tracking-widest text-xs transition-all disabled:opacity-50 hover:opacity-90"
-              style={{ backgroundColor: MINT, color: DARK }}
-            >
-              {loading === 'connect' ? '⏳ Connexion…' : 'Connecter mon compte Garmin'}
-            </button>
+            <Button type="submit" disabled={loading !== null} className="w-full">
+              {loading === 'connect' && <Loader2 aria-hidden className="animate-spin" />}
+              {loading === 'connect' ? 'Connexion…' : 'Connecter mon compte Garmin'}
+            </Button>
           </form>
         )}
       </CardContent>
