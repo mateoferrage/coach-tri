@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { formatSyncDate } from '@/lib/utils/format-sync-date'
 
 interface Props {
   connected: boolean
@@ -121,13 +122,7 @@ export function GarminConnectCard({
               Dernière synchronisation :{' '}
               <span className="font-medium text-foreground">
                 {lastSync
-                  ? new Date(lastSync).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
+                  ? formatSyncDate(lastSync)
                   : 'Jamais — lance une première synchronisation'}
               </span>
             </p>

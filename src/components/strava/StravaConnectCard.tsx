@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Check, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { formatSyncDate } from '@/lib/utils/format-sync-date'
 
 interface Props {
   connected: boolean
@@ -101,13 +102,7 @@ export function StravaConnectCard({
               Dernière synchronisation :{' '}
               <span className="font-medium text-foreground">
                 {lastSync
-                  ? new Date(lastSync).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
+                  ? formatSyncDate(lastSync)
                   : 'Jamais — lance une première synchronisation'}
               </span>
             </p>
