@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   AMBER_RED,
   AMBER_RED_DEEP,
-  ACCENT,
   EVENT_TYPE,
   INK,
   INK_MUTED,
-  SKY_INK,
+  SKY,
   intensityColor,
   withAlpha,
 } from './theme'
@@ -40,13 +39,9 @@ describe('intensityColor', () => {
   })
 })
 
-describe('alias historiques', () => {
-  it('restent compatibles avec withAlpha (oklch)', () => {
-    expect(withAlpha(ACCENT, 12)).toBe(`${ACCENT.slice(0, -1)} / 12%)`)
-  })
-
-  it('ACCENT pointe sur le bleu lisible', () => {
-    expect(ACCENT).toBe(SKY_INK)
+describe('withAlpha', () => {
+  it('ajoute une opacité à une couleur oklch', () => {
+    expect(withAlpha(SKY, 12)).toBe(`${SKY.slice(0, -1)} / 12%)`)
   })
 })
 

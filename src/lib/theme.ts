@@ -1,9 +1,10 @@
 /**
  * DA Coach Tri — « Élan » (Sky Blue, Cloudy White, Amber Red)
  *
- * Source de vérité pour les couleurs utilisées en style inline. Les tokens CSS
- * équivalents vivent dans `globals.css`. Toutes les valeurs sont en oklch :
- * `withAlpha()` en dépend.
+ * Source de vérité pour les couleurs qui doivent rester en style inline
+ * (échelle d'intensité, types d'événement du calendrier). Partout ailleurs, on
+ * utilise les tokens Tailwind définis dans `globals.css`. Toutes les valeurs
+ * sont en oklch : `withAlpha()` en dépend.
  */
 
 // ── Palette Élan ───────────────────────────────────────────
@@ -16,39 +17,6 @@ export const AMBER_RED_DEEP = 'oklch(0.555 0.188 32.7)' // #C9361A — survol, t
 export const INK = 'oklch(0.213 0.038 251.4)' // #0B1A2A — texte
 export const INK_MUTED = 'oklch(0.520 0.035 250.0)' // #5A6B7D — texte secondaire
 export const LINE = 'oklch(0.932 0.010 252.8)' // #E4E9EF — filets
-
-// ── Alias historiques ─────────────────────────────────────
-// Remappés sur la palette Élan pour ne rien casser pendant la transition.
-// Supprimés à l'étape 3, quand chaque page aura été reprise.
-export const SLATE = CLOUD
-export const SURFACE = 'oklch(1 0 0)'
-export const SURFACE_DEEP = SKY_TINT
-export const DIVIDER = LINE
-export const TEXT = INK
-export const TEXT_MUTED = INK_MUTED
-export const TEXT_FAINT = 'oklch(0.430 0.042 248.8)' // #3E5266 — AA sur blanc
-export const ACCENT = SKY_INK // bleu lisible : ACCENT sert aussi de couleur de texte
-export const ACCENT_FG = 'oklch(1 0 0)'
-export const GLACIER = SKY
-
-/**
- * Libellé + picto par discipline.
- * Plus de couleur par discipline (spec Élan) : toutes passent en bleu, le repos
- * en gris. `icon` (emoji) est conservé jusqu'à l'étape 3, où il est remplacé
- * par `DisciplineIcon` (lucide).
- */
-export const DISCIPLINE: Record<string, { label: string; color: string; icon: string }> = {
-  swim: { label: 'Natation', color: SKY_INK, icon: '🏊' },
-  bike: { label: 'Vélo', color: SKY_INK, icon: '🚴' },
-  run: { label: 'Course à pied', color: SKY_INK, icon: '🏃' },
-  brick: { label: 'Enchaînement', color: SKY_INK, icon: '⚡' },
-  strength: { label: 'Renforcement', color: SKY_INK, icon: '💪' },
-  rest: { label: 'Récupération', color: INK_MUTED, icon: '😴' },
-}
-
-export function disciplineColor(d: string | null | undefined): string {
-  return DISCIPLINE[d ?? '']?.color ?? ACCENT
-}
 
 // ── Échelle d'intensité ───────────────────────────────────
 export type IntensitySurface = 'white' | 'blue'
