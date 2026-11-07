@@ -3,8 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { addDays, addWeeks, subWeeks, startOfWeek, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { EventModal } from './EventModal'
+import { Button } from '@/components/ui/button'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { cn } from '@/lib/utils/cn'
 import type { CalendarEvent, ScheduleEventInput } from '@/lib/schemas/schedule'
 import {
   HOUR_PX,
@@ -15,22 +19,8 @@ import {
   assignColumns,
 } from '@/lib/calendar/layout'
 import { timeToFrac } from '@/lib/calendar/time'
-import {
-  DISCIPLINE,
-  disciplineColor,
-  EVENT_TYPE,
-  eventTypeColor,
-  eventTypeLabel,
-  withAlpha,
-  SURFACE,
-  SURFACE_DEEP,
-  DIVIDER,
-  TEXT,
-  TEXT_MUTED,
-  TEXT_FAINT,
-  ACCENT,
-  ACCENT_FG,
-} from '@/lib/theme'
+import { DISCIPLINE_LABEL } from '@/lib/plan/display'
+import { eventTypeColor, eventTypeLabel, withAlpha } from '@/lib/theme'
 
 interface TrainingSession {
   id: string
@@ -208,184 +198,122 @@ export function WeekCalendar() {
     }
   }
 
-  const navBtnStyle = {
-    backgroundColor: SURFACE,
-    border: `1px solid ${DIVIDER}`,
-    color: TEXT,
-  } as const
-
   return (
     <div className="flex flex-col" style={{ minHeight: 0, flex: 1 }}>
       {/* ── Controls ── */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      <div className="mb-4 flex flex-shrink-0 items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="outline"
+            size="icon-sm"
             onClick={() => setWeekStart((w) => subWeeks(w, 1))}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
-            style={navBtnStyle}
             aria-label="Semaine précédente"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <span
-            className="text-sm font-medium px-2"
-            style={{ color: TEXT, minWidth: 180, textAlign: 'center' }}
-          >
+            <ChevronLeft aria-hidden />
+          </Button>
+          <span className="min-w-[180px] px-2 text-center text-sm font-semibold text-foreground tabular-nums">
             {format(weekStart, 'd MMM', { locale: fr })} –{' '}
             {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: fr })}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="icon-sm"
             onClick={() => setWeekStart((w) => addWeeks(w, 1))}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
-            style={navBtnStyle}
             aria-label="Semaine suivante"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-          <button
+            <ChevronRight aria-hidden />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-1"
             onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="ml-1 text-xs px-3 py-1.5 rounded-lg font-bold transition-opacity hover:opacity-70"
-            style={{ backgroundColor: SURFACE, border: `1px solid ${DIVIDER}`, color: TEXT_MUTED }}
           >
             Aujourd&apos;hui
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
+          variant="highlight"
           onClick={() => {
             setClickedDate(undefined)
             setShowModal(true)
           }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90"
-          style={{ backgroundColor: ACCENT, color: ACCENT_FG }}
         >
-          <span className="text-base leading-none">+</span> Ajouter
-        </button>
+          <Plus aria-hidden />
+          Ajouter
+        </Button>
       </div>
 
-      {/* ── Legend ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 flex-shrink-0">
-        {(['swim', 'bike', 'run'] as const).map((d) => (
-          <div key={d} className="flex items-center gap-1.5 text-xs" style={{ color: TEXT_MUTED }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: disciplineColor(d) }} />{' '}
-            {DISCIPLINE[d].label}
-          </div>
-        ))}
-        <div className="w-px h-4 mx-1" style={{ backgroundColor: DIVIDER }} />
-        {(['cours', 'stage', 'rdv', 'autre'] as const).map((t) => (
-          <div key={t} className="flex items-center gap-1.5 text-xs" style={{ color: TEXT_MUTED }}>
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: eventTypeColor(t) }} />{' '}
-            {EVENT_TYPE[t].label}
-          </div>
-        ))}
-        {loading && (
-          <span className="text-xs ml-auto" style={{ color: TEXT_MUTED }}>
-            Chargement…
-          </span>
-        )}
+      {/* ── Legend (par statut) ── */}
+      <div className="mb-4 flex flex-shrink-0 flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span aria-hidden className="h-3 w-4 rounded-sm border-l-4 border-primary bg-accent" />
+          Séance
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span aria-hidden className="h-3 w-4 rounded-sm bg-primary-ink" />
+          Faite
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="h-3 w-4 rounded-sm border-l-4 border-muted-foreground bg-muted"
+          />
+          Événement perso
+        </div>
+        {loading && <span className="ml-auto">Chargement…</span>}
       </div>
 
       {/* ── Grid ── */}
       <div
         ref={gridRef}
-        className="overflow-y-auto rounded-xl relative"
-        style={{ flex: 1, minHeight: 0, border: `1px solid ${DIVIDER}`, backgroundColor: SURFACE }}
+        className="relative overflow-y-auto rounded-xl border border-border bg-card"
+        style={{ flex: 1, minHeight: 0 }}
       >
         {error && (
-          <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3"
-            style={{ backgroundColor: withAlpha(SURFACE, 90) }}
-          >
-            <p className="text-sm font-medium" style={{ color: TEXT }}>
-              {error}
-            </p>
-            <button
-              onClick={() => setReloadKey((k) => k + 1)}
-              className="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-widest transition-opacity hover:opacity-90"
-              style={{ backgroundColor: ACCENT, color: ACCENT_FG }}
-            >
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-card/90">
+            <p className="text-sm font-medium text-destructive">{error}</p>
+            <Button size="sm" onClick={() => setReloadKey((k) => k + 1)}>
               Réessayer
-            </button>
+            </Button>
           </div>
         )}
 
         {isEmpty && (
-          <div className="absolute inset-x-0 top-20 z-10 flex justify-center pointer-events-none">
-            <span
-              className="text-xs px-3 py-1.5 rounded-full"
-              style={{ backgroundColor: SURFACE_DEEP, color: TEXT_MUTED }}
-            >
+          <div className="pointer-events-none absolute inset-x-0 top-20 z-10 flex justify-center">
+            <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
               Aucun créneau cette semaine
             </span>
           </div>
         )}
 
-        <div style={{ minWidth: 640, backgroundColor: SURFACE }}>
+        <div className="bg-card" style={{ minWidth: 640 }}>
           {/* Day headers — sticky */}
           <div
-            className="grid"
-            style={{
-              gridTemplateColumns: '44px repeat(7, 1fr)',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              backgroundColor: SURFACE,
-              borderBottom: `1px solid ${DIVIDER}`,
-            }}
+            className="sticky top-0 z-10 grid border-b border-border bg-card"
+            style={{ gridTemplateColumns: '44px repeat(7, 1fr)' }}
           >
             <div />
             {days.map((day, i) => {
               const dStr = format(day, 'yyyy-MM-dd')
               const isToday = dStr === todayStr
               return (
-                <div key={i} style={{ textAlign: 'center', padding: '10px 4px 8px' }}>
+                <div key={i} className="px-1 pt-2.5 pb-2 text-center">
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: TEXT_MUTED,
-                    }}
+                    className={cn(
+                      'text-xs font-semibold',
+                      isToday ? 'text-highlight-deep' : 'text-muted-foreground',
+                    )}
                   >
                     {format(day, 'EEE', { locale: fr })}
                   </div>
                   <div
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 900,
-                      lineHeight: 1,
-                      marginTop: 4,
-                      color: isToday ? ACCENT_FG : TEXT,
-                      backgroundColor: isToday ? ACCENT : 'transparent',
-                      borderRadius: '50%',
-                      width: 32,
-                      height: 32,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '4px auto 0',
-                    }}
+                    className={cn(
+                      'mx-auto mt-1 flex size-8 items-center justify-center rounded-full font-display text-xl leading-none font-bold tabular-nums',
+                      isToday ? 'bg-highlight text-highlight-foreground' : 'text-foreground',
+                    )}
+                    aria-current={isToday ? 'date' : undefined}
                   >
                     {format(day, 'd')}
                   </div>
@@ -395,30 +323,14 @@ export function WeekCalendar() {
           </div>
 
           {/* Body: time column + 7 day columns */}
-          <div className="flex" style={{ backgroundColor: SURFACE }}>
+          <div className="flex bg-card">
             {/* Time labels */}
-            <div
-              style={{
-                width: 44,
-                flexShrink: 0,
-                backgroundColor: SURFACE,
-                borderRight: `1px solid ${DIVIDER}`,
-              }}
-            >
+            <div className="flex-shrink-0 border-r border-border bg-card" style={{ width: 44 }}>
               {hours.map((h) => (
                 <div
                   key={h}
-                  style={{
-                    height: HOUR_PX,
-                    fontSize: 11,
-                    fontWeight: 500,
-                    color: TEXT_FAINT,
-                    textAlign: 'right',
-                    paddingRight: 8,
-                    paddingTop: 4,
-                    borderBottom: `1px solid ${withAlpha(TEXT, 6)}`,
-                    userSelect: 'none',
-                  }}
+                  className="border-b border-border/60 pt-1 pr-2 text-right text-[11px] font-medium text-muted-foreground tabular-nums select-none"
+                  style={{ height: HOUR_PX }}
                 >
                   {h}h
                 </div>
@@ -459,12 +371,7 @@ export function WeekCalendar() {
               return (
                 <div
                   key={colIdx}
-                  style={{
-                    flex: 1,
-                    position: 'relative',
-                    backgroundColor: SURFACE,
-                    borderRight: colIdx < 6 ? `1px solid ${DIVIDER}` : 'none',
-                  }}
+                  className={cn('relative flex-1 bg-card', colIdx < 6 && 'border-r border-border')}
                 >
                   {/* Background hour slots — also drop targets */}
                   {hours.map((h) => {
@@ -487,18 +394,15 @@ export function WeekCalendar() {
                           const id = draggingId
                           if (id) handleMoveSession(id, dStr, h)
                         }}
-                        style={{
-                          height: HOUR_PX,
-                          borderBottom: `1px solid ${withAlpha(TEXT, 6)}`,
-                          backgroundColor: isDropTarget
-                            ? withAlpha(ACCENT, 10)
+                        className={cn(
+                          'cursor-pointer border-b border-border/60 transition-colors duration-100',
+                          isDropTarget
+                            ? 'bg-accent outline outline-1 outline-primary/40'
                             : h % 2 === 0
-                              ? SURFACE
-                              : withAlpha(SURFACE_DEEP, 45),
-                          outline: isDropTarget ? `1px solid ${withAlpha(ACCENT, 40)}` : 'none',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.1s',
-                        }}
+                              ? 'bg-card'
+                              : 'bg-muted/45',
+                        )}
+                        style={{ height: HOUR_PX }}
                       />
                     )
                   })}
@@ -506,28 +410,10 @@ export function WeekCalendar() {
                   {/* Now line */}
                   {todayIdx === colIdx && nowFrac !== null && (
                     <div
-                      style={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        top: topPx(nowFrac),
-                        height: 2,
-                        backgroundColor: ACCENT,
-                        zIndex: 5,
-                        pointerEvents: 'none',
-                      }}
+                      className="pointer-events-none absolute inset-x-0 z-[5] h-0.5 bg-highlight"
+                      style={{ top: topPx(nowFrac) }}
                     >
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: ACCENT,
-                          position: 'absolute',
-                          left: -4,
-                          top: -3,
-                        }}
-                      />
+                      <div className="absolute -top-[3px] -left-1 size-2 rounded-full bg-highlight" />
                     </div>
                   )}
 
@@ -553,67 +439,32 @@ export function WeekCalendar() {
                               setEditingEvent(ev)
                             }
                           }}
+                          className="absolute z-[3] flex cursor-pointer flex-col gap-px overflow-hidden rounded-md px-1.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           style={{
-                            position: 'absolute',
                             top: topPx(p.item.start),
                             height: heightPx(p.item.start, p.item.end),
                             ...horiz,
-                            borderRadius: 6,
-                            padding: '2px 6px',
-                            backgroundColor: withAlpha(color, 14),
+                            // Couleur selon le type d'événement : seul style inline de couleur.
+                            backgroundColor: withAlpha(color, 10),
                             borderLeft: `3px solid ${color}`,
-                            color: TEXT,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1,
-                            overflow: 'hidden',
-                            zIndex: 3,
-                            cursor: 'pointer',
+                            color,
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              lineHeight: 1.2,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
+                          <div className="truncate text-[11px] leading-tight font-bold">
                             {ev.title}
                           </div>
-                          <div
-                            className="flex items-center gap-1"
-                            style={{
-                              fontSize: 10,
-                              color: TEXT_MUTED,
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                backgroundColor: color,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {ev.start_time}–{ev.end_time} · {eventTypeLabel(ev.event_type)}
-                            </span>
+                          <div className="truncate text-[10px] font-medium tabular-nums">
+                            {ev.start_time}–{ev.end_time} · {eventTypeLabel(ev.event_type)}
                           </div>
                         </div>
                       )
                     }
 
                     const sess = p.item.sess
-                    const color = disciplineColor(sess.discipline)
-                    const label = DISCIPLINE[sess.discipline]?.label ?? 'Séance'
+                    const label = DISCIPLINE_LABEL[sess.discipline] ?? 'Séance'
                     const isDragging = draggingId === sess.id
+                    const isDone = sess.status === 'done'
+                    const isToday = sess.session_date === todayStr
                     return (
                       <div
                         key={sess.id}
@@ -627,66 +478,49 @@ export function WeekCalendar() {
                           setDraggingId(null)
                           setDropTarget(null)
                         }}
+                        className={cn(
+                          'absolute z-[4] flex cursor-grab flex-col gap-px overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 transition-opacity duration-150',
+                          isDone
+                            ? 'bg-primary-ink font-bold text-primary-foreground'
+                            : 'bg-accent text-foreground',
+                          isToday
+                            ? 'border-highlight'
+                            : isDone
+                              ? 'border-primary-ink'
+                              : 'border-primary',
+                          isDragging && 'opacity-40',
+                        )}
                         style={{
-                          position: 'absolute',
                           top: topPx(p.item.start),
                           height: heightPx(p.item.start, p.item.end),
                           ...horiz,
-                          borderRadius: 6,
-                          padding: '2px 6px',
-                          backgroundColor: withAlpha(color, 14),
-                          borderLeft: `3px solid ${color}`,
-                          color: TEXT,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1,
-                          overflow: 'hidden',
-                          zIndex: 4,
-                          opacity: isDragging ? 0.4 : sess.status === 'done' ? 0.55 : 1,
-                          cursor: 'grab',
-                          transition: 'opacity 0.15s',
                         }}
                       >
                         <a
                           href={`/session/${sess.id}`}
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`${sess.title ?? label}, ${sess.duration_min} minutes — voir la séance`}
-                          style={{
-                            color: 'inherit',
-                            textDecoration: 'none',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            lineHeight: 1.2,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
+                          className={cn(
+                            'flex min-w-0 items-center gap-1 rounded-sm text-[11px] leading-tight font-bold text-inherit no-underline outline-none focus-visible:ring-2',
+                            isDone
+                              ? 'focus-visible:ring-primary-foreground'
+                              : 'focus-visible:ring-ring',
+                          )}
                         >
-                          {sess.title ?? label}
+                          <DisciplineIcon
+                            discipline={sess.discipline}
+                            className="size-3 shrink-0"
+                          />
+                          <span className="truncate">{sess.title ?? label}</span>
                         </a>
                         <div
-                          className="flex items-center gap-1"
-                          style={{
-                            fontSize: 10,
-                            color: TEXT_MUTED,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
+                          className={cn(
+                            'truncate text-[10px] tabular-nums',
+                            isDone ? 'font-semibold' : 'font-medium text-muted-foreground',
+                          )}
                         >
-                          <span
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              backgroundColor: color,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {sess.session_time ? `${sess.session_time.slice(0, 5)} · ` : ''}
-                            {sess.duration_min} min · {label}
-                          </span>
+                          {sess.session_time ? `${sess.session_time.slice(0, 5)} · ` : ''}
+                          {sess.duration_min} min · {label}
                         </div>
                       </div>
                     )

@@ -79,13 +79,16 @@ export function intensityColor(zone: number, surface: IntensitySurface = 'white'
 }
 
 /** Système couleur + label par type d'événement personnel (agenda). */
-// Couleurs calées pour passer WCAG AA (≥ 4.5:1) en texte sur fond blanc ET sur
-// leur propre teinte à 14 % (rendu des blocs du calendrier). Cf. scripts/a11y-contrast.mjs.
+// Palette Élan, distincte des séances (bleu clair / bleu plein). Chaque couleur passe
+// WCAG AA (≥ 4.5:1) en texte sur fond blanc ET sur sa propre teinte à 14 % (le bloc
+// du calendrier utilise 10 %) :
+//   cours 17.6 / 13.2 · stage 6.1 / 4.8 · rdv 7.4 / 6.0 · autre 5.5 / 4.6
+// `stage` est un cran plus sombre qu'AMBER_RED_DEEP (5.2 / 4.2 sur teinte : échec AA).
 export const EVENT_TYPE: Record<string, { label: string; color: string }> = {
-  cours: { label: 'Cours', color: 'oklch(0.47 0.16 300)' }, // violet
-  stage: { label: 'Stage', color: 'oklch(0.50 0.13 64.7)' }, // ambre
-  rdv: { label: 'RDV', color: 'oklch(0.46 0.09 183.4)' }, // teal-vert
-  autre: { label: 'Autre', color: 'oklch(0.48 0.024 203.9)' }, // acier
+  cours: { label: 'Cours', color: INK }, // encre
+  stage: { label: 'Stage', color: 'oklch(0.52 0.188 32.7)' }, // rouge ambré profond
+  rdv: { label: 'RDV', color: 'oklch(0.45 0.09 250)' }, // bleu ardoise
+  autre: { label: 'Autre', color: INK_MUTED }, // gris
 }
 
 export function eventTypeColor(t: string | null | undefined): string {

@@ -2,25 +2,26 @@
 
 import { useState } from 'react'
 import { format, getISODay } from 'date-fns'
+import { Repeat, Sparkles, X } from 'lucide-react'
 import type { ScheduleEventInput, CalendarEvent } from '@/lib/schemas/schedule'
-import {
-  ACCENT as MINT,
-  ACCENT_FG,
-  SURFACE as DARK,
-  SURFACE as CARD,
-  DIVIDER as BORDER,
-  TEXT,
-  TEXT_FAINT as MUTED,
-  eventTypeColor,
-  withAlpha,
-} from '@/lib/theme'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { cn } from '@/lib/utils/cn'
+import { eventTypeColor } from '@/lib/theme'
 
+// Libellés longs propres au formulaire (« Rendez-vous » au lieu de « RDV » d'EVENT_TYPE).
 const EVENT_TYPES = [
-  { value: 'cours', label: '📚 Cours' },
-  { value: 'stage', label: '💼 Stage' },
-  { value: 'rdv', label: '🏥 Rendez-vous' },
-  { value: 'autre', label: '📌 Autre' },
+  { value: 'cours', label: 'Cours' },
+  { value: 'stage', label: 'Stage' },
+  { value: 'rdv', label: 'Rendez-vous' },
+  { value: 'autre', label: 'Autre' },
 ] as const
+
+const FIELD_CLASS =
+  'h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground outline-none [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
 const ISO_DAYS = ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
@@ -109,263 +110,231 @@ export function EventModal({
     }
   }
 
-  const inputStyle = {
-    backgroundColor: DARK,
-    border: `1px solid ${BORDER}`,
-    color: TEXT,
-    colorScheme: 'light' as const,
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
       }}
     >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-2xl p-6 space-y-4"
-        style={{ backgroundColor: CARD, border: `1px solid ${BORDER}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold uppercase tracking-widest" style={{ color: MINT }}>
-            {isEdit ? "Modifier l'événement" : 'Nouvel événement'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-lg leading-none"
-            style={{ color: MUTED }}
-          >
-            ✕
-          </button>
-        </div>
+      <DialogContent showCloseButton={false} className="p-6 sm:max-w-md">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Header */}
+          <DialogHeader className="flex-row items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <SectionLabel as="p">Événement perso</SectionLabel>
+              <DialogTitle className="font-display text-2xl leading-tight font-extrabold">
+                {isEdit ? "Modifier l'événement" : 'Nouvel événement'}
+              </DialogTitle>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              aria-label="Fermer"
+              className="-mt-1 -mr-2"
+            >
+              <X aria-hidden />
+            </Button>
+          </DialogHeader>
 
-        {isEdit && initialEvent?.is_recurring && (
-          <div
-            className="rounded-xl px-3 py-2 text-xs"
-            style={{
-              backgroundColor: 'oklch(0.50 0.13 157 / 10%)',
-              border: '1px solid oklch(0.50 0.13 157 / 25%)',
-              color: 'oklch(0.50 0.13 157)',
-            }}
-          >
-            ↻ Événement récurrent — les modifications s&apos;appliquent à toutes les occurrences.
-          </div>
-        )}
+          {isEdit && initialEvent?.is_recurring && (
+            <div className="flex items-start gap-2 rounded-lg border border-primary/40 bg-accent px-3 py-2 text-xs font-medium text-primary-ink">
+              <Repeat aria-hidden className="mt-px size-3.5 shrink-0" />
+              <span>
+                Événement récurrent — les modifications s&apos;appliquent à toutes les occurrences.
+              </span>
+            </div>
+          )}
 
-        {/* Title */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-            Titre
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="ex. Cours de droit, Stage entreprise…"
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors"
-            style={inputStyle}
-            autoFocus={!isEdit}
-          />
-        </div>
-
-        {/* Type */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-            Type
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {EVENT_TYPES.map(({ value, label }) => {
-              const selected = eventType === value
-              const color = eventTypeColor(value)
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setEventType(value)}
-                  className="rounded-lg px-3 py-2 text-xs font-bold transition-all text-left"
-                  style={{
-                    backgroundColor: selected ? withAlpha(color, 12) : DARK,
-                    border: `1px solid ${selected ? color : BORDER}`,
-                    color: selected ? color : MUTED,
-                  }}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Date + jour */}
-        <div className="grid grid-cols-2 gap-3">
+          {/* Title */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-              Date
-            </label>
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => {
-                setEventDate(e.target.value)
-                if (e.target.value)
-                  setRecurrenceDay(getISODay(new Date(e.target.value + 'T00:00:00')))
-              }}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={inputStyle}
+            <Label htmlFor="event-title">Titre</Label>
+            <Input
+              id="event-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="ex. Cours de droit, Stage entreprise…"
+              className="h-9"
+              autoFocus={!isEdit}
             />
           </div>
+
+          {/* Type */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-              {isRecurring ? 'Jour répété' : 'Jour'}
-            </label>
-            {isRecurring ? (
-              <select
-                value={recurrenceDay}
-                onChange={(e) => setRecurrenceDay(Number(e.target.value))}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                style={inputStyle}
+            <Label id="event-type-label">Type</Label>
+            <div role="group" aria-labelledby="event-type-label" className="flex flex-wrap gap-2">
+              {EVENT_TYPES.map(({ value, label }) => {
+                const selected = eventType === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setEventType(value)}
+                    className={cn(
+                      'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                      selected
+                        ? 'border-primary bg-accent text-foreground'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: eventTypeColor(value) }}
+                    />
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Date + jour */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="event-date">Date</Label>
+              <input
+                id="event-date"
+                type="date"
+                value={eventDate}
+                onChange={(e) => {
+                  setEventDate(e.target.value)
+                  if (e.target.value)
+                    setRecurrenceDay(getISODay(new Date(e.target.value + 'T00:00:00')))
+                }}
+                className={FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-day">{isRecurring ? 'Jour répété' : 'Jour'}</Label>
+              {isRecurring ? (
+                <select
+                  id="event-day"
+                  value={recurrenceDay}
+                  onChange={(e) => setRecurrenceDay(Number(e.target.value))}
+                  className={FIELD_CLASS}
+                >
+                  {ISO_DAYS.slice(1).map((name, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  id="event-day"
+                  className="flex h-9 items-center rounded-lg border border-border bg-muted px-2.5 text-sm text-muted-foreground"
+                >
+                  {eventDate ? ISO_DAYS[getISODay(new Date(eventDate + 'T00:00:00'))] : '—'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Horaires */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="event-start">Début</Label>
+              <input
+                id="event-start"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value.slice(0, 5))}
+                className={cn(FIELD_CLASS, 'tabular-nums')}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-end">Fin</Label>
+              <input
+                id="event-end"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value.slice(0, 5))}
+                className={cn(FIELD_CLASS, 'tabular-nums')}
+              />
+            </div>
+          </div>
+
+          {/* Récurrence */}
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isRecurring}
+                aria-labelledby="event-recurring-label"
+                onClick={() => setIsRecurring(!isRecurring)}
+                className={cn(
+                  'relative h-5 w-10 flex-shrink-0 rounded-full transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                  isRecurring ? 'bg-primary' : 'bg-muted-foreground/40',
+                )}
               >
-                {ISO_DAYS.slice(1).map((name, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div
-                className="rounded-lg px-3 py-2 text-sm"
-                style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: MUTED }}
-              >
-                {eventDate ? ISO_DAYS[getISODay(new Date(eventDate + 'T00:00:00'))] : '—'}
+                <span
+                  className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all"
+                  style={{ left: isRecurring ? 'calc(100% - 18px)' : '2px' }}
+                />
+              </button>
+              <span id="event-recurring-label" className="text-sm font-medium text-foreground">
+                Répéter chaque semaine
+              </span>
+            </div>
+
+            {isRecurring && (
+              <div className="flex items-center gap-2 pl-[52px]">
+                <Label htmlFor="event-recurrence-end" className="font-normal text-muted-foreground">
+                  jusqu&apos;au
+                </Label>
+                <input
+                  id="event-recurrence-end"
+                  type="date"
+                  value={recurrenceEnd}
+                  onChange={(e) => setRecurrenceEnd(e.target.value)}
+                  className={cn(FIELD_CLASS, 'h-8 flex-1')}
+                />
               </div>
             )}
           </div>
-        </div>
 
-        {/* Horaires */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-              Début
-            </label>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value.slice(0, 5))}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={inputStyle}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-              Fin
-            </label>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value.slice(0, 5))}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        {/* Récurrence */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isRecurring}
-              onClick={() => setIsRecurring(!isRecurring)}
-              className="relative w-10 h-5 rounded-full transition-colors flex-shrink-0"
-              style={{ backgroundColor: isRecurring ? MINT : BORDER }}
-            >
-              <span
-                className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
-                style={{ left: isRecurring ? 'calc(100% - 18px)' : '2px' }}
-              />
-            </button>
-            <span className="text-xs font-medium" style={{ color: MUTED }}>
-              Répéter chaque semaine
+          {/* AI notice */}
+          <div className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
+            <Sparkles aria-hidden className="mt-px size-3.5 shrink-0 text-primary-ink" />
+            <span>
+              Le coach IA tiendra compte de ce créneau pour ne pas placer d&apos;entraînement
+              dessus.
             </span>
           </div>
 
-          {isRecurring && (
-            <div className="flex items-center gap-2 pl-[52px]">
-              <span className="text-xs" style={{ color: MUTED }}>
-                jusqu&apos;au
-              </span>
-              <input
-                type="date"
-                value={recurrenceEnd}
-                onChange={(e) => setRecurrenceEnd(e.target.value)}
-                className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none"
-                style={inputStyle}
-              />
-            </div>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
+            </p>
           )}
-        </div>
 
-        {/* AI notice */}
-        <div
-          className="rounded-xl px-3 py-2.5 text-xs"
-          style={{
-            backgroundColor: 'oklch(0.63 0.18 300 / 8%)',
-            border: '1px solid oklch(0.63 0.18 300 / 20%)',
-            color: 'oklch(0.52 0.18 300)',
-          }}
-        >
-          ⚡ Le coach IA tiendra compte de ce créneau pour ne pas placer d&apos;entraînement dessus.
-        </div>
-
-        {error && (
-          <p className="text-xs font-medium" style={{ color: 'oklch(0.55 0.21 25)' }}>
-            {error}
-          </p>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-1">
-          {isEdit && onDelete && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 rounded-xl py-2.5 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-70 disabled:opacity-40"
-              style={{
-                backgroundColor: 'oklch(0.55 0.20 25 / 15%)',
-                border: '1px solid oklch(0.55 0.20 25 / 40%)',
-                color: 'oklch(0.58 0.19 25)',
-              }}
-            >
-              {deleting ? '…' : 'Supprimer'}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-xl py-2.5 text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ backgroundColor: DARK, border: `1px solid ${BORDER}`, color: MUTED }}
-          >
-            Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-[2] rounded-xl py-2.5 text-xs font-semibold uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: MINT, color: ACCENT_FG }}
-          >
-            {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Ajouter'}
-          </button>
-        </div>
-      </form>
-    </div>
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            {isEdit && onDelete && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? '…' : 'Supprimer'}
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Annuler
+            </Button>
+            <Button type="submit" disabled={saving} className="flex-[2]">
+              {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Ajouter'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
