@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useId, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -9,14 +9,9 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { cn } from '@/lib/utils/cn'
 
 // Zod v4 — use z.number() with valueAsNumber in form inputs
 const Step1Schema = z.object({
@@ -49,6 +44,86 @@ const LEVELS = [
   { value: 'advanced', label: 'Avancé' },
   { value: 'elite', label: 'Elite' },
 ]
+
+const SEXES = [
+  { value: 'M', label: 'Homme' },
+  { value: 'F', label: 'Femme' },
+  { value: 'X', label: 'Autre' },
+]
+
+const TOTAL_STEPS = 3
+
+const PILL =
+  'inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+const PILL_ON = 'border-primary bg-accent text-primary-ink'
+const PILL_OFF = 'border-border bg-card text-foreground hover:border-primary/40'
+
+/** Choix unique en pastilles (radiogroup accessible, flèches pour changer). */
+function ChoicePills({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (value: string) => void
+}) {
+  const labelId = useId()
+  const noneActive = !options.some((o) => o.value === value)
+  return (
+    <div className="space-y-2">
+      <SectionLabel as="p" id={labelId}>
+        {label}
+      </SectionLabel>
+      <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-2">
+        {options.map((o, index) => {
+          const active = o.value === value
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              tabIndex={active || (noneActive && index === 0) ? 0 : -1}
+              onClick={() => onChange(o.value)}
+              onKeyDown={(e) => {
+                const step =
+                  e.key === 'ArrowRight' || e.key === 'ArrowDown'
+                    ? 1
+                    : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+                      ? -1
+                      : 0
+                if (!step) return
+                e.preventDefault()
+                const nextIndex = (index + step + options.length) % options.length
+                onChange(options[nextIndex].value)
+                const radios =
+                  e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                    '[role="radio"]',
+                  )
+                radios?.[nextIndex]?.focus()
+              }}
+              className={cn(PILL, active ? PILL_ON : PILL_OFF)}
+            >
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StepHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6 space-y-1">
+      <h2 className="text-2xl">{title}</h2>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  )
+}
 
 interface InitialData {
   first_name: string | null
@@ -89,6 +164,9 @@ export function OnboardingFlow({
     },
   })
   const form3 = useForm<Step3Data>({ resolver: zodResolver(Step3Schema) })
+  const sex = useWatch({ control: form1.control, name: 'sex' })
+  const level = useWatch({ control: form1.control, name: 'level' })
+  const disciplinesLabelId = useId()
 
   function toggleDiscipline(id: string) {
     setSelectedDisciplines((prev) =>
@@ -153,207 +231,211 @@ export function OnboardingFlow({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2 mb-6">
-        {[1, 2, 3].map((s) => (
-          <div
-            key={s}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              s <= step ? 'bg-primary' : 'bg-border'
-            }`}
-          />
-        ))}
+    <div className="rounded-xl bg-card p-6 sm:p-8">
+      <div className="mb-6 space-y-2">
+        <div className="flex gap-2">
+          {[1, 2, 3].map((s) => (
+            <div
+              key={s}
+              className={cn(
+                'h-1.5 flex-1 rounded-full transition-colors',
+                s <= step ? 'bg-primary' : 'bg-muted',
+              )}
+            />
+          ))}
+        </div>
+        <p className="text-[13px] font-semibold text-muted-foreground">
+          Étape {step} sur {TOTAL_STEPS}
+        </p>
       </div>
 
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Votre profil</CardTitle>
-            <CardDescription>Dites-nous qui vous êtes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={form1.handleSubmit(onStep1)} className="space-y-4">
+        <>
+          <StepHeader title="Votre profil" description="Dites-nous qui vous êtes" />
+          <form onSubmit={form1.handleSubmit(onStep1)} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">Prénom</Label>
+              <Input id="first_name" className="h-10" {...form1.register('first_name')} />
+              {form1.formState.errors.first_name && (
+                <p role="alert" className="text-sm text-destructive">
+                  {form1.formState.errors.first_name.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first_name">Prénom</Label>
-                <Input id="first_name" {...form1.register('first_name')} />
-                {form1.formState.errors.first_name && (
-                  <p className="text-sm text-red-500">
-                    {form1.formState.errors.first_name.message}
-                  </p>
-                )}
+                <Label htmlFor="birth_date">Date de naissance</Label>
+                <Input
+                  id="birth_date"
+                  type="date"
+                  className="h-10"
+                  {...form1.register('birth_date')}
+                />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="birth_date">Date de naissance</Label>
-                  <Input id="birth_date" type="date" {...form1.register('birth_date')} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sex">Sexe</Label>
-                  <Select
-                    defaultValue="M"
-                    onValueChange={(v) => form1.setValue('sex', v as 'M' | 'F' | 'X')}
-                  >
-                    <SelectTrigger id="sex">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">Homme</SelectItem>
-                      <SelectItem value="F">Femme</SelectItem>
-                      <SelectItem value="X">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="weekly_hours_avg">Heures/semaine</Label>
+                <Input
+                  id="weekly_hours_avg"
+                  type="number"
+                  step="0.5"
+                  className="h-10"
+                  {...form1.register('weekly_hours_avg', { valueAsNumber: true })}
+                />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="weight_kg">Poids (kg)</Label>
-                  <Input
-                    id="weight_kg"
-                    type="number"
-                    step="0.1"
-                    {...form1.register('weight_kg', { valueAsNumber: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="height_cm">Taille (cm)</Label>
-                  <Input
-                    id="height_cm"
-                    type="number"
-                    {...form1.register('height_cm', { valueAsNumber: true })}
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="weight_kg">Poids (kg)</Label>
+                <Input
+                  id="weight_kg"
+                  type="number"
+                  step="0.1"
+                  className="h-10"
+                  {...form1.register('weight_kg', { valueAsNumber: true })}
+                />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Niveau</Label>
-                  <Select
-                    defaultValue="beginner"
-                    onValueChange={(v) => form1.setValue('level', v as Step1Data['level'])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVELS.map((l) => (
-                        <SelectItem key={l.value} value={l.value}>
-                          {l.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="weekly_hours_avg">Heures/semaine</Label>
-                  <Input
-                    id="weekly_hours_avg"
-                    type="number"
-                    step="0.5"
-                    {...form1.register('weekly_hours_avg', { valueAsNumber: true })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="height_cm">Taille (cm)</Label>
+                <Input
+                  id="height_cm"
+                  type="number"
+                  className="h-10"
+                  {...form1.register('height_cm', { valueAsNumber: true })}
+                />
               </div>
+            </div>
 
-              <Button type="submit" className="w-full">
-                {isEditing ? 'Suivant' : 'Suivant'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            <ChoicePills
+              label="Sexe"
+              options={SEXES}
+              value={sex}
+              onChange={(v) => form1.setValue('sex', v as 'M' | 'F' | 'X')}
+            />
+
+            <ChoicePills
+              label="Niveau"
+              options={LEVELS}
+              value={level}
+              onChange={(v) => form1.setValue('level', v as Step1Data['level'])}
+            />
+
+            <Button type="submit" variant="highlight" size="lg" className="w-full">
+              {isEditing ? 'Suivant' : 'Suivant'}
+            </Button>
+          </form>
+        </>
       )}
 
       {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Vos disciplines</CardTitle>
-            <CardDescription>Quelles disciplines pratiquez-vous ?</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex gap-3">
-              {DISCIPLINES.map((d) => (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => toggleDiscipline(d.id)}
-                  className={`flex-1 py-3 px-4 rounded-lg border-2 text-sm font-medium transition-colors ${
-                    selectedDisciplines.includes(d.id)
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
+        <>
+          <div id={disciplinesLabelId}>
+            <StepHeader
+              title="Vos disciplines"
+              description="Quelles disciplines pratiquez-vous ?"
+            />
+          </div>
+          <div className="space-y-6">
+            <div role="group" aria-labelledby={disciplinesLabelId} className="flex flex-wrap gap-2">
+              {DISCIPLINES.map((d) => {
+                const active = selectedDisciplines.includes(d.id)
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleDiscipline(d.id)}
+                    className={cn(PILL, 'py-2.5', active ? PILL_ON : PILL_OFF)}
+                  >
+                    <DisciplineIcon
+                      discipline={d.id}
+                      size={17}
+                      className={active ? 'text-primary-ink' : 'text-muted-foreground'}
+                    />
+                    {d.label}
+                  </button>
+                )
+              })}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+              <Button variant="ghost" size="lg" onClick={() => setStep(1)} className="flex-1">
                 Retour
               </Button>
-              <Button onClick={onStep2} className="flex-1">
+              <Button variant="highlight" size="lg" onClick={onStep2} className="flex-1">
                 Suivant
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </>
       )}
 
       {step === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{isEditing ? 'Finaliser' : 'Connexion Garmin'}</CardTitle>
-            <CardDescription>
-              {isEditing
+        <>
+          <StepHeader
+            title={isEditing ? 'Finaliser' : 'Connexion Garmin'}
+            description={
+              isEditing
                 ? 'Enregistre tes modifications.'
-                : 'Optionnel — connectez votre compte Garmin pour synchroniser vos activités. Vos identifiants sont chiffrés AES-256.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={form3.handleSubmit(onStep3)} className="space-y-4">
-              {!isEditing && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="garmin_email">Email Garmin Connect</Label>
-                    <Input id="garmin_email" type="email" {...form3.register('garmin_email')} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="garmin_password">Mot de passe Garmin Connect</Label>
-                    <Input
-                      id="garmin_password"
-                      type="password"
-                      {...form3.register('garmin_password')}
-                    />
-                  </div>
-                </>
-              )}
+                : 'Optionnel — connectez votre compte Garmin pour synchroniser vos activités. Vos identifiants sont chiffrés AES-256.'
+            }
+          />
+          <form onSubmit={form3.handleSubmit(onStep3)} className="space-y-5">
+            {!isEditing && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="garmin_email">Email Garmin Connect</Label>
+                  <Input
+                    id="garmin_email"
+                    type="email"
+                    className="h-10"
+                    {...form3.register('garmin_email')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="garmin_password">Mot de passe Garmin Connect</Label>
+                  <Input
+                    id="garmin_password"
+                    type="password"
+                    className="h-10"
+                    {...form3.register('garmin_password')}
+                  />
+                </div>
+              </>
+            )}
 
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(2)}
-                  className="flex-1"
-                >
-                  Retour
-                </Button>
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? 'Sauvegarde...' : isEditing ? 'Enregistrer' : 'Terminer'}
-                </Button>
-              </div>
-              {!isEditing && (
-                <button
-                  type="button"
-                  className="w-full text-sm text-muted-foreground hover:text-foreground"
-                  onClick={() => submitProfile()}
-                  disabled={loading}
-                >
-                  Passer cette étape
-                </button>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                onClick={() => setStep(2)}
+                className="flex-1"
+              >
+                Retour
+              </Button>
+              <Button
+                type="submit"
+                variant="highlight"
+                size="lg"
+                className="flex-1"
+                disabled={loading}
+              >
+                {loading ? 'Sauvegarde...' : isEditing ? 'Enregistrer' : 'Terminer'}
+              </Button>
+            </div>
+            {!isEditing && (
+              <button
+                type="button"
+                className="w-full rounded-md text-sm font-medium text-primary-ink hover:underline focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+                onClick={() => submitProfile()}
+                disabled={loading}
+              >
+                Passer cette étape
+              </button>
+            )}
+          </form>
+        </>
       )}
     </div>
   )
