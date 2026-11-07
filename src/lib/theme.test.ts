@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { AMBER_RED, ACCENT, SKY_INK, intensityColor, withAlpha } from './theme'
+import {
+  AMBER_RED,
+  AMBER_RED_DEEP,
+  EVENT_TYPE,
+  INK,
+  INK_MUTED,
+  SKY,
+  intensityColor,
+  withAlpha,
+} from './theme'
 
 describe('intensityColor', () => {
   it('passe en rouge ambré à partir de Z4, sur blanc comme sur bleu', () => {
@@ -30,12 +39,31 @@ describe('intensityColor', () => {
   })
 })
 
-describe('alias historiques', () => {
-  it('restent compatibles avec withAlpha (oklch)', () => {
-    expect(withAlpha(ACCENT, 12)).toBe(`${ACCENT.slice(0, -1)} / 12%)`)
+describe('withAlpha', () => {
+  it('ajoute une opacité à une couleur oklch', () => {
+    expect(withAlpha(SKY, 12)).toBe(`${SKY.slice(0, -1)} / 12%)`)
+  })
+})
+
+describe('EVENT_TYPE', () => {
+  it('définit chaque couleur en oklch (requis par withAlpha)', () => {
+    for (const k of ['cours', 'stage', 'rdv', 'autre']) {
+      expect(EVENT_TYPE[k].color).toMatch(/^oklch\(/)
+    }
   })
 
-  it('ACCENT pointe sur le bleu lisible', () => {
-    expect(ACCENT).toBe(SKY_INK)
+  it('utilise quatre couleurs distinctes', () => {
+    const colors = Object.values(EVENT_TYPE).map((t) => t.color)
+    expect(colors).toHaveLength(4)
+    expect(new Set(colors).size).toBe(4)
+  })
+
+  it('suit la palette Élan', () => {
+    expect(EVENT_TYPE.cours.color).toBe(INK)
+    // Un cran sous AMBER_RED_DEEP, qui échoue en AA sur sa teinte à 14 %.
+    expect(EVENT_TYPE.stage.color).not.toBe(AMBER_RED_DEEP)
+    expect(EVENT_TYPE.stage.color).toMatch(/^oklch\(0\.52 0\.188 32\.7\)$/)
+    expect(EVENT_TYPE.rdv.color).toBe('oklch(0.45 0.09 250)')
+    expect(EVENT_TYPE.autre.color).toBe(INK_MUTED)
   })
 })

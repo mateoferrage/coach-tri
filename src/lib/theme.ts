@@ -1,9 +1,10 @@
 /**
  * DA Coach Tri — « Élan » (Sky Blue, Cloudy White, Amber Red)
  *
- * Source de vérité pour les couleurs utilisées en style inline. Les tokens CSS
- * équivalents vivent dans `globals.css`. Toutes les valeurs sont en oklch :
- * `withAlpha()` en dépend.
+ * Source de vérité pour les couleurs qui doivent rester en style inline
+ * (échelle d'intensité, types d'événement du calendrier). Partout ailleurs, on
+ * utilise les tokens Tailwind définis dans `globals.css`. Toutes les valeurs
+ * sont en oklch : `withAlpha()` en dépend.
  */
 
 // ── Palette Élan ───────────────────────────────────────────
@@ -16,39 +17,6 @@ export const AMBER_RED_DEEP = 'oklch(0.555 0.188 32.7)' // #C9361A — survol, t
 export const INK = 'oklch(0.213 0.038 251.4)' // #0B1A2A — texte
 export const INK_MUTED = 'oklch(0.520 0.035 250.0)' // #5A6B7D — texte secondaire
 export const LINE = 'oklch(0.932 0.010 252.8)' // #E4E9EF — filets
-
-// ── Alias historiques ─────────────────────────────────────
-// Remappés sur la palette Élan pour ne rien casser pendant la transition.
-// Supprimés à l'étape 3, quand chaque page aura été reprise.
-export const SLATE = CLOUD
-export const SURFACE = 'oklch(1 0 0)'
-export const SURFACE_DEEP = SKY_TINT
-export const DIVIDER = LINE
-export const TEXT = INK
-export const TEXT_MUTED = INK_MUTED
-export const TEXT_FAINT = 'oklch(0.430 0.042 248.8)' // #3E5266 — AA sur blanc
-export const ACCENT = SKY_INK // bleu lisible : ACCENT sert aussi de couleur de texte
-export const ACCENT_FG = 'oklch(1 0 0)'
-export const GLACIER = SKY
-
-/**
- * Libellé + picto par discipline.
- * Plus de couleur par discipline (spec Élan) : toutes passent en bleu, le repos
- * en gris. `icon` (emoji) est conservé jusqu'à l'étape 3, où il est remplacé
- * par `DisciplineIcon` (lucide).
- */
-export const DISCIPLINE: Record<string, { label: string; color: string; icon: string }> = {
-  swim: { label: 'Natation', color: SKY_INK, icon: '🏊' },
-  bike: { label: 'Vélo', color: SKY_INK, icon: '🚴' },
-  run: { label: 'Course à pied', color: SKY_INK, icon: '🏃' },
-  brick: { label: 'Enchaînement', color: SKY_INK, icon: '⚡' },
-  strength: { label: 'Renforcement', color: SKY_INK, icon: '💪' },
-  rest: { label: 'Récupération', color: INK_MUTED, icon: '😴' },
-}
-
-export function disciplineColor(d: string | null | undefined): string {
-  return DISCIPLINE[d ?? '']?.color ?? ACCENT
-}
 
 // ── Échelle d'intensité ───────────────────────────────────
 export type IntensitySurface = 'white' | 'blue'
@@ -79,13 +47,16 @@ export function intensityColor(zone: number, surface: IntensitySurface = 'white'
 }
 
 /** Système couleur + label par type d'événement personnel (agenda). */
-// Couleurs calées pour passer WCAG AA (≥ 4.5:1) en texte sur fond blanc ET sur
-// leur propre teinte à 14 % (rendu des blocs du calendrier). Cf. scripts/a11y-contrast.mjs.
+// Palette Élan, distincte des séances (bleu clair / bleu plein). Chaque couleur passe
+// WCAG AA (≥ 4.5:1) en texte sur fond blanc ET sur sa propre teinte à 14 % (le bloc
+// du calendrier utilise 10 %) :
+//   cours 17.6 / 13.2 · stage 6.1 / 4.8 · rdv 7.4 / 6.0 · autre 5.5 / 4.6
+// `stage` est un cran plus sombre qu'AMBER_RED_DEEP (5.2 / 4.2 sur teinte : échec AA).
 export const EVENT_TYPE: Record<string, { label: string; color: string }> = {
-  cours: { label: 'Cours', color: 'oklch(0.47 0.16 300)' }, // violet
-  stage: { label: 'Stage', color: 'oklch(0.50 0.13 64.7)' }, // ambre
-  rdv: { label: 'RDV', color: 'oklch(0.46 0.09 183.4)' }, // teal-vert
-  autre: { label: 'Autre', color: 'oklch(0.48 0.024 203.9)' }, // acier
+  cours: { label: 'Cours', color: INK }, // encre
+  stage: { label: 'Stage', color: 'oklch(0.52 0.188 32.7)' }, // rouge ambré profond
+  rdv: { label: 'RDV', color: 'oklch(0.45 0.09 250)' }, // bleu ardoise
+  autre: { label: 'Autre', color: INK_MUTED }, // gris
 }
 
 export function eventTypeColor(t: string | null | undefined): string {

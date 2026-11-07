@@ -8,10 +8,8 @@ export default function CalendarPage() {
     <div className="flex flex-col h-[calc(100dvh_-_14.5rem_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] md:h-[calc(100dvh-8rem)]">
       <div className="mb-3 flex-shrink-0 flex items-baseline justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Emploi du temps
-          </p>
-          <h1 className="text-2xl font-semibold uppercase tracking-tight">Calendrier</h1>
+          <p className="text-sm font-medium text-muted-foreground">Emploi du temps</p>
+          <h1 className="text-3xl md:text-4xl">Calendrier</h1>
         </div>
       </div>
       <WeekCalendar />

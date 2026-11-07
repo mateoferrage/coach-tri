@@ -3,38 +3,29 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import {
-  ACCENT as MINT,
-  ACCENT_FG as DARK,
-  SURFACE as BG,
-  SURFACE_DEEP as BG2,
-  DIVIDER as DIV,
-  withAlpha,
-} from '@/lib/theme'
+import { Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NATIVE_FIELD_CLASS } from '@/components/ui/field-class'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { cn } from '@/lib/utils/cn'
 
+// Libellés propres au formulaire (« Muscu », « Autre ») : différents de DISCIPLINE_LABEL.
 const DISCIPLINES = [
-  { value: 'run', label: 'Course', icon: '🏃' },
-  { value: 'bike', label: 'Vélo', icon: '🚴' },
-  { value: 'swim', label: 'Natation', icon: '🏊' },
-  { value: 'strength', label: 'Muscu', icon: '💪' },
-  { value: 'other', label: 'Autre', icon: '⚡' },
+  { value: 'run', label: 'Course' },
+  { value: 'bike', label: 'Vélo' },
+  { value: 'swim', label: 'Natation' },
+  { value: 'strength', label: 'Muscu' },
+  { value: 'other', label: 'Autre' },
 ]
 
-const inputStyle = {
-  backgroundColor: BG2,
-  border: '1px solid oklch(0.287 0.047 217.9 / 10%)',
-  color: 'oklch(0.287 0.047 217.9)',
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <p
-        className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-      >
-        {label}
-      </p>
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
       {children}
     </div>
   )
@@ -120,185 +111,178 @@ export function AddActivityModal() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs font-semibold uppercase tracking-widest px-4 py-2.5 rounded-xl transition-opacity hover:opacity-80"
-        style={{ backgroundColor: MINT, color: DARK }}
+      <Button variant="highlight" onClick={() => setOpen(true)}>
+        <Plus aria-hidden />
+        Ajouter une activité
+      </Button>
+
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (loading) return
+          if (!next) handleClose()
+        }}
       >
-        + Activité
-      </button>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ backgroundColor: 'oklch(0 0 0 / 65%)' }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleClose()
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl overflow-hidden"
-            style={{ backgroundColor: BG, border: `1px solid ${DIV}` }}
-          >
+        <DialogContent showCloseButton={false} className="p-6 sm:max-w-md">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Header */}
-            <div
-              className="px-5 py-4 flex items-center justify-between"
-              style={{ borderBottom: `1px solid ${DIV}`, backgroundColor: BG2 }}
-            >
-              <p
-                className="font-semibold uppercase tracking-widest text-sm"
-                style={{ color: MINT }}
-              >
-                Ajouter une activité
-              </p>
-              <button
+            <DialogHeader className="flex-row items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <SectionLabel as="p">Saisie manuelle</SectionLabel>
+                <DialogTitle className="font-display text-2xl leading-tight font-extrabold">
+                  Ajouter une activité
+                </DialogTitle>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={handleClose}
-                className="text-base leading-none transition-opacity hover:opacity-60"
-                style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
+                aria-label="Fermer"
+                className="-mt-1 -mr-2"
               >
-                ✕
-              </button>
-            </div>
+                <X aria-hidden />
+              </Button>
+            </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              {/* Discipline */}
-              <Field label="Discipline">
-                <div className="grid grid-cols-5 gap-1.5">
-                  {DISCIPLINES.map((d) => (
+            {/* Discipline */}
+            <div className="space-y-1.5">
+              <Label id="activity-discipline-label">Discipline</Label>
+              <div
+                role="group"
+                aria-labelledby="activity-discipline-label"
+                className="flex flex-wrap gap-2"
+              >
+                {DISCIPLINES.map((d) => {
+                  const selected = form.discipline === d.value
+                  return (
                     <button
                       key={d.value}
                       type="button"
+                      aria-pressed={selected}
                       onClick={() => set('discipline', d.value)}
-                      className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all"
-                      style={{
-                        backgroundColor: form.discipline === d.value ? withAlpha(MINT, 12) : BG2,
-                        border: `1px solid ${form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 8%)'}`,
-                        color:
-                          form.discipline === d.value ? MINT : 'oklch(0.287 0.047 217.9 / 70%)',
-                      }}
+                      className={cn(
+                        'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                        selected
+                          ? 'border-primary bg-accent text-primary-ink'
+                          : 'border-border bg-background text-muted-foreground hover:bg-muted',
+                      )}
                     >
-                      <span className="text-xl leading-none">{d.icon}</span>
-                      <span className="text-[8px] font-bold uppercase tracking-widest">
-                        {d.label}
-                      </span>
+                      <DisciplineIcon discipline={d.value} size={14} />
+                      {d.label}
                     </button>
-                  ))}
-                </div>
-              </Field>
+                  )
+                })}
+              </div>
+            </div>
 
-              {/* Titre */}
-              <Field label={`Titre (optionnel)`}>
+            {/* Titre */}
+            <Field id="activity-name" label="Titre (optionnel)">
+              <Input
+                id="activity-name"
+                type="text"
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder={discInfo.label}
+                className="h-9"
+              />
+            </Field>
+
+            {/* Date + Heure */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field id="activity-date" label="Date">
                 <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => set('name', e.target.value)}
-                  placeholder={`${discInfo.icon} ${discInfo.label}`}
-                  className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                  style={inputStyle}
+                  id="activity-date"
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => set('date', e.target.value)}
+                  required
+                  className={NATIVE_FIELD_CLASS}
                 />
               </Field>
+              <Field id="activity-time" label="Heure">
+                <input
+                  id="activity-time"
+                  type="time"
+                  value={form.time}
+                  onChange={(e) => set('time', e.target.value)}
+                  required
+                  className={cn(NATIVE_FIELD_CLASS, 'tabular-nums')}
+                />
+              </Field>
+            </div>
 
-              {/* Date + Heure */}
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Date">
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => set('date', e.target.value)}
-                    required
-                    className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                    style={inputStyle}
-                  />
-                </Field>
-                <Field label="Heure">
-                  <input
-                    type="time"
-                    value={form.time}
-                    onChange={(e) => set('time', e.target.value)}
-                    required
-                    className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                    style={inputStyle}
-                  />
-                </Field>
-              </div>
-
-              {/* Durée + Distance */}
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Durée (min)">
-                  <input
+            {/* Durée + Distance */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field id="activity-duration" label="Durée (min)">
+                <Input
+                  id="activity-duration"
+                  type="number"
+                  value={form.duration_min}
+                  onChange={(e) => set('duration_min', e.target.value)}
+                  placeholder="60"
+                  min={1}
+                  required
+                  className="h-9 tabular-nums"
+                />
+              </Field>
+              {!isStrength && (
+                <Field id="activity-distance" label={`Distance (${isSwim ? 'm' : 'km'})`}>
+                  <Input
+                    id="activity-distance"
                     type="number"
-                    value={form.duration_min}
-                    onChange={(e) => set('duration_min', e.target.value)}
-                    placeholder="60"
-                    min={1}
-                    required
-                    className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                    style={inputStyle}
+                    value={form.distance}
+                    onChange={(e) => set('distance', e.target.value)}
+                    placeholder={isSwim ? '1500' : '10.5'}
+                    step={isSwim ? '50' : '0.01'}
+                    min={0}
+                    className="h-9 tabular-nums"
                   />
                 </Field>
-                {!isStrength && (
-                  <Field label={`Distance (${isSwim ? 'm' : 'km'})`}>
-                    <input
-                      type="number"
-                      value={form.distance}
-                      onChange={(e) => set('distance', e.target.value)}
-                      placeholder={isSwim ? '1500' : '10.5'}
-                      step={isSwim ? '50' : '0.01'}
-                      min={0}
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </div>
-
-              {/* FC + Dénivelé */}
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="FC moy. (bpm)">
-                  <input
-                    type="number"
-                    value={form.avg_hr}
-                    onChange={(e) => set('avg_hr', e.target.value)}
-                    placeholder="145"
-                    min={40}
-                    max={220}
-                    className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                    style={inputStyle}
-                  />
-                </Field>
-                {!isSwim && !isStrength && (
-                  <Field label="Dénivelé+ (m)">
-                    <input
-                      type="number"
-                      value={form.elevation_gain_m}
-                      onChange={(e) => set('elevation_gain_m', e.target.value)}
-                      placeholder="200"
-                      min={0}
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none"
-                      style={inputStyle}
-                    />
-                  </Field>
-                )}
-              </div>
-
-              {apiError && (
-                <p className="text-xs font-medium" style={{ color: 'oklch(0.55 0.20 25)' }}>
-                  {apiError}
-                </p>
               )}
+            </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: MINT, color: DARK }}
-              >
-                {loading ? 'Enregistrement…' : "Enregistrer l'activité"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+            {/* FC + Dénivelé */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field id="activity-hr" label="FC moy. (bpm)">
+                <Input
+                  id="activity-hr"
+                  type="number"
+                  value={form.avg_hr}
+                  onChange={(e) => set('avg_hr', e.target.value)}
+                  placeholder="145"
+                  min={40}
+                  max={220}
+                  className="h-9 tabular-nums"
+                />
+              </Field>
+              {!isSwim && !isStrength && (
+                <Field id="activity-elevation" label="Dénivelé+ (m)">
+                  <Input
+                    id="activity-elevation"
+                    type="number"
+                    value={form.elevation_gain_m}
+                    onChange={(e) => set('elevation_gain_m', e.target.value)}
+                    placeholder="200"
+                    min={0}
+                    className="h-9 tabular-nums"
+                  />
+                </Field>
+              )}
+            </div>
+
+            {apiError && (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {apiError}
+              </p>
+            )}
+
+            <Button type="submit" size="lg" disabled={loading} className="w-full">
+              {loading ? 'Enregistrement…' : "Enregistrer l'activité"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

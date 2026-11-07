@@ -1,26 +1,5 @@
-import { ACCENT, GLACIER } from '@/lib/theme'
-
-// Palette oklch alignée sur le design system (cf. theme.ts / globals.css --chart-*)
-const PHASE_COLORS: Record<string, string> = {
-  prep: 'oklch(0.540 0.024 203.9)', // acier
-  base: 'oklch(0.559 0.101 237.5)', // bleu glacier
-  build: 'oklch(0.624 0.121 64.7)', // ambre
-  peak: 'oklch(0.55 0.20 25)', // rouge effort
-  taper: ACCENT, // canard (accent)
-  race: 'oklch(0.52 0.18 300)', // violet course
-  maintenance: GLACIER, // teal-vert
-}
-const PHASE_FALLBACK = 'oklch(0.620 0.018 200)'
-
-const PHASE_LABELS: Record<string, string> = {
-  prep: 'Prépa',
-  base: 'Base',
-  build: 'Construction',
-  peak: 'Pic',
-  taper: 'Affûtage',
-  race: 'Course',
-  maintenance: 'Maintien',
-}
+import { PHASE_LABEL } from '@/lib/plan/display'
+import { cn } from '@/lib/utils/cn'
 
 interface Phase {
   phase: string
@@ -36,42 +15,60 @@ interface PhaseBarProps {
 }
 
 export function PhaseBar({ phases, total_weeks, current_week }: PhaseBarProps) {
+  const isCurrent = (phase: Phase) =>
+    current_week >= phase.start_week_num && current_week <= phase.end_week_num
+  const markerPct =
+    total_weeks > 0 ? Math.min(100, Math.max(0, ((current_week - 0.5) / total_weeks) * 100)) : 0
+
   return (
-    <div className="space-y-2">
-      <div className="flex rounded-full overflow-hidden h-3">
-        {phases.map((phase) => {
-          const widthPct = ((phase.end_week_num - phase.start_week_num + 1) / total_weeks) * 100
-          return (
-            <div
-              key={`${phase.phase}-${phase.start_week_num}`}
-              className="transition-all"
-              style={{
-                width: `${widthPct}%`,
-                backgroundColor: PHASE_COLORS[phase.phase] ?? PHASE_FALLBACK,
-              }}
-              title={`${PHASE_LABELS[phase.phase]} (S${phase.start_week_num}–S${phase.end_week_num})`}
-            />
-          )
-        })}
+    <div className="space-y-2.5">
+      <div className="relative">
+        <div className="flex h-3 overflow-hidden rounded-full bg-muted">
+          {phases.map((phase) => {
+            const widthPct = ((phase.end_week_num - phase.start_week_num + 1) / total_weeks) * 100
+            const label = PHASE_LABEL[phase.phase] ?? phase.phase
+            return (
+              <div
+                key={`${phase.phase}-${phase.start_week_num}`}
+                className={cn(
+                  'border-r-2 border-background last:border-r-0',
+                  isCurrent(phase) ? 'bg-primary' : 'bg-primary/25',
+                )}
+                style={{ width: `${widthPct}%` }}
+                title={`${label} (S${phase.start_week_num}–S${phase.end_week_num})`}
+              />
+            )
+          })}
+        </div>
+        {total_weeks > 0 && (
+          <span
+            className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-highlight"
+            style={{ left: `${markerPct}%` }}
+            title={`Semaine ${current_week} en cours`}
+            aria-hidden
+          />
+        )}
       </div>
-      <div className="flex flex-wrap gap-3">
+      <p className="sr-only">
+        Semaine {current_week} sur {total_weeks}
+      </p>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
         {phases.map((phase) => (
-          <div
+          <li
             key={`${phase.phase}-${phase.start_week_num}`}
-            className={`flex items-center gap-1.5 text-xs ${
-              current_week >= phase.start_week_num && current_week <= phase.end_week_num
-                ? 'font-semibold text-foreground'
-                : 'text-muted-foreground'
-            }`}
+            className={cn(
+              'text-xs font-semibold',
+              isCurrent(phase) ? 'text-primary-ink' : 'text-muted-foreground',
+            )}
+            aria-current={isCurrent(phase) ? 'step' : undefined}
           >
-            <div
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: PHASE_COLORS[phase.phase] ?? PHASE_FALLBACK }}
-            />
-            {PHASE_LABELS[phase.phase]} S{phase.start_week_num}–{phase.end_week_num}
-          </div>
+            {PHASE_LABEL[phase.phase] ?? phase.phase}{' '}
+            <span className="font-medium tabular-nums">
+              S{phase.start_week_num}–{phase.end_week_num}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

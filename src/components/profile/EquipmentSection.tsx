@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -12,14 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  ACCENT as MINT,
-  ACCENT_FG,
-  SURFACE as DARK,
-  SURFACE_DEEP as DARKER,
-  DIVIDER as DIV,
-  withAlpha,
-} from '@/lib/theme'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { cn } from '@/lib/utils/cn'
 
 interface Shoe {
   name: string
@@ -76,15 +71,37 @@ function ToggleChip({
     <button
       type="button"
       onClick={onClick}
-      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
-      style={{
-        backgroundColor: active ? MINT : 'oklch(0.287 0.047 217.9 / 6%)',
-        color: active ? ACCENT_FG : 'oklch(0.287 0.047 217.9 / 70%)',
-        border: `1px solid ${active ? MINT : 'oklch(0.287 0.047 217.9 / 12%)'}`,
-      }}
+      aria-pressed={active}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+        active
+          ? 'border-primary bg-accent text-primary-ink'
+          : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
     >
+      {active && <Check aria-hidden className="size-3.5" />}
       {label}
     </button>
+  )
+}
+
+function CategoryRow({
+  discipline,
+  label,
+  children,
+}: {
+  discipline: string
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <li className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 sm:flex-row sm:items-start sm:gap-4">
+      <span className="flex w-28 shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground sm:pt-0.5">
+        <DisciplineIcon discipline={discipline} className="size-4 text-primary-ink" />
+        {label}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </li>
   )
 }
 
@@ -161,112 +178,60 @@ export function EquipmentSection({ initial }: Props) {
       (data.run?.shoes?.length ?? 0) > 0
 
     return (
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-      >
-        <div
-          className="px-5 py-4 flex items-center justify-between"
-          style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
-        >
-          <p
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-          >
-            Matériel
-          </p>
-          <button
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-end gap-3 border-b border-border px-5 py-4">
+          <Button
             type="button"
+            variant="outline-primary"
+            size="sm"
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-colors hover:opacity-70"
-            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
           >
-            <Pencil size={11} />
+            <Pencil aria-hidden />
             Modifier
-          </button>
+          </Button>
         </div>
 
         {!hasAny ? (
           <div className="px-5 py-6 text-center">
-            <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
+            <p className="text-sm text-muted-foreground">
               Aucun matériel renseigné — le coach utilisera des séances standard
             </p>
           </div>
         ) : (
-          <div className="px-5 py-4 space-y-4">
+          <ul className="px-5">
             {Object.values(data.swim ?? {}).some(Boolean) && (
-              <div>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                >
-                  Natation
-                </p>
-                <div className="flex flex-wrap gap-2">
+              <CategoryRow discipline="swim" label="Natation">
+                <div className="flex flex-wrap gap-1.5">
                   {SWIM_ITEMS.filter((item) => data.swim?.[item.key]).map((item) => (
-                    <span
-                      key={item.key}
-                      className="px-3 py-1 rounded-lg text-xs font-bold"
-                      style={{
-                        backgroundColor: withAlpha(MINT, 9),
-                        color: MINT,
-                        border: `1px solid ${withAlpha(MINT, 19)}`,
-                      }}
-                    >
+                    <Badge key={item.key} variant="outline">
                       {item.label}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
-              </div>
+              </CategoryRow>
             )}
 
             {data.bike?.aero_bars && (
-              <div>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                >
-                  Vélo
-                </p>
-                <span
-                  className="px-3 py-1 rounded-lg text-xs font-bold"
-                  style={{
-                    backgroundColor: withAlpha(MINT, 9),
-                    color: MINT,
-                    border: `1px solid ${withAlpha(MINT, 19)}`,
-                  }}
-                >
-                  Prolongateurs
-                </span>
-              </div>
+              <CategoryRow discipline="bike" label="Vélo">
+                <Badge variant="outline">Prolongateurs</Badge>
+              </CategoryRow>
             )}
 
             {(data.run?.shoes?.length ?? 0) > 0 && (
-              <div>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-widest mb-2"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                >
-                  Course
-                </p>
-                <div className="space-y-1.5">
+              <CategoryRow discipline="run" label="Course">
+                <ul className="space-y-1.5">
                   {data.run!.shoes!.map((shoe, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span
-                        className="text-sm font-bold"
-                        style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
-                      >
-                        {shoe.name}
-                      </span>
-                      <span className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
+                    <li key={i} className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm font-semibold text-foreground">{shoe.name}</span>
+                      <span className="text-xs text-muted-foreground">
                         {USAGE_LABELS[shoe.usage]} · {SURFACE_LABELS[shoe.surface]}
                       </span>
-                    </div>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </CategoryRow>
             )}
-          </div>
+          </ul>
         )}
       </div>
     )
@@ -275,29 +240,16 @@ export function EquipmentSection({ initial }: Props) {
   const hasEmptyShoe = (data.run?.shoes ?? []).some((s) => !s.name.trim())
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-    >
-      <div
-        className="px-5 py-4"
-        style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
-      >
-        <p
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-        >
-          Modifier le matériel
-        </p>
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="border-b border-border px-5 py-4">
+        <h3 className="text-base">Modifier l&apos;équipement</h3>
       </div>
 
-      <div className="px-5 py-5 space-y-6">
+      <div className="space-y-6 px-5 py-5">
         {/* ── Natation ── */}
-        <div>
-          <p
-            className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-          >
+        <div className="space-y-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <DisciplineIcon discipline="swim" className="size-4 text-primary-ink" />
             Natation
           </p>
           <div className="flex flex-wrap gap-2">
@@ -313,11 +265,9 @@ export function EquipmentSection({ initial }: Props) {
         </div>
 
         {/* ── Vélo ── */}
-        <div>
-          <p
-            className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-          >
+        <div className="space-y-3 border-t border-border pt-6">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <DisciplineIcon discipline="bike" className="size-4 text-primary-ink" />
             Vélo
           </p>
           <ToggleChip
@@ -328,97 +278,87 @@ export function EquipmentSection({ initial }: Props) {
         </div>
 
         {/* ── Course ── */}
-        <div>
-          <p
-            className="text-[10px] font-bold uppercase tracking-widest mb-3"
-            style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-          >
+        <div className="space-y-3 border-t border-border pt-6">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <DisciplineIcon discipline="run" className="size-4 text-primary-ink" />
             Course
           </p>
           <div className="space-y-3">
-            {(data.run?.shoes ?? []).map((shoe, i) => (
-              <div
-                key={shoe._key ?? i}
-                className="rounded-xl p-3 space-y-2"
-                style={{
-                  backgroundColor: 'oklch(0.287 0.047 217.9 / 4%)',
-                  border: `1px solid ${DIV}`,
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Nom de la chaussure"
-                    value={shoe.name}
-                    onChange={(e) => updateShoe(i, 'name', e.target.value)}
-                    className="flex-1 text-sm"
-                    style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeShoe(i)}
-                    className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-                    style={{ color: 'oklch(0.55 0.20 25)' }}
+            {(data.run?.shoes ?? []).length > 0 && (
+              <ul className="rounded-xl border border-border">
+                {(data.run?.shoes ?? []).map((shoe, i) => (
+                  <li
+                    key={shoe._key ?? i}
+                    className="space-y-2 border-t border-border p-3 first:border-t-0"
                   >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <Select
-                    value={shoe.usage}
-                    onValueChange={(v) => {
-                      if (v) updateShoe(i, 'usage', v)
-                    }}
-                  >
-                    <SelectTrigger
-                      className="flex-1 text-xs"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="footing">Footing</SelectItem>
-                      <SelectItem value="dynamic">Dynamique</SelectItem>
-                      <SelectItem value="competition">Compétition</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={shoe.surface}
-                    onValueChange={(v) => {
-                      if (v) updateShoe(i, 'surface', v)
-                    }}
-                  >
-                    <SelectTrigger
-                      className="flex-1 text-xs"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 90%)' }}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="road">Route</SelectItem>
-                      <SelectItem value="trail">Trail</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ))}
-            <button
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Nom de la chaussure"
+                        value={shoe.name}
+                        onChange={(e) => updateShoe(i, 'name', e.target.value)}
+                        className="flex-1 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => removeShoe(i)}
+                        aria-label={shoe.name ? `Supprimer ${shoe.name}` : 'Supprimer cette paire'}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value={shoe.usage}
+                        onValueChange={(v) => {
+                          if (v) updateShoe(i, 'usage', v)
+                        }}
+                      >
+                        <SelectTrigger className="flex-1 text-sm" aria-label="Usage">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="footing">Footing</SelectItem>
+                          <SelectItem value="dynamic">Dynamique</SelectItem>
+                          <SelectItem value="competition">Compétition</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={shoe.surface}
+                        onValueChange={(v) => {
+                          if (v) updateShoe(i, 'surface', v)
+                        }}
+                      >
+                        <SelectTrigger className="flex-1 text-sm" aria-label="Surface">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="road">Route</SelectItem>
+                          <SelectItem value="trail">Trail</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button
               type="button"
+              variant="outline-primary"
+              size="sm"
               onClick={addShoe}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-xl border transition-opacity hover:opacity-70 w-full justify-center"
-              style={{
-                color: MINT,
-                borderColor: withAlpha(MINT, 19),
-                backgroundColor: withAlpha(MINT, 3),
-              }}
+              className="w-full"
             >
-              <Plus size={13} />
+              <Plus aria-hidden />
               Ajouter une paire
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* ── Actions ── */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 border-t border-border pt-5">
           <Button
             type="button"
             variant="outline"
@@ -430,21 +370,11 @@ export function EquipmentSection({ initial }: Props) {
           >
             Annuler
           </Button>
-          <Button
-            type="button"
-            onClick={save}
-            disabled={saving || hasEmptyShoe}
-            className="flex-1 font-bold"
-            style={{ backgroundColor: MINT, color: DARK }}
-          >
+          <Button type="button" onClick={save} disabled={saving || hasEmptyShoe} className="flex-1">
             {saving ? 'Sauvegarde…' : 'Enregistrer'}
           </Button>
         </div>
-        {error && (
-          <p className="text-xs text-center" style={{ color: 'oklch(0.55 0.20 25)' }}>
-            {error}
-          </p>
-        )}
+        {error && <p className="text-center text-sm text-destructive">{error}</p>}
       </div>
     </div>
   )

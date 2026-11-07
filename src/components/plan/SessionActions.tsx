@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 
 interface Session {
   id: string
@@ -37,18 +36,18 @@ export function SessionActions({ session }: { session: Session }) {
 
   if (session.status === 'skipped') {
     return (
-      <Card className="border-border">
-        <CardContent className="py-4 text-center text-muted-foreground text-sm">
-          Séance passée
-          <button
-            className="ml-2 underline text-foreground disabled:opacity-50"
-            onClick={() => updateSession({ status: 'planned' })}
-            disabled={loading}
-          >
-            Remettre en planifiée
-          </button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+        Séance sautée
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 text-foreground underline"
+          onClick={() => updateSession({ status: 'planned' })}
+          disabled={loading}
+        >
+          Remettre en planifiée
+        </Button>
+      </div>
     )
   }
 
@@ -60,7 +59,7 @@ export function SessionActions({ session }: { session: Session }) {
         onClick={() => updateSession({ status: 'skipped' })}
         disabled={loading}
       >
-        Séance passée
+        Séance sautée
       </Button>
     )
   }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -84,7 +85,9 @@ export function AddRaceDialog({
 
   return (
     <>
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => !isDisabled && setOpen(true)}
         disabled={isDisabled}
         title={
@@ -94,10 +97,10 @@ export function AddRaceDialog({
               ? 'Aucune course disponible à ajouter'
               : undefined
         }
-        className="inline-flex items-center justify-center rounded-lg border border-border bg-card text-sm font-medium px-3 py-1.5 hover:bg-muted transition-colors disabled:pointer-events-none disabled:opacity-50"
       >
+        <Plus aria-hidden />
         Ajouter une course
-      </button>
+      </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>

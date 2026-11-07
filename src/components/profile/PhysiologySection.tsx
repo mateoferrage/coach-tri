@@ -1,19 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronUp, Pencil, FlaskConical } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, FlaskConical, HeartPulse } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  ACCENT as MINT,
-  ACCENT_FG,
-  SURFACE as DARK,
-  SURFACE_DEEP as DARKER,
-  DIVIDER as DIV,
-  TEXT_FAINT as MUTED,
-  withAlpha,
-} from '@/lib/theme'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -66,21 +58,19 @@ function TestHint({ children }: { children: React.ReactNode }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest transition-opacity hover:opacity-80"
-        style={{ color: MINT }}
+        aria-expanded={open}
+        className="flex items-center gap-1 rounded-sm text-xs font-semibold text-primary-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <FlaskConical size={11} />
-        Comment mesurer ?{open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        <FlaskConical aria-hidden className="size-3.5" />
+        Comment mesurer ?
+        {open ? (
+          <ChevronUp aria-hidden className="size-3.5" />
+        ) : (
+          <ChevronDown aria-hidden className="size-3.5" />
+        )}
       </button>
       {open && (
-        <div
-          className="mt-2 rounded-xl p-3 text-xs leading-relaxed"
-          style={{
-            backgroundColor: withAlpha(MINT, 6),
-            border: `1px solid ${withAlpha(MINT, 15)}`,
-            color: 'oklch(0.287 0.047 217.9 / 65%)',
-          }}
-        >
+        <div className="mt-2 rounded-lg bg-accent p-3 text-xs leading-relaxed text-foreground">
           {children}
         </div>
       )}
@@ -105,31 +95,28 @@ function Field({
   placeholder?: string
   hint?: React.ReactNode
 }) {
+  const id = useId()
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
           {label}
         </label>
-        {unit && (
-          <span className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 25%)' }}>
-            {unit}
-          </span>
-        )}
+        {unit && <span className="font-mono text-xs text-muted-foreground">{unit}</span>}
       </div>
       <Input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? '—'}
-        className="h-9 text-sm font-bold bg-transparent border-border focus:border-foreground/30"
-        style={{ color: 'oklch(0.287 0.047 217.9)' }}
+        className="h-9 text-sm font-semibold tabular-nums"
       />
       {hint}
     </div>
   )
 }
 
-// ── Display row (read mode) ───────────────────────────────────────────────────
+// ── Display tile (read mode) ──────────────────────────────────────────────────
 
 function ValueRow({
   label,
@@ -143,43 +130,37 @@ function ValueRow({
   estimated?: boolean
 }) {
   return (
-    <div
-      className="flex items-center justify-between py-2.5 border-b last:border-0"
-      style={{ borderColor: DIV }}
-    >
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: MUTED }}>
-        {label}
-        {estimated && (
-          <span className="ml-1.5 lowercase font-medium" style={{ opacity: 0.7 }}>
-            (estimé)
-          </span>
-        )}
-      </span>
-      <span
-        className="text-sm font-semibold"
-        style={{ color: value ? MINT : 'oklch(0.287 0.047 217.9 / 20%)' }}
+    <div className="space-y-0.5">
+      <p
+        className={
+          value
+            ? 'font-display text-xl leading-tight font-bold text-primary-ink tabular-nums'
+            : 'font-display text-xl leading-tight font-bold text-muted-foreground'
+        }
       >
         {value ?? '—'}
         {value && unit ? (
-          <span className="text-xs font-medium ml-1" style={{ color: MUTED }}>
-            {unit}
-          </span>
+          <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">{unit}</span>
         ) : null}
-      </span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {label}
+        {estimated && <span className="ml-1">(estimé)</span>}
+      </p>
     </div>
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function GroupLabel({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <p
-      className="text-[10px] font-bold uppercase tracking-widest mb-2"
-      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-    >
+    <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+      {icon}
       {children}
     </p>
   )
 }
+
+const iconClass = 'size-4 text-primary-ink'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -273,24 +254,13 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
   }
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-    >
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ backgroundColor: DARKER, borderBottom: `1px solid ${DIV}` }}
-      >
+      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div>
-          <p
-            className="text-sm font-semibold uppercase tracking-widest"
-            style={{ color: 'oklch(0.287 0.047 217.9)' }}
-          >
-            Performances de référence
-          </p>
+          <h3 className="text-base">Performances de référence</h3>
           {initial?.test_date && !editing && (
-            <p className="text-[10px] mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Dernière mise à jour :{' '}
               {new Date(initial.test_date).toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -301,94 +271,113 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           )}
         </div>
         {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-70"
-            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
-          >
-            <Pencil size={11} />
+          <Button variant="outline-primary" size="sm" onClick={() => setEditing(true)}>
+            <Pencil aria-hidden />
             {hasAnyData ? 'Modifier' : 'Renseigner'}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Read mode */}
       {!editing && (
-        <div className="px-5 divide-y" style={{ borderColor: DIV }}>
+        <div className="px-5">
           {/* Running */}
-          <div className="py-3">
-            <SectionLabel>Course à pied</SectionLabel>
-            <ValueRow label="5 km" value={secToDuration(initial?.run_5k_time_s ?? null) || null} />
-            <ValueRow
-              label="10 km"
-              value={secToDuration(initial?.run_10k_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="Semi"
-              value={secToDuration(initial?.run_half_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="Allure seuil"
-              value={
-                initial?.run_threshold_pace_sec_per_km != null
-                  ? secToMinSec(initial.run_threshold_pace_sec_per_km)
-                  : null
-              }
-              unit="/km"
-              estimated
-            />
-            <ValueRow
-              label="VMA"
-              value={initial?.vma_kmh != null ? initial.vma_kmh.toFixed(1) : null}
-              unit="km/h"
-              estimated
-            />
+          <div className="border-t border-border py-4 first:border-t-0">
+            <GroupLabel icon={<DisciplineIcon discipline="run" className={iconClass} />}>
+              Course à pied
+            </GroupLabel>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <ValueRow
+                label="5 km"
+                value={secToDuration(initial?.run_5k_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="10 km"
+                value={secToDuration(initial?.run_10k_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="Semi"
+                value={secToDuration(initial?.run_half_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="Allure seuil"
+                value={
+                  initial?.run_threshold_pace_sec_per_km != null
+                    ? secToMinSec(initial.run_threshold_pace_sec_per_km)
+                    : null
+                }
+                unit="/km"
+                estimated
+              />
+              <ValueRow
+                label="VMA"
+                value={initial?.vma_kmh != null ? initial.vma_kmh.toFixed(1) : null}
+                unit="km/h"
+                estimated
+              />
+            </div>
           </div>
           {/* Cycling */}
-          <div className="py-3">
-            <SectionLabel>Vélo</SectionLabel>
-            <ValueRow label="FTP" value={initial?.ftp_watts?.toString() ?? null} unit="W" />
+          <div className="border-t border-border py-4 first:border-t-0">
+            <GroupLabel icon={<DisciplineIcon discipline="bike" className={iconClass} />}>
+              Vélo
+            </GroupLabel>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <ValueRow label="FTP" value={initial?.ftp_watts?.toString() ?? null} unit="W" />
+            </div>
           </div>
           {/* Swimming */}
-          <div className="py-3">
-            <SectionLabel>Natation</SectionLabel>
-            <ValueRow
-              label="100 m"
-              value={secToDuration(initial?.swim_100m_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="200 m"
-              value={secToDuration(initial?.swim_200m_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="400 m"
-              value={secToDuration(initial?.swim_400m_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="800 m"
-              value={secToDuration(initial?.swim_800m_time_s ?? null) || null}
-            />
-            <ValueRow
-              label="CSS"
-              value={
-                initial?.css_pace_sec_per_100m != null
-                  ? secToMinSec(initial.css_pace_sec_per_100m)
-                  : null
-              }
-              unit="/100m"
-              estimated
-            />
+          <div className="border-t border-border py-4 first:border-t-0">
+            <GroupLabel icon={<DisciplineIcon discipline="swim" className={iconClass} />}>
+              Natation
+            </GroupLabel>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <ValueRow
+                label="100 m"
+                value={secToDuration(initial?.swim_100m_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="200 m"
+                value={secToDuration(initial?.swim_200m_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="400 m"
+                value={secToDuration(initial?.swim_400m_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="800 m"
+                value={secToDuration(initial?.swim_800m_time_s ?? null) || null}
+              />
+              <ValueRow
+                label="CSS"
+                value={
+                  initial?.css_pace_sec_per_100m != null
+                    ? secToMinSec(initial.css_pace_sec_per_100m)
+                    : null
+                }
+                unit="/100m"
+                estimated
+              />
+            </div>
           </div>
           {/* Cardio */}
-          <div className="py-3">
-            <SectionLabel>Fréquence cardiaque</SectionLabel>
-            <ValueRow label="FC max" value={initial?.hr_max?.toString() ?? null} unit="bpm" />
-            <ValueRow label="FC repos" value={initial?.resting_hr?.toString() ?? null} unit="bpm" />
+          <div className="border-t border-border py-4 first:border-t-0">
+            <GroupLabel icon={<HeartPulse aria-hidden className={iconClass} />}>
+              Fréquence cardiaque
+            </GroupLabel>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <ValueRow label="FC max" value={initial?.hr_max?.toString() ?? null} unit="bpm" />
+              <ValueRow
+                label="FC repos"
+                value={initial?.resting_hr?.toString() ?? null}
+                unit="bpm"
+              />
+            </div>
           </div>
 
           {!hasAnyData && (
-            <div className="py-4 text-center">
-              <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
+            <div className="border-t border-border py-4 text-center">
+              <p className="text-sm text-muted-foreground">
                 Aucune donnée — renseigne tes records pour des séances avec allures et watts précis.
               </p>
             </div>
@@ -398,10 +387,12 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
 
       {/* Edit mode */}
       {editing && (
-        <div className="px-5 py-4 space-y-6">
+        <div className="space-y-6 px-5 py-5">
           {/* ── Course ─────────────────────────────────────────────────── */}
           <div className="space-y-3">
-            <SectionLabel>Course à pied — tes meilleurs temps</SectionLabel>
+            <GroupLabel icon={<DisciplineIcon discipline="run" className={iconClass} />}>
+              Course à pied — tes meilleurs temps
+            </GroupLabel>
 
             <Field
               label="5 km"
@@ -438,8 +429,10 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           </div>
 
           {/* ── Vélo ───────────────────────────────────────────────────── */}
-          <div className="space-y-3">
-            <SectionLabel>Vélo</SectionLabel>
+          <div className="space-y-3 border-t border-border pt-6">
+            <GroupLabel icon={<DisciplineIcon discipline="bike" className={iconClass} />}>
+              Vélo
+            </GroupLabel>
 
             <Field
               label="FTP"
@@ -463,8 +456,10 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           </div>
 
           {/* ── Natation ───────────────────────────────────────────────── */}
-          <div className="space-y-3">
-            <SectionLabel>Natation — tes meilleurs temps</SectionLabel>
+          <div className="space-y-3 border-t border-border pt-6">
+            <GroupLabel icon={<DisciplineIcon discipline="swim" className={iconClass} />}>
+              Natation — tes meilleurs temps
+            </GroupLabel>
 
             <Field
               label="100 m"
@@ -509,8 +504,10 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
           </div>
 
           {/* ── Fréquence cardiaque ────────────────────────────────────── */}
-          <div className="space-y-3">
-            <SectionLabel>Fréquence cardiaque</SectionLabel>
+          <div className="space-y-3 border-t border-border pt-6">
+            <GroupLabel icon={<HeartPulse aria-hidden className={iconClass} />}>
+              Fréquence cardiaque
+            </GroupLabel>
 
             <Field
               label="FC max"
@@ -546,9 +543,9 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
             />
           </div>
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 border-t border-border pt-5">
             <Button
               variant="outline"
               onClick={() => {
@@ -560,12 +557,7 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
             >
               Annuler
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 font-bold"
-              style={{ backgroundColor: MINT, color: ACCENT_FG }}
-            >
+            <Button onClick={handleSave} disabled={saving} className="flex-1">
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </Button>
           </div>

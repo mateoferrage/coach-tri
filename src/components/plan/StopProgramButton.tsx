@@ -34,12 +34,13 @@ export function StopProgramButton({ planId }: { planId: string }) {
 
   return (
     <>
-      <button
+      <Button
+        variant="link"
+        className="text-sm text-muted-foreground underline hover:text-destructive"
         onClick={() => setOpen(true)}
-        className="text-sm text-muted-foreground hover:text-red-400 transition-colors underline underline-offset-4"
       >
         Arrêter le programme
-      </button>
+      </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -54,11 +55,7 @@ export function StopProgramButton({ planId }: { planId: string }) {
             <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Annuler
             </Button>
-            <Button
-              onClick={handleStop}
-              disabled={loading}
-              style={{ backgroundColor: '#ef4444', color: 'white' }}
-            >
+            <Button variant="destructive" onClick={handleStop} disabled={loading}>
               {loading ? 'Archivage…' : 'Arrêter le programme'}
             </Button>
           </DialogFooter>

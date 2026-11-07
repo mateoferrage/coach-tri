@@ -1,13 +1,12 @@
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
 import { GarminSyncButton } from '@/components/garmin/GarminSyncButton'
 import { AddActivityModal } from '@/components/activities/AddActivityModal'
-import {
-  ACCENT as MINT,
-  SURFACE as DARK,
-  SURFACE_DEEP as DARKER,
-  DIVIDER,
-  withAlpha,
-} from '@/lib/theme'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { Badge } from '@/components/ui/badge'
+import { formatDuration } from '@/lib/plan/display'
 import {
   mergeActivities,
   type UnifiedActivity,
@@ -19,20 +18,21 @@ export const metadata = { title: 'Activités — Coach Tri' }
 
 type SportInfo = {
   label: string
-  icon: string
   isSwim?: boolean
   isCycling?: boolean
   isStrength?: boolean
 }
 
-// Keys match mapActivityType() output from the sync route
+// Keys match mapActivityType() output from the sync route.
+// Libellés longs propres à l'historique (« Course à pied », « Musculation », « Triathlon »…) :
+// différents de DISCIPLINE_LABEL, d'où cette table locale.
 const SPORT_MAP: Record<string, SportInfo> = {
-  run: { label: 'Course à pied', icon: '🏃' },
-  bike: { label: 'Vélo', icon: '🚴', isCycling: true },
-  swim: { label: 'Natation', icon: '🏊', isSwim: true },
-  triathlon: { label: 'Triathlon', icon: '🏁' },
-  strength: { label: 'Musculation', icon: '💪', isStrength: true },
-  other: { label: 'Activité', icon: '⚡' },
+  run: { label: 'Course à pied' },
+  bike: { label: 'Vélo', isCycling: true },
+  swim: { label: 'Natation', isSwim: true },
+  triathlon: { label: 'Triathlon' },
+  strength: { label: 'Musculation', isStrength: true },
+  other: { label: 'Activité' },
 }
 
 function getSport(t: string): SportInfo {
@@ -41,11 +41,10 @@ function getSport(t: string): SportInfo {
 
 // ── Format helpers ────────────────────────────────────────────────────────────
 
-function formatDuration(s: number | null): string | null {
+// Les activités stockent des secondes ; formatDuration (display.ts) prend des minutes.
+function formatDurationS(s: number | null): string | null {
   if (!s) return null
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`
+  return formatDuration(s / 60)
 }
 
 function formatDistance(m: number | null, isSwim = false): string | null {
@@ -72,20 +71,16 @@ function heroDistance(m: number | null, isSwim = false): { value: string; unit: 
 
 function heroDuration(s: number | null): { value: string; unit: string } | null {
   if (!s) return null
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  return h > 0
-    ? { value: `${h}h${String(m).padStart(2, '0')}`, unit: '' }
-    : { value: String(m), unit: 'min' }
+  // Même arrondi que formatDurationS (formatDuration) : 3599 s → 1 h.
+  const minutes = Math.round(s / 60)
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return { value: String(m), unit: 'min' }
+  return { value: m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`, unit: '' }
 }
 
 function formatDateHeader(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return format(new Date(iso), 'EEEE d MMMM yyyy', { locale: fr })
 }
 
 function formatTime(iso: string): string {
@@ -97,65 +92,16 @@ function formatTime(iso: string): string {
 function TEBadge({ value }: { value: number | null }) {
   if (!value) return null
   const score = Math.round(value * 10) / 10
-  const color =
-    score < 2
-      ? 'oklch(0.55 0.04 200)'
-      : score < 3
-        ? 'oklch(0.55 0.14 145)'
-        : score < 4
-          ? MINT
-          : 'oklch(0.50 0.13 157)'
   return (
-    <span
-      className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
-      style={{ color, border: `1px solid ${color}` }}
-    >
+    <Badge variant="outline" className="tabular-nums">
       TE {score.toFixed(1)}
-    </span>
+    </Badge>
   )
 }
 
-function StatPill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span
-        className="text-[9px] font-bold uppercase tracking-widest"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-      >
-        {label}
-      </span>
-      <span className="text-sm font-semibold" style={{ color: 'oklch(0.287 0.047 217.9 / 85%)' }}>
-        {value}
-      </span>
-    </div>
-  )
-}
+const SOURCE_LABEL: Record<'garmin' | 'strava', string> = { garmin: 'Garmin', strava: 'Strava' }
 
-function ManualBadge() {
-  return (
-    <span
-      className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
-      style={{ color: 'oklch(0.50 0.13 157)', border: '1px solid oklch(0.50 0.13 157)' }}
-    >
-      Manuel
-    </span>
-  )
-}
-
-function SourceChip({ source }: { source: 'garmin' | 'strava' }) {
-  const color = source === 'strava' ? 'oklch(0.58 0.18 35)' : 'oklch(0.52 0.13 237)'
-  const label = source === 'strava' ? 'Strava' : 'Garmin'
-  return (
-    <span
-      className="text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-      style={{ color, border: `1px solid ${color}` }}
-    >
-      {label}
-    </span>
-  )
-}
-
-function ActivityCard({ activity }: { activity: UnifiedActivity }) {
+function ActivityRow({ activity }: { activity: UnifiedActivity }) {
   const sport = getSport(activity.activity_type)
   const isManual = activity.is_manual
 
@@ -174,7 +120,7 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
   const distSecondary = sport.isStrength ? formatDistance(activity.distance_m, sport.isSwim) : null
 
   const stats: { label: string; value: string }[] = [
-    showDuration && { label: 'Durée', value: formatDuration(activity.duration_s)! },
+    showDuration && { label: 'Durée', value: formatDurationS(activity.duration_s)! },
     pace && { label: sport.isCycling ? 'Vitesse' : 'Allure', value: pace },
     watts && { label: 'Puissance', value: watts },
     avgHr && { label: 'FC moy.', value: avgHr },
@@ -184,87 +130,63 @@ function ActivityCard({ activity }: { activity: UnifiedActivity }) {
   ].filter(Boolean) as { label: string; value: string }[]
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ backgroundColor: DARK, border: `1px solid ${DIVIDER}` }}
-    >
-      <div className="px-5 pt-5 pb-4">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-              style={{
-                backgroundColor: withAlpha(MINT, 9),
-                border: `1px solid ${withAlpha(MINT, 19)}`,
-              }}
-            >
-              {sport.icon}
-            </div>
-            <div>
-              <p
-                className="text-xs font-semibold uppercase tracking-widest"
-                style={{ color: MINT }}
-              >
-                {sport.label}
-              </p>
-              {activity.name && (
-                <p
-                  className="text-[12px] font-semibold leading-tight mt-0.5"
-                  style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                >
-                  {activity.name}
-                </p>
-              )}
-              <p className="text-[11px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-                {formatTime(activity.started_at)}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <div className="flex gap-1.5">
-              {activity.sources.map((src) => (
-                <SourceChip key={src} source={src} />
-              ))}
-            </div>
-            {isManual ? <ManualBadge /> : <TEBadge value={activity.aerobic_te} />}
-          </div>
+    <li className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-3 border-t border-border px-3 py-3.5 first:border-t-0">
+      <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-primary-ink">
+        <DisciplineIcon discipline={activity.activity_type} size={18} />
+      </span>
+
+      <div className="min-w-0 space-y-1.5">
+        <div>
+          <p className="truncate text-sm font-bold text-foreground">
+            {activity.name ?? sport.label}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-semibold text-primary-ink">{sport.label}</span>
+            {' · '}
+            <span className="tabular-nums">{formatTime(activity.started_at)}</span>
+          </p>
         </div>
 
+        {stats.length > 0 && (
+          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            {stats.map(({ label, value }) => (
+              <div key={label} className="flex items-baseline gap-1">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="font-semibold text-foreground tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        <div className="flex flex-wrap gap-1.5">
+          {activity.sources.map((src) => (
+            <Badge key={src} variant="outline">
+              {SOURCE_LABEL[src]}
+            </Badge>
+          ))}
+          {isManual ? (
+            <Badge variant="outline">Manuel</Badge>
+          ) : (
+            <TEBadge value={activity.aerobic_te} />
+          )}
+        </div>
+      </div>
+
+      <div className="text-right whitespace-nowrap">
         {hero ? (
-          <div className="flex items-baseline gap-2">
-            <span
-              className="text-5xl font-semibold leading-none"
-              style={{ color: 'oklch(0.287 0.047 217.9)' }}
-            >
+          <>
+            <span className="font-display text-2xl leading-none font-bold text-foreground tabular-nums">
               {hero.value}
             </span>
             {hero.unit && (
-              <span
-                className="text-lg font-bold"
-                style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-              >
-                {hero.unit}
-              </span>
+              <span className="ml-1 text-sm font-semibold text-muted-foreground">{hero.unit}</span>
             )}
-          </div>
+          </>
         ) : (
-          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-            Pas de données
-          </p>
+          <span className="text-xs text-muted-foreground">Pas de données</span>
         )}
       </div>
-
-      {stats.length > 0 && (
-        <div
-          className="px-5 py-3 flex flex-wrap gap-x-6 gap-y-2"
-          style={{ borderTop: `1px solid ${DIVIDER}`, backgroundColor: DARKER }}
-        >
-          {stats.map(({ label, value }) => (
-            <StatPill key={label} label={label} value={value} />
-          ))}
-        </div>
-      )}
-    </div>
+    </li>
   )
 }
 
@@ -315,50 +237,39 @@ export default async function ActivitiesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Historique
-          </p>
-          <h1 className="text-3xl font-semibold uppercase tracking-tight">Activités</h1>
+          <p className="text-sm font-medium text-muted-foreground">Historique</p>
+          <h1 className="text-3xl md:text-4xl">Activités</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {list.length > 0 && <GarminSyncButton />}
           <AddActivityModal />
-          <GarminSyncButton />
         </div>
       </div>
 
       {/* Content */}
       {list.length === 0 ? (
-        <div
-          className="rounded-2xl py-20 text-center space-y-3"
-          style={{ backgroundColor: DARK, border: `1px solid ${DIVIDER}` }}
-        >
-          <p className="text-4xl">🏃</p>
-          <p className="text-sm" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-            Aucune activité synchronisée.
-          </p>
-          <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 25%)' }}>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <p className="text-sm font-semibold text-foreground">Aucune activité synchronisée.</p>
+          <p className="text-sm text-muted-foreground">
             Connecte ton compte Garmin ou Strava et lance une synchronisation.
           </p>
+          <div className="pt-1">
+            <GarminSyncButton />
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
           {groups.map(({ dateKey, label, items }) => (
-            <div key={dateKey} className="space-y-3">
-              {/* Date separator */}
-              <div className="flex items-center gap-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground capitalize whitespace-nowrap">
-                  {label}
-                </p>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Cards for that day */}
-              {items.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
-              ))}
-            </div>
+            <section key={dateKey} className="space-y-2">
+              <SectionLabel>{label}</SectionLabel>
+              <ul className="rounded-xl border border-border bg-card">
+                {items.map((activity) => (
+                  <ActivityRow key={activity.id} activity={activity} />
+                ))}
+              </ul>
+            </section>
           ))}
         </div>
       )}

@@ -1,9 +1,14 @@
+import { Activity, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { GarminConnectCard } from '@/components/garmin/GarminConnectCard'
 import { PhysiologySection } from '@/components/profile/PhysiologySection'
 import { EquipmentSection } from '@/components/profile/EquipmentSection'
 import { StravaConnectCard } from '@/components/strava/StravaConnectCard'
-import { ACCENT as MINT, SURFACE as DARK, DIVIDER as DIV, withAlpha } from '@/lib/theme'
+import { SectionLabel } from '@/components/common/SectionLabel'
+import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
+import { buttonVariants } from '@/components/ui/button'
+import { DISCIPLINE_LABEL } from '@/lib/plan/display'
+import { cn } from '@/lib/utils/cn'
 
 export const metadata = { title: 'Profil — Coach Tri' }
 
@@ -13,20 +18,32 @@ const LEVEL_LABELS: Record<string, string> = {
   advanced: 'Avancé',
   elite: 'Élite',
 }
-const DISCIPLINE_LABELS: Record<string, string> = {
-  swim: 'Natation 🏊',
-  bike: 'Vélo 🚴',
-  run: 'Course 🏃',
-}
 
 /* ── Sub-components ───────────────────────────────────────────────────────── */
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+/** Section de page : filet au-dessus (sauf la première), intitulé `SectionLabel`. */
+function ProfileSection({
+  label,
+  action,
+  children,
+}: {
+  label: string
+  action?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
-    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+    <section className="space-y-4 border-t border-border pt-8 first:border-t-0 first:pt-0">
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <SectionLabel>{label}</SectionLabel>
+        {action}
+      </div>
       {children}
-    </p>
+    </section>
   )
+}
+
+function SubTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-base">{children}</h3>
 }
 
 function StatBlock({
@@ -34,59 +51,49 @@ function StatBlock({
   value,
   unit,
   sub,
+  discipline,
+  valueClassName = 'text-primary-ink',
 }: {
   label: string
   value: string | number | null
   unit?: string
   sub?: string
+  discipline?: string
+  valueClassName?: string
 }) {
   return (
-    <div
-      className="rounded-xl p-4 space-y-1"
-      style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-    >
-      <p
-        className="text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-      >
+    <div className="space-y-1 rounded-xl border border-border bg-card p-4">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {discipline && (
+          <DisciplineIcon discipline={discipline} className="size-3.5 text-primary-ink" />
+        )}
         {label}
       </p>
       {value != null ? (
-        <p className="text-2xl font-semibold leading-tight" style={{ color: MINT }}>
+        <p
+          className={cn(
+            'font-display text-2xl leading-tight font-bold tabular-nums',
+            valueClassName,
+          )}
+        >
           {value}
           {unit && (
-            <span
-              className="text-sm font-medium ml-1"
-              style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-            >
-              {unit}
-            </span>
+            <span className="ml-1 font-sans text-sm font-medium text-muted-foreground">{unit}</span>
           )}
         </p>
       ) : (
-        <p className="text-2xl font-semibold" style={{ color: 'oklch(0.287 0.047 217.9 / 20%)' }}>
-          —
-        </p>
+        <p className="font-display text-2xl font-bold text-muted-foreground">—</p>
       )}
-      {sub && (
-        <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-          {sub}
-        </p>
-      )}
+      {sub && <p className="text-xs text-muted-foreground tabular-nums">{sub}</p>}
     </div>
   )
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className="flex items-center justify-between py-2.5 border-b last:border-0"
-      style={{ borderColor: DIV }}
-    >
-      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-sm font-bold">{value}</span>
+    <div className="flex items-center justify-between gap-4 border-t border-border py-3 first:border-t-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-right text-sm font-semibold">{value}</span>
     </div>
   )
 }
@@ -249,309 +256,264 @@ export default async function ProfilePage() {
 
   // Training readiness color
   const readiness = gStats?.training_readiness as number | null
-  const readinessColor = !readiness
-    ? 'oklch(0.287 0.047 217.9 / 20%)'
+  const readinessClass = !readiness
+    ? 'text-muted-foreground'
     : readiness >= 70
-      ? MINT
+      ? 'text-primary-ink'
       : readiness >= 40
-        ? 'oklch(0.62 0.14 80)'
-        : 'oklch(0.55 0.20 25)'
+        ? 'text-highlight-deep'
+        : 'text-destructive'
 
   const disciplines = profile?.available_disciplines ?? []
 
   return (
-    <div className="space-y-10 max-w-2xl">
+    <div className="max-w-2xl space-y-8">
       {/* Header */}
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Mon compte
-        </p>
-        <h1 className="text-3xl font-semibold uppercase tracking-tight">Profil</h1>
-      </div>
+      <header className="space-y-1">
+        <p className="text-sm font-medium text-muted-foreground">Mon compte</p>
+        <h1 className="text-3xl md:text-4xl">Profil</h1>
+      </header>
 
-      {/* ── Volume 30 jours ── */}
-      {activities.length > 0 && (
-        <section>
-          <SectionTitle>Volume · 30 derniers jours</SectionTitle>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatBlock
-              label="Total"
-              value={totalHours30 > 0 ? totalHours30.toFixed(1) : null}
-              unit="h"
-              sub={`${activities.length} séances`}
-            />
-            {['swim', 'bike', 'run'].map((type) => {
-              const v = volumes[type]
-              return (
-                <StatBlock
-                  key={type}
-                  label={DISCIPLINE_LABELS[type] ?? type}
-                  value={
-                    v
-                      ? type === 'swim'
-                        ? `${Math.round(v.km * 10) / 10} km`
-                        : `${v.km.toFixed(0)} km`
-                      : null
-                  }
-                  sub={v ? `${v.h.toFixed(1)}h · ${v.count} séances` : undefined}
-                />
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ── Identité Garmin ── */}
-      {!!gStats?.display_name && (
-        <section>
-          <SectionTitle>Compte Garmin</SectionTitle>
-          <div
-            className="rounded-2xl px-5 py-4 flex items-center gap-4"
-            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-          >
-            {gStats.profile_image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={gStats.profile_image_url as string}
-                alt="Avatar Garmin"
-                className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                style={{ border: `2px solid ${withAlpha(MINT, 25)}` }}
-              />
-            ) : (
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-                style={{
-                  backgroundColor: withAlpha(MINT, 9),
-                  border: `1px solid ${withAlpha(MINT, 19)}`,
-                }}
-              >
-                🏃
-              </div>
-            )}
-            <div>
-              <p className="font-semibold text-lg" style={{ color: 'oklch(0.287 0.047 217.9)' }}>
-                {gStats.display_name as string}
-              </p>
-              {!!gStats.garmin_username && (
-                <p className="text-xs mt-0.5" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-                  @{gStats.garmin_username as string}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Forme physique ── */}
-      {!gStats && garminCreds && (
-        <section>
-          <SectionTitle>Forme physique</SectionTitle>
-          <div
-            className="rounded-2xl px-5 py-6 text-center space-y-2"
-            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-          >
-            <p className="text-2xl">📊</p>
-            <p className="text-sm font-bold" style={{ color: 'oklch(0.287 0.047 217.9 / 60%)' }}>
-              Lance un sync Garmin pour voir tes métriques de forme
-            </p>
-            <p className="text-xs" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-              VO2 Max course &amp; vélo, âge de forme…
-            </p>
-          </div>
-        </section>
-      )}
-      {gStats && (
-        <section>
-          <SectionTitle>Forme physique</SectionTitle>
-          {/* VO2 Max — always shown (may be — if not measured yet) */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatBlock
-              label="VO2 Max course"
-              value={gStats.vo2max_run != null ? Math.round(gStats.vo2max_run as number) : null}
-              unit="ml/kg/min"
-              sub={
-                (gStats.vo2max_run as number) >= 55
-                  ? 'Excellent'
-                  : (gStats.vo2max_run as number) >= 45
-                    ? 'Bon'
-                    : undefined
-              }
-            />
-            <StatBlock
-              label="VO2 Max vélo"
-              value={gStats.vo2max_bike != null ? Math.round(gStats.vo2max_bike as number) : null}
-              unit="ml/kg/min"
-              sub={
-                (gStats.vo2max_bike as number) >= 55
-                  ? 'Excellent'
-                  : (gStats.vo2max_bike as number) >= 45
-                    ? 'Bon'
-                    : undefined
-              }
-            />
-          </div>
-
-          {/* Training Readiness + Load — only shown if available */}
-          {!!(
-            gStats.training_readiness != null ||
-            gStats.training_load_7d != null ||
-            gStats.training_load_28d != null
-          ) && (
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              {gStats.training_readiness != null && (
-                <div
-                  className="rounded-xl p-4 space-y-1"
-                  style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-                >
-                  <p
-                    className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                  >
-                    Readiness
+      <div className="space-y-8">
+        {/* ── Identité ── */}
+        <ProfileSection
+          label="Identité"
+          action={
+            <a
+              href="/onboarding"
+              className={buttonVariants({ variant: 'outline-primary', size: 'sm' })}
+            >
+              Modifier
+            </a>
+          }
+        >
+          <div className="rounded-xl border border-border bg-card">
+            {!!gStats?.display_name && (
+              <div className="flex items-center gap-4 border-b border-border px-5 py-4">
+                {gStats.profile_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={gStats.profile_image_url as string}
+                    alt="Avatar Garmin"
+                    className="size-14 flex-shrink-0 rounded-full border-2 border-primary/40 object-cover"
+                  />
+                ) : (
+                  <div className="flex size-14 flex-shrink-0 items-center justify-center rounded-full border border-primary/40 bg-accent text-primary-ink">
+                    <User aria-hidden className="size-6" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-display text-lg font-bold text-foreground">
+                    {gStats.display_name as string}
                   </p>
-                  <p
-                    className="text-2xl font-semibold leading-tight"
-                    style={{ color: readinessColor }}
-                  >
-                    {readiness}
-                    <span
-                      className="text-sm font-medium ml-1"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                    >
-                      /100
-                    </span>
-                  </p>
-                  <p className="text-[10px]" style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}>
-                    {(readiness ?? 0) >= 70
-                      ? 'Prêt'
-                      : (readiness ?? 0) >= 40
-                        ? 'Modéré'
-                        : 'Fatigué'}
-                  </p>
-                </div>
-              )}
-              {gStats.training_load_7d != null && (
-                <StatBlock
-                  label="Charge 7j"
-                  value={Math.round(gStats.training_load_7d as number)}
-                  unit="TSS"
-                />
-              )}
-              {gStats.training_load_28d != null && (
-                <StatBlock
-                  label="Charge 28j"
-                  value={Math.round(gStats.training_load_28d as number)}
-                  unit="TSS"
-                />
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── Records personnels ── */}
-      {prs.length > 0 && (
-        <section>
-          <SectionTitle>Records personnels</SectionTitle>
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-          >
-            {prs.map((pr) => (
-              <div
-                key={pr.label}
-                className="flex items-center justify-between px-5 py-3 border-b last:border-0"
-                style={{ borderColor: DIV }}
-              >
-                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  {pr.label}
-                </span>
-                <div className="text-right">
-                  <span className="font-semibold text-base" style={{ color: MINT }}>
-                    {pr.time}
-                  </span>
-                  {pr.date && (
-                    <span
-                      className="text-[10px] ml-2"
-                      style={{ color: 'oklch(0.287 0.047 217.9 / 70%)' }}
-                    >
-                      {new Date(pr.date).toLocaleDateString('fr-FR', {
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
+                  {!!gStats.garmin_username && (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      @{gStats.garmin_username as string} · Compte Garmin
+                    </p>
                   )}
                 </div>
               </div>
-            ))}
+            )}
+            <div className="px-5">
+              <InfoRow label="Prénom" value={profile?.first_name ?? '—'} />
+              <InfoRow label="Niveau" value={profile?.level ? LEVEL_LABELS[profile.level] : '—'} />
+              <InfoRow label="Poids" value={profile?.weight_kg ? `${profile.weight_kg} kg` : '—'} />
+              <InfoRow
+                label="Disponibilité"
+                value={profile?.weekly_hours_avg ? `${profile.weekly_hours_avg}h / semaine` : '—'}
+              />
+              <InfoRow
+                label="Disciplines"
+                value={
+                  disciplines.length > 0
+                    ? disciplines.map((d) => DISCIPLINE_LABEL[d] ?? d).join(' · ')
+                    : '—'
+                }
+              />
+            </div>
           </div>
-        </section>
-      )}
+        </ProfileSection>
 
-      {/* ── Matériel ── */}
-      <section>
-        <EquipmentSection initial={profile?.equipment ?? {}} />
-      </section>
+        {/* ── Volume 30 jours ── */}
+        {activities.length > 0 && (
+          <ProfileSection label="Volume · 30 derniers jours">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatBlock
+                label="Total"
+                value={totalHours30 > 0 ? totalHours30.toFixed(1) : null}
+                unit="h"
+                sub={`${activities.length} séances`}
+              />
+              {['swim', 'bike', 'run'].map((type) => {
+                const v = volumes[type]
+                return (
+                  <StatBlock
+                    key={type}
+                    label={DISCIPLINE_LABEL[type] ?? type}
+                    discipline={type}
+                    value={
+                      v
+                        ? type === 'swim'
+                          ? `${Math.round(v.km * 10) / 10} km`
+                          : `${v.km.toFixed(0)} km`
+                        : null
+                    }
+                    sub={v ? `${v.h.toFixed(1)}h · ${v.count} séances` : undefined}
+                  />
+                )
+              })}
+            </div>
+          </ProfileSection>
+        )}
 
-      {/* ── Informations personnelles ── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <SectionTitle>Informations personnelles</SectionTitle>
-          <a
-            href="/onboarding"
-            className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border transition-colors hover:opacity-70"
-            style={{ color: MINT, borderColor: withAlpha(MINT, 25) }}
-          >
-            Modifier
-          </a>
-        </div>
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ backgroundColor: DARK, border: `1px solid ${DIV}` }}
-        >
-          <div className="px-5 divide-y" style={{ borderColor: DIV }}>
-            <InfoRow label="Prénom" value={profile?.first_name ?? '—'} />
-            <InfoRow label="Niveau" value={profile?.level ? LEVEL_LABELS[profile.level] : '—'} />
-            <InfoRow label="Poids" value={profile?.weight_kg ? `${profile.weight_kg} kg` : '—'} />
-            <InfoRow
-              label="Disponibilité"
-              value={profile?.weekly_hours_avg ? `${profile.weekly_hours_avg}h / semaine` : '—'}
+        {/* ── Physiologie ── */}
+        <ProfileSection label="Physiologie">
+          <div className="space-y-6">
+            {/* ── Forme physique ── */}
+            {!gStats && garminCreds && (
+              <div className="space-y-3">
+                <SubTitle>Forme physique</SubTitle>
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-5 py-6 text-center">
+                  <Activity aria-hidden className="size-6 text-primary-ink" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Lance un sync Garmin pour voir tes métriques de forme
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    VO2 Max course &amp; vélo, âge de forme…
+                  </p>
+                </div>
+              </div>
+            )}
+            {gStats && (
+              <div className="space-y-3">
+                <SubTitle>Forme physique</SubTitle>
+                {/* VO2 Max — always shown (may be — if not measured yet) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <StatBlock
+                    label="VO2 Max course"
+                    value={
+                      gStats.vo2max_run != null ? Math.round(gStats.vo2max_run as number) : null
+                    }
+                    unit="ml/kg/min"
+                    sub={
+                      (gStats.vo2max_run as number) >= 55
+                        ? 'Excellent'
+                        : (gStats.vo2max_run as number) >= 45
+                          ? 'Bon'
+                          : undefined
+                    }
+                  />
+                  <StatBlock
+                    label="VO2 Max vélo"
+                    value={
+                      gStats.vo2max_bike != null ? Math.round(gStats.vo2max_bike as number) : null
+                    }
+                    unit="ml/kg/min"
+                    sub={
+                      (gStats.vo2max_bike as number) >= 55
+                        ? 'Excellent'
+                        : (gStats.vo2max_bike as number) >= 45
+                          ? 'Bon'
+                          : undefined
+                    }
+                  />
+                </div>
+
+                {/* Training Readiness + Load — only shown if available */}
+                {!!(
+                  gStats.training_readiness != null ||
+                  gStats.training_load_7d != null ||
+                  gStats.training_load_28d != null
+                ) && (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {gStats.training_readiness != null && (
+                      <StatBlock
+                        label="Readiness"
+                        value={readiness}
+                        unit="/100"
+                        valueClassName={readinessClass}
+                        sub={
+                          (readiness ?? 0) >= 70
+                            ? 'Prêt'
+                            : (readiness ?? 0) >= 40
+                              ? 'Modéré'
+                              : 'Fatigué'
+                        }
+                      />
+                    )}
+                    {gStats.training_load_7d != null && (
+                      <StatBlock
+                        label="Charge 7j"
+                        value={Math.round(gStats.training_load_7d as number)}
+                        unit="TSS"
+                      />
+                    )}
+                    {gStats.training_load_28d != null && (
+                      <StatBlock
+                        label="Charge 28j"
+                        value={Math.round(gStats.training_load_28d as number)}
+                        unit="TSS"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Records personnels ── */}
+            {prs.length > 0 && (
+              <div className="space-y-3">
+                <SubTitle>Records personnels</SubTitle>
+                <ul className="rounded-xl border border-border bg-card px-5">
+                  {prs.map((pr) => (
+                    <li
+                      key={pr.label}
+                      className="flex items-center justify-between gap-4 border-t border-border py-3 first:border-t-0"
+                    >
+                      <span className="text-sm font-medium text-foreground">{pr.label}</span>
+                      <div className="text-right">
+                        <span className="font-display text-base font-bold text-primary-ink tabular-nums">
+                          {pr.time}
+                        </span>
+                        {pr.date && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {new Date(pr.date).toLocaleDateString('fr-FR', {
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* ── Données physiologiques ── */}
+            <PhysiologySection initial={physiology} />
+          </div>
+        </ProfileSection>
+
+        {/* ── Équipement ── */}
+        <ProfileSection label="Équipement">
+          <EquipmentSection initial={profile?.equipment ?? {}} />
+        </ProfileSection>
+
+        {/* ── Connexions ── */}
+        <ProfileSection label="Connexions">
+          <div className="space-y-4">
+            <GarminConnectCard
+              connected={garminCreds !== null}
+              lastSyncAt={garminCreds?.last_sync_at ?? null}
             />
-            <InfoRow
-              label="Disciplines"
-              value={
-                disciplines.length > 0
-                  ? disciplines.map((d) => DISCIPLINE_LABELS[d]?.split(' ')[0] ?? d).join(' · ')
-                  : '—'
-              }
+            <StravaConnectCard
+              connected={stravaCreds !== null}
+              lastSyncAt={stravaCreds?.last_sync_at ?? null}
             />
           </div>
-        </div>
-      </section>
-
-      {/* ── Données physiologiques ── */}
-      <section>
-        <SectionTitle>Données physiologiques</SectionTitle>
-        <PhysiologySection initial={physiology} />
-      </section>
-
-      {/* ── Garmin Connect ── */}
-      <section>
-        <SectionTitle>Connexion Garmin</SectionTitle>
-        <GarminConnectCard
-          connected={garminCreds !== null}
-          lastSyncAt={garminCreds?.last_sync_at ?? null}
-        />
-      </section>
-
-      {/* ── Strava ── */}
-      <section>
-        <SectionTitle>Connexion Strava</SectionTitle>
-        <StravaConnectCard
-          connected={stravaCreds !== null}
-          lastSyncAt={stravaCreds?.last_sync_at ?? null}
-        />
-      </section>
+        </ProfileSection>
+      </div>
     </div>
   )
 }

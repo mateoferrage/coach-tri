@@ -117,13 +117,3 @@
     text-wrap: balance;
   }
 }
-
-@layer components {
-  /*
-   * Ancienne élévation des cartes. Neutralisée (spec : pas d'ombres hors tiroir
-   * et bouton flottant). Classe supprimée à l'étape 3 avec ses usages.
-   */
-  .card-elev {
-    box-shadow: none;
-  }
-}
