@@ -37,7 +37,7 @@ export function SessionActions({ session }: { session: Session }) {
   if (session.status === 'skipped') {
     return (
       <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
-        Séance passée
+        Séance sautée
         <Button
           variant="link"
           size="sm"
@@ -59,7 +59,7 @@ export function SessionActions({ session }: { session: Session }) {
         onClick={() => updateSession({ status: 'skipped' })}
         disabled={loading}
       >
-        Séance passée
+        Séance sautée
       </Button>
     )
   }

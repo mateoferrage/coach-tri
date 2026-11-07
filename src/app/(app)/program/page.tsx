@@ -181,7 +181,9 @@ export default async function ProgramPage() {
         ].map((stat) => (
           <Card key={stat.label} size="sm">
             <CardContent className="text-center">
-              <div className="font-display text-2xl font-bold tabular-nums">{stat.value}</div>
+              <div className="font-display text-xl font-bold break-words tabular-nums sm:text-2xl">
+                {stat.value}
+              </div>
               <div className="mt-1 text-xs text-muted-foreground">{stat.label}</div>
             </CardContent>
           </Card>
@@ -234,9 +236,7 @@ export default async function ProgramPage() {
 
             {pastWeeks.length > 0 && (
               <>
-                <SectionLabel as="h3" className="pt-3 text-muted-foreground">
-                  Semaines passées
-                </SectionLabel>
+                <SectionLabel className="pt-3 text-muted-foreground">Semaines passées</SectionLabel>
                 {pastWeeks.map((week) => (
                   <WeekView
                     key={week.id as string}

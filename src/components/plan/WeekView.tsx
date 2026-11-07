@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SessionCard } from './SessionCard'
 import { Button } from '@/components/ui/button'
@@ -48,6 +48,7 @@ interface WeekViewProps {
 export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: WeekViewProps) {
   const router = useRouter()
   const [open, setOpen] = useState(defaultOpen || isCurrentWeek)
+  const contentId = useId()
   const [generating, setGenerating] = useState(false)
 
   const sessions = week.sessions ?? []
@@ -95,6 +96,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
               <button
                 type="button"
                 aria-expanded={open}
+                aria-controls={contentId}
                 onClick={() => setOpen((o) => !o)}
                 className="text-left after:absolute after:inset-0 after:rounded-t-xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
               >
@@ -132,7 +134,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
 
       {/* Content */}
       {open && (
-        <div className="border-t border-border px-1 pb-4">
+        <div id={contentId} className="border-t border-border px-1 pb-4">
           {week.notes && (
             <p className="px-3 pt-3 text-xs text-muted-foreground italic">{week.notes}</p>
           )}
