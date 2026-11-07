@@ -18,6 +18,10 @@ interface SessionHeroProps {
   variant?: 'blue' | 'white'
   /** Bouton « Voir la séance » (inutile sur la page de la séance elle-même). */
   showOpenLink?: boolean
+  /** Niveau du titre : `h1` quand le héros est le titre de la page. */
+  titleAs?: 'h1' | 'h2'
+  /** Nom accessible de la section. */
+  ariaLabel?: string
 }
 
 export function SessionHero({
@@ -26,6 +30,8 @@ export function SessionHero({
   weekLabel,
   variant = 'blue',
   showOpenLink = true,
+  titleAs: TitleTag = 'h2',
+  ariaLabel = 'Séance sélectionnée',
 }: SessionHeroProps) {
   const blue = variant === 'blue'
   const segments = effortSegments(session)
@@ -39,7 +45,7 @@ export function SessionHero({
 
   return (
     <section
-      aria-label="Séance sélectionnée"
+      aria-label={ariaLabel}
       className={cn(
         'flex flex-col gap-5 rounded-xl p-6',
         blue ? 'bg-primary text-primary-foreground' : 'border border-border bg-card',
@@ -67,14 +73,14 @@ export function SessionHero({
       </div>
 
       <div>
-        <h2
+        <TitleTag
           className={cn(
             'text-3xl leading-[0.95] tracking-[-0.03em] break-words hyphens-auto [font-stretch:118%] sm:text-4xl md:text-5xl',
             !blue && 'text-primary',
           )}
         >
           {title}
-        </h2>
+        </TitleTag>
         {session.coaching_note && (
           <p
             className={cn(

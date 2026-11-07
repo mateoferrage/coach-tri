@@ -7,7 +7,7 @@ import { SectionLabel } from '@/components/common/SectionLabel'
 import { SessionActions } from '@/components/plan/SessionActions'
 import { SessionHero } from '@/components/plan/SessionHero'
 import { GarminLinker } from '@/components/plan/GarminLinker'
-import { PHASE_LABEL, SESSION_TYPE_LABEL, sessionTitle } from '@/lib/plan/display'
+import { PHASE_LABEL, SESSION_TYPE_LABEL } from '@/lib/plan/display'
 import { effortSegments } from '@/lib/plan/effort'
 import type { DashboardSession } from '@/lib/plan/week-summary'
 import { intensityColor } from '@/lib/theme'
@@ -18,9 +18,17 @@ import { fr } from 'date-fns/locale'
 
 export const metadata = { title: 'Séance — Coach Tri' }
 
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+const STATUS_BADGE: Record<
+  string,
+  { label: string; variant?: 'default' | 'outline'; className: string }
+> = {
   planned: { label: 'Planifiée', className: 'border-border text-foreground' },
-  done: { label: 'Complétée', className: 'bg-primary text-primary-foreground' },
+  // Badge sur fond bleu : 13 px semibold minimum (spec Élan).
+  done: {
+    label: 'Complétée',
+    variant: 'default',
+    className: 'h-auto px-2.5 py-0.5 text-[13px] font-semibold',
+  },
   skipped: { label: 'Passée', className: 'border-border text-muted-foreground' },
   modified: {
     label: 'Modifiée',
@@ -113,8 +121,6 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="sr-only">{sessionTitle(heroSession)}</h1>
-
       {/* Retour + statut */}
       <div className="flex items-center justify-between gap-3">
         <Link
@@ -128,7 +134,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           <span className="text-sm font-medium text-muted-foreground capitalize">
             {format(date, 'EEEE d MMMM yyyy', { locale: fr })}
           </span>
-          <Badge variant="outline" className={badge.className}>
+          <Badge variant={badge.variant ?? 'outline'} className={badge.className}>
             {badge.label}
           </Badge>
         </div>
@@ -140,6 +146,8 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         weekLabel={weekLabel}
         variant="white"
         showOpenLink={false}
+        titleAs="h1"
+        ariaLabel="Séance"
       />
 
       {/* Type, zone cible et RPE */}

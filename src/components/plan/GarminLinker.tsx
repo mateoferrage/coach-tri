@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link2, Loader2, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui/button'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
@@ -251,7 +252,15 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                 <span className="font-mono text-[11px] tracking-[0.06em] text-primary-ink uppercase">
                   Coach
                 </span>
-                <Badge variant={verdictCfg.variant}>{verdictCfg.label}</Badge>
+                <Badge
+                  variant={verdictCfg.variant}
+                  className={cn(
+                    (verdictCfg.variant === 'default' || verdictCfg.variant === 'highlight') &&
+                      'h-auto px-2.5 py-0.5 text-[13px] font-semibold',
+                  )}
+                >
+                  {verdictCfg.label}
+                </Badge>
               </div>
               <p className="border-l-4 border-primary pl-3.5 text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
                 {review.message}
