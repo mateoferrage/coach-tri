@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -111,6 +111,11 @@ export function ProgramForm({
     },
   })
   const selectedMethodology = useWatch({ control: settingsForm.control, name: 'methodology' })
+  const methodologyLabelId = useId()
+  const noMethodologyActive = !METHODOLOGIES.some((m) => m.value === selectedMethodology)
+  function selectMethodology(value: string) {
+    settingsForm.setValue('methodology', value as ProgramSettings['methodology'])
+  }
 
   // Ids existants retenus par les autres slots (pour exclure des menus).
   function excludeFor(slot: SlotKey): string[] {
@@ -384,18 +389,35 @@ export function ProgramForm({
         </div>
 
         <div className="space-y-3">
-          <Label>Méthodologie</Label>
-          <div className="space-y-2">
-            {METHODOLOGIES.map((m) => {
+          <Label id={methodologyLabelId}>Méthodologie</Label>
+          <div role="radiogroup" aria-labelledby={methodologyLabelId} className="space-y-2">
+            {METHODOLOGIES.map((m, index) => {
               const active = selectedMethodology === m.value
               return (
                 <button
                   key={m.value}
                   type="button"
-                  aria-pressed={active}
-                  onClick={() =>
-                    settingsForm.setValue('methodology', m.value as ProgramSettings['methodology'])
-                  }
+                  role="radio"
+                  aria-checked={active}
+                  tabIndex={active || (noMethodologyActive && index === 0) ? 0 : -1}
+                  onClick={() => selectMethodology(m.value)}
+                  onKeyDown={(e) => {
+                    const step =
+                      e.key === 'ArrowRight' || e.key === 'ArrowDown'
+                        ? 1
+                        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+                          ? -1
+                          : 0
+                    if (!step) return
+                    e.preventDefault()
+                    const nextIndex = (index + step + METHODOLOGIES.length) % METHODOLOGIES.length
+                    selectMethodology(METHODOLOGIES[nextIndex].value)
+                    const radios =
+                      e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                        '[role="radio"]',
+                      )
+                    radios?.[nextIndex]?.focus()
+                  }}
                   className={cn(
                     'w-full rounded-xl border-[1.5px] p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     active
