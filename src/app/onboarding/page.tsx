@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { Logo } from '@/components/common/Logo'
 import { OnboardingFlow } from '@/components/forms/OnboardingFlow'
 
 export const metadata = { title: 'Configuration — Coach Tri' }
@@ -34,13 +35,16 @@ export default async function OnboardingPage() {
   const isEditing = !!profile?.first_name
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">
+    <div className="flex min-h-dvh justify-center bg-primary px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="w-full max-w-xl py-10">
+        <div className="mb-8 flex justify-center">
+          <Logo tone="light" className="text-2xl" />
+        </div>
+        <div className="mb-6 text-center text-primary-foreground">
+          <h1 className="text-3xl">
             {isEditing ? 'Modifier mon profil' : 'Bienvenue sur Coach Tri'}
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-base font-semibold">
             {isEditing ? 'Mets à jour tes informations' : 'Configurons votre profil en 3 étapes'}
           </p>
         </div>
