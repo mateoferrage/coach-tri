@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NATIVE_FIELD_CLASS } from '@/components/ui/field-class'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 import { cn } from '@/lib/utils/cn'
@@ -20,9 +21,6 @@ const DISCIPLINES = [
   { value: 'strength', label: 'Muscu' },
   { value: 'other', label: 'Autre' },
 ]
-
-const FIELD_CLASS =
-  'h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground outline-none [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
@@ -121,6 +119,7 @@ export function AddActivityModal() {
       <Dialog
         open={open}
         onOpenChange={(next) => {
+          if (loading) return
           if (!next) handleClose()
         }}
       >
@@ -198,7 +197,7 @@ export function AddActivityModal() {
                   value={form.date}
                   onChange={(e) => set('date', e.target.value)}
                   required
-                  className={FIELD_CLASS}
+                  className={NATIVE_FIELD_CLASS}
                 />
               </Field>
               <Field id="activity-time" label="Heure">
@@ -208,7 +207,7 @@ export function AddActivityModal() {
                   value={form.time}
                   onChange={(e) => set('time', e.target.value)}
                   required
-                  className={cn(FIELD_CLASS, 'tabular-nums')}
+                  className={cn(NATIVE_FIELD_CLASS, 'tabular-nums')}
                 />
               </Field>
             </div>

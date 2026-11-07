@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NATIVE_FIELD_CLASS } from '@/components/ui/field-class'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { cn } from '@/lib/utils/cn'
 import { eventTypeColor } from '@/lib/theme'
@@ -19,9 +20,6 @@ const EVENT_TYPES = [
   { value: 'rdv', label: 'Rendez-vous' },
   { value: 'autre', label: 'Autre' },
 ] as const
-
-const FIELD_CLASS =
-  'h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground outline-none [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
 const ISO_DAYS = ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
@@ -114,6 +112,7 @@ export function EventModal({
     <Dialog
       open
       onOpenChange={(open) => {
+        if (saving || deleting) return
         if (!open) onClose()
       }}
     >
@@ -206,7 +205,7 @@ export function EventModal({
                   if (e.target.value)
                     setRecurrenceDay(getISODay(new Date(e.target.value + 'T00:00:00')))
                 }}
-                className={FIELD_CLASS}
+                className={NATIVE_FIELD_CLASS}
               />
             </div>
             <div className="space-y-1.5">
@@ -216,7 +215,7 @@ export function EventModal({
                   id="event-day"
                   value={recurrenceDay}
                   onChange={(e) => setRecurrenceDay(Number(e.target.value))}
-                  className={FIELD_CLASS}
+                  className={NATIVE_FIELD_CLASS}
                 >
                   {ISO_DAYS.slice(1).map((name, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -244,7 +243,7 @@ export function EventModal({
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value.slice(0, 5))}
-                className={cn(FIELD_CLASS, 'tabular-nums')}
+                className={cn(NATIVE_FIELD_CLASS, 'tabular-nums')}
               />
             </div>
             <div className="space-y-1.5">
@@ -254,7 +253,7 @@ export function EventModal({
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value.slice(0, 5))}
-                className={cn(FIELD_CLASS, 'tabular-nums')}
+                className={cn(NATIVE_FIELD_CLASS, 'tabular-nums')}
               />
             </div>
           </div>
@@ -293,7 +292,7 @@ export function EventModal({
                   type="date"
                   value={recurrenceEnd}
                   onChange={(e) => setRecurrenceEnd(e.target.value)}
-                  className={cn(FIELD_CLASS, 'h-8 flex-1')}
+                  className={cn(NATIVE_FIELD_CLASS, 'h-8 flex-1')}
                 />
               </div>
             )}
