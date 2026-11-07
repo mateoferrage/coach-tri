@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/server'
-import { GarminSyncButton } from '@/components/garmin/GarminSyncButton'
+import { SyncActivitiesButton } from '@/components/activities/SyncActivitiesButton'
 import { AddActivityModal } from '@/components/activities/AddActivityModal'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 import { SectionLabel } from '@/components/common/SectionLabel'
@@ -198,7 +198,7 @@ export default async function ActivitiesPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [garminRes, stravaRes] = await Promise.all([
+  const [garminRes, stravaRes, garminCredsRes, stravaCredsRes] = await Promise.all([
     supabase
       .from('garmin_activities')
       .select(
@@ -216,7 +216,12 @@ export default async function ActivitiesPage() {
       .eq('user_id', user!.id)
       .order('started_at', { ascending: false })
       .limit(100),
+
+    // Comptes connectés : le bouton « Synchroniser » ne lance que ceux-là.
+    supabase.from('garmin_credentials').select('user_id').eq('user_id', user!.id).maybeSingle(),
+    supabase.from('strava_credentials').select('user_id').eq('user_id', user!.id).maybeSingle(),
   ])
+  const connected = { garmin: !!garminCredsRes.data, strava: !!stravaCredsRes.data }
 
   const garminRows = (garminRes.data ?? []) as GarminRow[]
   const stravaRows = (stravaRes.data ?? []) as StravaRow[]
@@ -243,7 +248,7 @@ export default async function ActivitiesPage() {
           <h1 className="text-3xl md:text-4xl">Activités</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {list.length > 0 && <GarminSyncButton />}
+          {list.length > 0 && <SyncActivitiesButton {...connected} />}
           <AddActivityModal />
         </div>
       </div>
@@ -255,9 +260,11 @@ export default async function ActivitiesPage() {
           <p className="text-sm text-muted-foreground">
             Connecte ton compte Garmin ou Strava et lance une synchronisation.
           </p>
-          <div className="pt-1">
-            <GarminSyncButton />
-          </div>
+          {(connected.garmin || connected.strava) && (
+            <div className="pt-1">
+              <SyncActivitiesButton {...connected} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
