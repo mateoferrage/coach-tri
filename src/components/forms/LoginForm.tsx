@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -62,50 +63,48 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="space-y-1.5">
-        <Label
-          htmlFor="email"
-          className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-        >
+        <Label htmlFor="email" className="text-sm font-medium">
           Email
         </Label>
         <Input
           id="email"
           type="email"
           placeholder="vous@exemple.com"
-          className="bg-muted border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20"
+          className="h-10"
           {...register('email')}
         />
-        {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+        {errors.email && (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.email.message}
+          </p>
+        )}
       </div>
 
       <div className="space-y-1.5">
-        <Label
-          htmlFor="password"
-          className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-        >
+        <Label htmlFor="password" className="text-sm font-medium">
           Mot de passe
         </Label>
         <Input
           id="password"
           type="password"
           placeholder="••••••••"
-          className="bg-muted border-border text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20"
+          className="h-10"
           {...register('password')}
         />
-        {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+        {errors.password && (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.password.message}
+          </p>
+        )}
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-60"
-      >
+      <Button type="submit" variant="highlight" size="lg" className="w-full" disabled={loading}>
         {loading ? 'Chargement…' : isSignUp ? 'Créer un compte' : 'Se connecter'}
-      </button>
+      </Button>
 
       <button
         type="button"
-        className="w-full text-xs text-muted-foreground/70 hover:text-foreground transition-colors font-medium tracking-wide"
+        className="w-full rounded-md text-sm font-medium text-primary-ink hover:underline focus-visible:outline-2 focus-visible:outline-ring"
         onClick={() => setIsSignUp(!isSignUp)}
       >
         {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
