@@ -1,6 +1,6 @@
 # Coach Tri
 
-> AI-powered triathlon coaching web app — personalized training-plan generation, a conversational AI coach, and unified activity data from Garmin Connect and Strava.
+> AI-powered triathlon and trail coaching web app — personalized training-plan generation, a conversational AI coach, and unified activity data from Garmin Connect and Strava.
 
 ![CI](https://github.com/mateoferrage/coach-tri/actions/workflows/ci.yml/badge.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16-555?style=flat-square)
@@ -14,23 +14,37 @@
 
 ## Screenshots
 
-| Dashboard (with AI coach)                  | Training program                                |
-| ------------------------------------------ | ----------------------------------------------- |
-| ![Dashboard](.github/assets/dashboard.png) | ![Training program](.github/assets/program.png) |
+| Dashboard                                  | AI coach (side drawer)                |
+| ------------------------------------------ | ------------------------------------- |
+| ![Dashboard](.github/assets/dashboard.png) | ![AI coach](.github/assets/coach.png) |
 
-| Calendar                                 | Activities                                   |
-| ---------------------------------------- | -------------------------------------------- |
-| ![Calendar](.github/assets/calendar.png) | ![Activities](.github/assets/activities.png) |
+| Training program                                | Calendar                                 |
+| ----------------------------------------------- | ---------------------------------------- |
+| ![Training program](.github/assets/program.png) | ![Calendar](.github/assets/calendar.png) |
+
+| Activities                                   |
+| -------------------------------------------- |
+| ![Activities](.github/assets/activities.png) |
+
+**Mobile**
+
+<p>
+  <img src=".github/assets/mobile-dashboard.png" alt="Dashboard on mobile" width="260">
+  <img src=".github/assets/mobile-calendar.png" alt="Calendar on mobile" width="260">
+  <img src=".github/assets/mobile-coach.png" alt="AI coach on mobile" width="260">
+</p>
 
 ## Features
 
 - **AI training plans** — generates personalized triathlon training programs with Google Gemini, adapted to the athlete's profile and goals.
-- **Conversational AI coach** — a chat coach that answers training questions with context from the athlete's data.
-- **Unified activity feed** — activities from Garmin and Strava normalized into a single model.
-- **Garmin Connect sync** — imports activity data (credentials encrypted at rest with AES-256).
-- **Strava integration** — OAuth2 connection to import activities.
-- **Training calendar** — sessions laid out over time.
+- **Conversational AI coach** — available from every page in a side drawer; answers with context from the athlete's plan and can propose changes (cancel, move or adjust a session, regenerate a week) that the athlete applies or ignores.
+- **Today view** — the day's session with an effort profile, the week at a glance and the weekly training load.
+- **Unified activity feed** — Garmin and Strava activities merged into one list, duplicates (including manual entries) hidden; one button syncs both sources.
+- **Garmin Connect sync** — imports activities, HRV, sleep and fitness stats (credentials encrypted at rest with AES-256).
+- **Strava integration** — OAuth2 connection to import activities (tokens encrypted at rest).
+- **Training calendar** — week view with drag-and-drop rescheduling and personal events.
 - **Profile & onboarding** — guided setup capturing the athlete's profile.
+- **Responsive design** — blue sidebar on desktop, bottom tab bar on mobile.
 
 ## Tech stack
 
@@ -58,7 +72,7 @@ src/
 - **Data & auth** run through Supabase with SSR-aware clients and middleware.
 - **AI features** (plan generation, coach chat) are encapsulated in `src/lib/gemini`.
 - **Integrations** (`src/lib/garmin`, `src/lib/strava`) handle third-party sync,
-  with Garmin credentials encrypted before storage.
+  with Garmin credentials and Strava tokens encrypted before storage.
 
 ## Getting started
 
@@ -87,15 +101,15 @@ npm run db:push
 
 See `.env.example`. Provide your own values for:
 
-| Variable                                    | Description                                                    |
-| ------------------------------------------- | -------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`                  | Supabase project URL                                           |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`             | Supabase anon key                                              |
-| `SUPABASE_SERVICE_ROLE_KEY`                 | Supabase service_role key (server-side only)                   |
-| `GEMINI_API_KEY`                            | Google AI Studio key                                           |
-| `ENCRYPTION_KEY`                            | AES-256 key to encrypt Garmin credentials (32 chars or 64 hex) |
-| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Strava app (optional)                                          |
-| `NEXT_PUBLIC_APP_URL`                       | Public app URL — used for the Strava OAuth callback            |
+| Variable                                    | Description                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                  | Supabase project URL                                                             |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`             | Supabase anon key                                                                |
+| `SUPABASE_SERVICE_ROLE_KEY`                 | Supabase service_role key (server-side only)                                     |
+| `GEMINI_API_KEY`                            | Google AI Studio key                                                             |
+| `ENCRYPTION_KEY`                            | AES-256 key to encrypt Garmin credentials and Strava tokens (32 chars or 64 hex) |
+| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Strava app (optional)                                                            |
+| `NEXT_PUBLIC_APP_URL`                       | Public app URL — used for the Strava OAuth callback                              |
 
 ## Scripts
 
