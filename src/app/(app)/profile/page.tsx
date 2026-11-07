@@ -64,7 +64,9 @@ function StatBlock({
   return (
     <div className="space-y-1 rounded-xl border border-border bg-card p-4">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {discipline && <DisciplineIcon discipline={discipline} className="size-3.5" />}
+        {discipline && (
+          <DisciplineIcon discipline={discipline} className="size-3.5 text-primary-ink" />
+        )}
         {label}
       </p>
       {value != null ? (
@@ -423,7 +425,7 @@ export default async function ProfilePage() {
                   gStats.training_load_7d != null ||
                   gStats.training_load_28d != null
                 ) && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {gStats.training_readiness != null && (
                       <StatBlock
                         label="Readiness"

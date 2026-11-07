@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronUp, Pencil, FlaskConical, HeartPulse } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -95,13 +95,17 @@ function Field({
   placeholder?: string
   hint?: React.ReactNode
 }) {
+  const id = useId()
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-foreground">{label}</label>
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </label>
         {unit && <span className="font-mono text-xs text-muted-foreground">{unit}</span>}
       </div>
       <Input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? '—'}

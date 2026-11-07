@@ -179,8 +179,7 @@ export function EquipmentSection({ initial }: Props) {
 
     return (
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
-          <h3 className="text-base">Matériel</h3>
+        <div className="flex items-center justify-end gap-3 border-b border-border px-5 py-4">
           <Button
             type="button"
             variant="outline-primary"
@@ -243,7 +242,7 @@ export function EquipmentSection({ initial }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="border-b border-border px-5 py-4">
-        <h3 className="text-base">Modifier le matériel</h3>
+        <h3 className="text-base">Modifier l&apos;équipement</h3>
       </div>
 
       <div className="space-y-6 px-5 py-5">
