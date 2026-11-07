@@ -26,29 +26,30 @@ export default function GlobalError({
           alignItems: 'center',
           justifyContent: 'center',
           gap: '1.5rem',
-          background: 'oklch(0.952 0.009 188.1)',
-          color: 'oklch(0.287 0.047 217.9)',
+          background: '#FDFDFE',
+          color: '#0B1A2A',
           fontFamily: 'system-ui, sans-serif',
           textAlign: 'center',
           padding: '2rem',
         }}
       >
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
           Quelque chose s&apos;est mal passé
         </h1>
-        <p style={{ color: 'oklch(0.504 0.038 203.1)', maxWidth: '28rem', margin: 0 }}>
+        <p style={{ color: '#4A5B6C', maxWidth: '28rem', margin: 0 }}>
           L&apos;application a rencontré une erreur inattendue.
         </p>
         <button
           onClick={reset}
           style={{
             border: 'none',
-            borderRadius: '0.75rem',
-            padding: '0.625rem 1.25rem',
+            borderRadius: '9999px',
+            padding: '0.75rem 1.5rem',
+            fontSize: '16px',
             fontWeight: 700,
             cursor: 'pointer',
-            background: 'oklch(0.306 0.051 209.3)',
-            color: 'oklch(1 0 0)',
+            background: '#E8492A',
+            color: '#FFFFFF',
           }}
         >
           Réessayer
