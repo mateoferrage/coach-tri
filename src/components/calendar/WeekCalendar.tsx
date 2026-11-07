@@ -17,6 +17,7 @@ import {
   topPx,
   heightPx,
   assignColumns,
+  initialScrollHour,
 } from '@/lib/calendar/layout'
 import { timeToFrac } from '@/lib/calendar/time'
 import { DISCIPLINE_LABEL } from '@/lib/plan/display'
@@ -33,6 +34,9 @@ interface TrainingSession {
   day_part: string | null
   session_time: string | null // HH:MM — set after drag-and-drop
 }
+
+/** Largeur de la colonne des heures, fixée à gauche quand la grille défile horizontalement. */
+const TIME_COL_PX = 44
 
 const DAY_PART_HOUR: Record<string, number> = {
   morning: 7,
@@ -63,6 +67,8 @@ export function WeekCalendar() {
   const gridRef = useRef<HTMLDivElement>(null)
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  // Semaine dont les données sont chargées (le défilement initial attend ces données).
+  const [loadedWeek, setLoadedWeek] = useState<string | null>(null)
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd')
 
@@ -96,9 +102,11 @@ export function WeekCalendar() {
         if (cancelled) return
         setCalEvents(evJson)
         setSessions(sessJson)
+        setLoadedWeek(weekStartStr)
       } catch {
         if (cancelled) return
         setError('Impossible de charger le calendrier.')
+        setLoadedWeek(weekStartStr)
         toast.error('Impossible de charger le calendrier.')
       } finally {
         if (!cancelled) setLoading(false)
@@ -110,12 +118,36 @@ export function WeekCalendar() {
     }
   }, [weekStart, weekStartStr, reloadKey])
 
-  // Auto-scroll: position the grid at current hour (−1h buffer) on week change
+  // Positionnement initial de la grille, une fois par semaine affichée et après chargement :
+  // verticalement sur la première séance du jour (ou une heure avant maintenant), et
+  // horizontalement sur aujourd'hui quand la grille est plus large que l'écran (mobile).
+  const scrolledWeekRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!gridRef.current) return
-    const h = Math.max(new Date().getHours() - 1, START_HOUR)
-    gridRef.current.scrollTo({ top: (h - START_HOUR) * HOUR_PX, behavior: 'instant' })
-  }, [weekStartStr])
+    const grid = gridRef.current
+    if (!grid || loadedWeek !== weekStartStr || scrolledWeekRef.current === weekStartStr) return
+    scrolledWeekRef.current = weekStartStr
+
+    const now = new Date()
+    const todayKey = format(now, 'yyyy-MM-dd')
+    const days = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'))
+    const todayIndex = days.indexOf(todayKey)
+    const inWeek = todayIndex !== -1
+    const onDay = (date: string) => (inWeek ? date === todayKey : true)
+
+    const starts = [
+      ...sessions
+        .filter((s) => onDay(s.session_date))
+        .map((s) =>
+          s.session_time ? timeToFrac(s.session_time) : (DAY_PART_HOUR[s.day_part ?? ''] ?? 7),
+        ),
+      ...calEvents.filter((e) => onDay(e.date)).map((e) => timeToFrac(e.start_time)),
+    ]
+    const h = initialScrollHour(starts, inWeek ? now.getHours() + now.getMinutes() / 60 : null)
+
+    const dayWidth = (grid.scrollWidth - TIME_COL_PX) / 7
+    const left = inWeek && grid.scrollWidth > grid.clientWidth ? todayIndex * dayWidth : 0
+    grid.scrollTo({ top: (h - START_HOUR) * HOUR_PX, left, behavior: 'instant' })
+  }, [weekStart, weekStartStr, loadedWeek, sessions, calEvents])
 
   async function refreshEvents() {
     const res = await fetch(`/api/schedule?week_start=${weekStartStr}`)
@@ -292,9 +324,9 @@ export function WeekCalendar() {
           {/* Day headers — sticky */}
           <div
             className="sticky top-0 z-10 grid border-b border-border bg-card"
-            style={{ gridTemplateColumns: '44px repeat(7, 1fr)' }}
+            style={{ gridTemplateColumns: `${TIME_COL_PX}px repeat(7, 1fr)` }}
           >
-            <div />
+            <div className="sticky left-0 z-[1] bg-card" />
             {days.map((day, i) => {
               const dStr = format(day, 'yyyy-MM-dd')
               const isToday = dStr === todayStr
@@ -320,7 +352,10 @@ export function WeekCalendar() {
           {/* Body: time column + 7 day columns */}
           <div className="flex bg-card">
             {/* Time labels */}
-            <div className="flex-shrink-0 border-r border-border bg-card" style={{ width: 44 }}>
+            <div
+              className="sticky left-0 z-[6] flex-shrink-0 border-r border-border bg-card"
+              style={{ width: TIME_COL_PX }}
+            >
               {hours.map((h) => (
                 <div
                   key={h}

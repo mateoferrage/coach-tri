@@ -170,7 +170,7 @@ export function GarminConnectCard({
               <Input
                 id="garmin-email"
                 type="email"
-                placeholder="vous@exemple.com"
+                placeholder="toi@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

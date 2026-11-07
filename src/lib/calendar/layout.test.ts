@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { topPx, heightPx, assignColumns, HOUR_PX, START_HOUR } from './layout'
+import { topPx, heightPx, assignColumns, initialScrollHour, HOUR_PX, START_HOUR } from './layout'
 
 const get = (x: { s: number; e: number }) => [x.s, x.e] as const
 
@@ -66,5 +66,24 @@ describe('assignColumns', () => {
       (x) => get(x)[1],
     )
     expect(out.every((o) => o.cols === 1)).toBe(true)
+  })
+})
+
+describe('initialScrollHour', () => {
+  it("ouvre une heure avant maintenant quand rien n'est plus tôt", () => {
+    expect(initialScrollHour([18], 13.25)).toBe(12)
+  })
+
+  it('remonte à la séance du matin du jour', () => {
+    expect(initialScrollHour([7], 13.25)).toBe(7)
+  })
+
+  it('ouvre sur le premier créneau hors de la semaine en cours', () => {
+    expect(initialScrollHour([12, 9.5], null)).toBe(9)
+  })
+
+  it('reste dans les bornes de la grille', () => {
+    expect(initialScrollHour([], 3)).toBe(START_HOUR)
+    expect(initialScrollHour([], null)).toBe(START_HOUR)
   })
 })

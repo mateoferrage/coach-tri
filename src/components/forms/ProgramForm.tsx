@@ -363,7 +363,7 @@ export function ProgramForm({
               <CardContent>
                 <p className="text-sm text-muted-foreground">
                   Programme continu sans date de fin. L&apos;IA génère 12 semaines de base,
-                  renouvelables automatiquement selon vos données Garmin.
+                  renouvelables automatiquement selon tes données Garmin.
                 </p>
               </CardContent>
             </Card>

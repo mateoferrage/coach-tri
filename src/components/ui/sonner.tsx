@@ -30,11 +30,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
+          // Police de l'app : Sonner impose sinon la police système.
+          fontFamily: 'var(--font-sans)',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: 'cn-toast',
+          // La DA n'autorise pas d'ombre sur les toasts : un filet suffit.
+          toast: 'cn-toast font-sans shadow-none!',
         },
       }}
       {...props}

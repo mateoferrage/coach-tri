@@ -79,7 +79,7 @@ export default async function ProgramPage() {
       <div className="flex flex-col items-center justify-center space-y-4 py-20 text-center">
         <h1 className="text-3xl md:text-4xl">Aucun programme actif</h1>
         <p className="text-muted-foreground">
-          Créez votre premier programme pour commencer à vous entraîner.
+          Crée ton premier programme pour commencer à t&apos;entraîner.
         </p>
         <Link href="/program/new" className={buttonVariants({ variant: 'highlight', size: 'lg' })}>
           Créer un programme

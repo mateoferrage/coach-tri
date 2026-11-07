@@ -200,7 +200,7 @@ export function OnboardingFlow({
 
   function onStep2() {
     if (selectedDisciplines.length === 0) {
-      toast.error('Sélectionnez au moins une discipline')
+      toast.error('Sélectionne au moins une discipline')
       return
     }
     setStep(3)
@@ -229,7 +229,7 @@ export function OnboardingFlow({
         })
         if (!garminRes.ok) {
           toast.warning(
-            'Profil sauvegardé mais connexion Garmin échouée. Configurez-la depuis votre profil.',
+            'Profil sauvegardé mais connexion Garmin échouée. Configure-la depuis ton profil.',
           )
         }
       }
@@ -270,11 +270,7 @@ export function OnboardingFlow({
 
       {step === 1 && (
         <>
-          <StepHeader
-            headingRef={headingRef}
-            title="Votre profil"
-            description="Dites-nous qui vous êtes"
-          />
+          <StepHeader headingRef={headingRef} title="Ton profil" description="Dis-nous qui tu es" />
           <form onSubmit={form1.handleSubmit(onStep1)} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="first_name">Prénom</Label>
@@ -356,8 +352,8 @@ export function OnboardingFlow({
           <div id={disciplinesLabelId}>
             <StepHeader
               headingRef={headingRef}
-              title="Vos disciplines"
-              description="Quelles disciplines pratiquez-vous ?"
+              title="Tes disciplines"
+              description="Quelles disciplines pratiques-tu ?"
             />
           </div>
           <div className="space-y-6">
@@ -402,7 +398,7 @@ export function OnboardingFlow({
             description={
               isEditing
                 ? 'Enregistre tes modifications.'
-                : 'Optionnel — connectez votre compte Garmin pour synchroniser vos activités. Vos identifiants sont chiffrés AES-256.'
+                : 'Optionnel — connecte ton compte Garmin pour synchroniser tes activités. Tes identifiants sont chiffrés AES-256.'
             }
           />
           <form onSubmit={form3.handleSubmit(onStep3)} className="space-y-5">
