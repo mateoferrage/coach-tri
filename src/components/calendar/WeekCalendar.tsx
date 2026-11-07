@@ -201,7 +201,7 @@ export function WeekCalendar() {
   return (
     <div className="flex flex-col" style={{ minHeight: 0, flex: 1 }}>
       {/* ── Controls ── */}
-      <div className="mb-4 flex flex-shrink-0 items-center justify-between gap-2">
+      <div className="mb-4 flex flex-shrink-0 flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -211,7 +211,7 @@ export function WeekCalendar() {
           >
             <ChevronLeft aria-hidden />
           </Button>
-          <span className="min-w-[180px] px-2 text-center text-sm font-semibold text-foreground tabular-nums">
+          <span className="min-w-0 px-2 text-center text-sm font-semibold text-foreground tabular-nums sm:min-w-[180px]">
             {format(weekStart, 'd MMM', { locale: fr })} –{' '}
             {format(addDays(weekStart, 6), 'd MMM yyyy', { locale: fr })}
           </span>
@@ -300,12 +300,7 @@ export function WeekCalendar() {
               const isToday = dStr === todayStr
               return (
                 <div key={i} className="px-1 pt-2.5 pb-2 text-center">
-                  <div
-                    className={cn(
-                      'text-xs font-semibold',
-                      isToday ? 'text-highlight-deep' : 'text-muted-foreground',
-                    )}
-                  >
+                  <div className="text-xs font-semibold text-muted-foreground">
                     {format(day, 'EEE', { locale: fr })}
                   </div>
                   <div
