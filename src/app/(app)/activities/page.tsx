@@ -71,11 +71,12 @@ function heroDistance(m: number | null, isSwim = false): { value: string; unit: 
 
 function heroDuration(s: number | null): { value: string; unit: string } | null {
   if (!s) return null
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  return h > 0
-    ? { value: `${h} h ${String(m).padStart(2, '0')}`, unit: '' }
-    : { value: String(m), unit: 'min' }
+  // Même arrondi que formatDurationS (formatDuration) : 3599 s → 1 h.
+  const minutes = Math.round(s / 60)
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return { value: String(m), unit: 'min' }
+  return { value: m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`, unit: '' }
 }
 
 function formatDateHeader(iso: string): string {
@@ -141,10 +142,6 @@ function ActivityRow({ activity }: { activity: UnifiedActivity }) {
           </p>
           <p className="text-xs text-muted-foreground">
             <span className="font-semibold text-primary-ink">{sport.label}</span>
-            {' · '}
-            <span className="capitalize">
-              {format(new Date(activity.started_at), 'EEE d MMM', { locale: fr })}
-            </span>
             {' · '}
             <span className="tabular-nums">{formatTime(activity.started_at)}</span>
           </p>
@@ -246,7 +243,7 @@ export default async function ActivitiesPage() {
           <h1 className="text-3xl md:text-4xl">Activités</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <GarminSyncButton />
+          {list.length > 0 && <GarminSyncButton />}
           <AddActivityModal />
         </div>
       </div>
