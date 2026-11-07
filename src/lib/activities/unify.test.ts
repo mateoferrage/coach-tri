@@ -146,14 +146,49 @@ describe('mergeActivities', () => {
     expect(out[0].sources).toEqual(['strava'])
   })
 
-  it("n'apparie jamais une activité manuelle Garmin", () => {
-    const out = mergeActivities([g({ id: 'g1', garmin_activity_id: -3 })], [s({ id: 's1' })])
-    expect(out).toHaveLength(2)
+  it('masque une saisie manuelle qui correspond à une activité Strava', () => {
+    const out = mergeActivities(
+      [g({ id: 'm1', garmin_activity_id: -3, activity_type: 'bike' })],
+      [s({ id: 's1', activity_type: 'bike', started_at: '2026-06-10T06:01:00+00:00' })],
+    )
+    expect(out.map((a) => a.id)).toEqual(['s1'])
   })
 
-  it('ne dédoublonne pas les disciplines hors run/bike/swim', () => {
+  it('masque une saisie manuelle qui correspond à une activité Garmin synchronisée', () => {
     const out = mergeActivities(
-      [g({ id: 'g1', activity_type: 'strength' })],
+      [g({ id: 'm1', garmin_activity_id: -3 }), g({ id: 'g1', garmin_activity_id: 7 })],
+      [],
+    )
+    expect(out.map((a) => a.id)).toEqual(['g1'])
+  })
+
+  it('garde une saisie manuelle sans correspondance', () => {
+    const out = mergeActivities(
+      [g({ id: 'm1', garmin_activity_id: -3, started_at: '2026-06-10T09:00:00+00:00' })],
+      [s({ id: 's1' })],
+    )
+    expect(out).toHaveLength(2)
+    expect(out.find((a) => a.id === 'm1')?.is_manual).toBe(true)
+  })
+
+  it('fusionne Strava « other » avec Garmin strength ou triathlon', () => {
+    const out = mergeActivities(
+      [
+        g({ id: 'g1', activity_type: 'strength' }),
+        g({ id: 'g2', activity_type: 'triathlon', started_at: '2026-06-12T06:00:00+00:00' }),
+      ],
+      [
+        s({ id: 's1', activity_type: 'other' }),
+        s({ id: 's2', activity_type: 'other', started_at: '2026-06-12T06:03:00+00:00' }),
+      ],
+    )
+    expect(out).toHaveLength(2)
+    expect(out.every((a) => a.sources.length === 2)).toBe(true)
+  })
+
+  it('ne fusionne pas Strava « other » avec une course Garmin', () => {
+    const out = mergeActivities(
+      [g({ id: 'g1', activity_type: 'run' })],
       [s({ id: 's1', activity_type: 'other' })],
     )
     expect(out).toHaveLength(2)
