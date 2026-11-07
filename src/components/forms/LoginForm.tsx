@@ -61,54 +61,57 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-1.5">
-        <Label htmlFor="email" className="text-sm font-medium">
-          Email
-        </Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="vous@exemple.com"
-          className="h-10"
-          {...register('email')}
-        />
-        {errors.email && (
-          <p role="alert" className="text-sm text-destructive">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+    <>
+      <h1 className="text-3xl">{isSignUp ? 'Créer un compte' : 'Connexion'}</h1>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-sm font-medium">
+            Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="vous@exemple.com"
+            className="h-10"
+            {...register('email')}
+          />
+          {errors.email && (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="password" className="text-sm font-medium">
-          Mot de passe
-        </Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          className="h-10"
-          {...register('password')}
-        />
-        {errors.password && (
-          <p role="alert" className="text-sm text-destructive">
-            {errors.password.message}
-          </p>
-        )}
-      </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-sm font-medium">
+            Mot de passe
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            className="h-10"
+            {...register('password')}
+          />
+          {errors.password && (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
 
-      <Button type="submit" variant="highlight" size="lg" className="w-full" disabled={loading}>
-        {loading ? 'Chargement…' : isSignUp ? 'Créer un compte' : 'Se connecter'}
-      </Button>
+        <Button type="submit" variant="highlight" size="lg" className="w-full" disabled={loading}>
+          {loading ? 'Chargement…' : isSignUp ? 'Créer un compte' : 'Se connecter'}
+        </Button>
 
-      <button
-        type="button"
-        className="w-full rounded-md text-sm font-medium text-primary-ink hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-        onClick={() => setIsSignUp(!isSignUp)}
-      >
-        {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
-      </button>
-    </form>
+        <button
+          type="button"
+          className="w-full rounded-md text-sm font-medium text-primary-ink hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+          onClick={() => setIsSignUp(!isSignUp)}
+        >
+          {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
+        </button>
+      </form>
+    </>
   )
 }

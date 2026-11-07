@@ -35,7 +35,7 @@ export default async function OnboardingPage() {
   const isEditing = !!profile?.first_name
 
   return (
-    <div className="flex min-h-screen justify-center bg-primary px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="flex min-h-dvh justify-center bg-primary px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="w-full max-w-xl py-10">
         <div className="mb-8 flex justify-center">
           <Logo tone="light" className="text-2xl" />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -54,7 +54,7 @@ const SEXES = [
 const TOTAL_STEPS = 3
 
 const PILL =
-  'inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+  'inline-flex items-center gap-2 rounded-full border-[1.5px] px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring'
 const PILL_ON = 'border-primary bg-accent text-primary-ink'
 const PILL_OFF = 'border-border bg-card text-foreground hover:border-primary/40'
 
@@ -116,10 +116,20 @@ function ChoicePills({
   )
 }
 
-function StepHeader({ title, description }: { title: string; description: string }) {
+function StepHeader({
+  title,
+  description,
+  headingRef,
+}: {
+  title: string
+  description: string
+  headingRef: RefObject<HTMLHeadingElement | null>
+}) {
   return (
     <div className="mb-6 space-y-1">
-      <h2 className="text-2xl">{title}</h2>
+      <h2 ref={headingRef} tabIndex={-1} className="text-2xl outline-none">
+        {title}
+      </h2>
       <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
@@ -167,6 +177,15 @@ export function OnboardingFlow({
   const sex = useWatch({ control: form1.control, name: 'sex' })
   const level = useWatch({ control: form1.control, name: 'level' })
   const disciplinesLabelId = useId()
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const previousStep = useRef(step)
+
+  // Au changement d'étape (pas au premier rendu), le focus va au titre de la nouvelle étape.
+  useEffect(() => {
+    if (previousStep.current === step) return
+    previousStep.current = step
+    headingRef.current?.focus()
+  }, [step])
 
   function toggleDiscipline(id: string) {
     setSelectedDisciplines((prev) =>
@@ -234,7 +253,7 @@ export function OnboardingFlow({
     <div className="rounded-xl bg-card p-6 sm:p-8">
       <div className="mb-6 space-y-2">
         <div className="flex gap-2">
-          {[1, 2, 3].map((s) => (
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((s) => (
             <div
               key={s}
               className={cn(
@@ -251,7 +270,11 @@ export function OnboardingFlow({
 
       {step === 1 && (
         <>
-          <StepHeader title="Votre profil" description="Dites-nous qui vous êtes" />
+          <StepHeader
+            headingRef={headingRef}
+            title="Votre profil"
+            description="Dites-nous qui vous êtes"
+          />
           <form onSubmit={form1.handleSubmit(onStep1)} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="first_name">Prénom</Label>
@@ -322,7 +345,7 @@ export function OnboardingFlow({
             />
 
             <Button type="submit" variant="highlight" size="lg" className="w-full">
-              {isEditing ? 'Suivant' : 'Suivant'}
+              Suivant
             </Button>
           </form>
         </>
@@ -332,6 +355,7 @@ export function OnboardingFlow({
         <>
           <div id={disciplinesLabelId}>
             <StepHeader
+              headingRef={headingRef}
               title="Vos disciplines"
               description="Quelles disciplines pratiquez-vous ?"
             />
@@ -373,6 +397,7 @@ export function OnboardingFlow({
       {step === 3 && (
         <>
           <StepHeader
+            headingRef={headingRef}
             title={isEditing ? 'Finaliser' : 'Connexion Garmin'}
             description={
               isEditing

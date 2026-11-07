@@ -5,7 +5,7 @@ export const metadata = { title: 'Connexion — Coach Tri' }
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="flex min-h-dvh items-center justify-center bg-primary px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="w-full max-w-sm space-y-8 py-12">
         <div className="space-y-3 text-center">
           <Logo tone="light" className="text-4xl" />
@@ -15,7 +15,6 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-6 rounded-xl bg-card p-8">
-          <h1 className="text-3xl">Connexion</h1>
           <LoginForm />
         </div>
 
