@@ -5,6 +5,7 @@ import { decryptCredential } from '@/lib/utils/crypto'
 import { buildGarminClient, type StoredTokens } from '@/lib/garmin/client'
 import { asJson } from '@/lib/utils/json'
 import type { TablesInsert } from '@/types/db'
+import { fixEncoding } from '@/lib/garmin/encoding'
 
 const MAX_DAYS = 14
 
@@ -121,16 +122,6 @@ function mapActivity(a: any): GarminActivity | null {
     aerobic_te: a.aerobicTrainingEffect ?? null,
     anaerobic_te: a.anaerobicTrainingEffect ?? null,
     raw_data: a,
-  }
-}
-
-/* ── Encoding fix (Garmin lib returns latin-1 as UTF-8 sometimes) ────────── */
-function fixEncoding(s: string | null | undefined): string | null {
-  if (!s) return null
-  try {
-    return Buffer.from(s, 'latin1').toString('utf8')
-  } catch {
-    return s
   }
 }
 
