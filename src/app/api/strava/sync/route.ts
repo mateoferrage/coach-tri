@@ -48,7 +48,8 @@ export async function POST() {
     activities = await getActivitiesForSync(tokens.access_token, afterTimestamp, 30)
   } catch (err) {
     const status = err instanceof StravaApiError ? err.status : null
-    console.error('[strava/sync] activities fetch failed', { status })
+    const body = err instanceof StravaApiError ? err.body : String(err)
+    console.error('[strava/sync] activities fetch failed', { status, body })
     return apiError(stravaSyncErrorMessage(status), 502)
   }
 
