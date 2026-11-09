@@ -6,6 +6,8 @@ import type { MacroPlan } from '@/lib/schemas/plan'
 /** La structure du plan engage toute la préparation : on laisse l'IA réfléchir. */
 const MACRO_THINKING_BUDGET = 2048
 const MAX_ATTEMPTS = 2
+const MIN_LOAD_SHARE = 0.5
+const RECOVERY_SHARE = 0.65
 
 /**
  * Normalise les phases et liste tout ce qui rend la réponse inexploitable :
@@ -69,6 +71,26 @@ export function applyLevelRules(weeks: MacroPlan['weeks'], level: string | null)
 }
 
 /**
+ * Garde-fou sur le volume : une semaine de charge ne descend pas sous la moitié de
+ * la disponibilité déclarée. L'historique des montres est souvent incomplet et ne
+ * doit pas écraser ce que l'athlète annonce. L'affûtage et la course sont exclus.
+ */
+export function applyVolumeFloor(weeks: MacroPlan['weeks'], weeklyHours: number | null) {
+  if (!weeklyHours) return weeks
+  return weeks.map((w) => {
+    if (w.phase === 'taper' || w.phase === 'race') return w
+    const floor = weeklyHours * MIN_LOAD_SHARE * (w.is_recovery_week ? RECOVERY_SHARE : 1)
+    if (w.planned_volume_hours >= floor) return w
+    const hours = Math.round(floor * 10) / 10
+    return {
+      ...w,
+      planned_volume_hours: hours,
+      planned_tss: Math.round((w.planned_tss * hours) / w.planned_volume_hours),
+    }
+  })
+}
+
+/**
  * Génère et normalise la structure macro (phases + semaines) via l'IA, avec une
  * nouvelle tentative corrigée si la réponse est invalide.
  * Lève une Error avec message explicite si elle reste inexploitable.
@@ -91,7 +113,10 @@ export async function generateMacroWeeks(
     if (!result.errors.length) {
       return {
         phases: result.plan.phases,
-        weeks: applyLevelRules(result.plan.weeks, input.profile.level),
+        weeks: applyVolumeFloor(
+          applyLevelRules(result.plan.weeks, input.profile.level),
+          input.profile.weekly_hours_avg,
+        ),
       }
     }
     errors = result.errors

@@ -426,7 +426,7 @@ PROGRAMME :
 - Début : ${ctx.start_date}
 - Durée totale : ${ctx.total_weeks} semaines
 
-${ctx.recent_activity_summary ? `HISTORIQUE RÉCENT :\n${ctx.recent_activity_summary}` : ''}
+${ctx.recent_activity_summary ? `HISTORIQUE RÉCENT (activités enregistrées, peut être incomplet) :\n${ctx.recent_activity_summary}` : ''}
 ${ctx.recent_wellness_summary ? `\nDONNÉES BIEN-ÊTRE :\n${ctx.recent_wellness_summary}` : ''}
 
 Génère la structure complète du programme en JSON avec ce format EXACT :
@@ -459,7 +459,8 @@ Règles :
 - La somme de "distribution" vaut 1 pour chaque semaine
 - Semaines de récupération toutes les ${cycle} semaines${cycle === 3 ? ' (athlète Masters : 2 semaines de charge + 1 de récupération)' : ''} (is_recovery_week: true, volume réduit de 35%)
 - La disponibilité hebdomadaire est un plafond : aucune semaine ne la dépasse
-- Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)${ctx.recent_activity_summary ? ', sans dépasser de plus de 15% le volume moyen réel de son historique récent' : ''}
+- Le volume cible est la disponibilité hebdomadaire : les semaines de charge les plus hautes doivent en être proches (90-100%)
+- Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)${ctx.recent_activity_summary ? ". L'historique peut être incomplet (séances non enregistrées) : s'il est nettement plus bas, descends jusqu'à 50% du volume cible, jamais en dessous" : ''}
 - La dernière semaine (taper final) doit avoir un volume de 40-50% du pic
 - planned_tss cohérent avec le volume et l'intensité (1h Z2 vélo ≈ 50 TSS, 1h run Z2 ≈ 60 TSS)
 - L'ambition de chaque course (terminer, temps visé, podium) détermine la part de travail à allure spécifique en phases build et peak
