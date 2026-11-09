@@ -214,7 +214,7 @@ export async function POST(request: Request) {
   try {
     aiResponse = await generateJSON<ChatResponse>(COACH_CHAT_SYSTEM, fullPrompt, {
       temperature: 0.85,
-      lightFirst: true,
+      conversation: true,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erreur IA'

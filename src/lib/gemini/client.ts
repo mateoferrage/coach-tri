@@ -1,12 +1,12 @@
 import { GoogleGenAI } from '@google/genai'
 
-// Offre gratuite : quota journalier très bas (20 requêtes pour 2.5 Flash). Les
-// modèles suivants prennent le relais quand le précédent est épuisé ou indisponible.
+// Offre gratuite : quota journalier très bas et propre à chaque modèle. Les modèles
+// suivants prennent le relais quand le précédent est épuisé ou indisponible.
 // Tous doivent accepter `thinkingBudget: 0` (ce n'est pas le cas de 3.5 Flash-Lite).
-const MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
-// Conversation et bilans de séance : on préserve les modèles les plus capables
-// pour la génération des programmes.
-const LIGHT_FIRST_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash']
+export const PROGRAM_MODEL = 'gemini-3.1-flash-lite'
+const PROGRAM_MODELS = [PROGRAM_MODEL, 'gemini-3.5-flash', 'gemini-2.5-flash']
+// Conversation et bilans de séance : on préserve le quota du modèle des programmes.
+const CONVERSATION_MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash', PROGRAM_MODEL]
 
 const QUOTA_MESSAGE = "Quota quotidien de l'IA atteint, réessaie demain matin."
 
@@ -65,7 +65,7 @@ export async function callWithModelFallback<T>(
 }
 
 /**
- * Generate JSON content via Gemini 2.5 Flash.
+ * Generate JSON content via Gemini, with model fallback.
  * Thinking is disabled by default for speed and cost; pass `thinkingBudget`
  * where reasoning quality matters more than latency.
  * Returns parsed JSON of type T.
@@ -73,12 +73,12 @@ export async function callWithModelFallback<T>(
 export async function generateJSON<T>(
   systemPrompt: string,
   userPrompt: string,
-  options?: { temperature?: number; thinkingBudget?: number; lightFirst?: boolean },
+  options?: { temperature?: number; thinkingBudget?: number; conversation?: boolean },
 ): Promise<T> {
   const ai = getClient()
 
   const response = await callWithModelFallback(
-    options?.lightFirst ? LIGHT_FIRST_MODELS : MODELS,
+    options?.conversation ? CONVERSATION_MODELS : PROGRAM_MODELS,
     (model) =>
       ai.models.generateContent({
         model,

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PROGRAM_MODEL } from '@/lib/gemini/client'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import type { PlanWeekOverview, buildMacroPrompt } from '@/lib/gemini/prompts'
 import type { MacroPlan, MicroSessions, PlanParams } from '@/lib/schemas/plan'
@@ -247,7 +248,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     plan_id,
     trigger: 'adjustment',
     scope: { from_week: cutoffWeek, goal_ids, new_total_weeks: newTotalWeeks },
-    model: 'gemini-2.5-flash',
+    model: PROGRAM_MODEL,
     response_meta: {
       preserved: scope.preservedWeeks.length,
       regenerated: scope.regenerateWeeks.length,

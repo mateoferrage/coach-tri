@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PROGRAM_MODEL } from '@/lib/gemini/client'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { generateWeekSessions, replaceWeekSessions } from '@/lib/plan/micro'
@@ -97,7 +98,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     plan_id,
     trigger: 'week_regenerate',
     scope: { week_num },
-    model: 'gemini-2.5-flash',
+    model: PROGRAM_MODEL,
     response_meta: { sessions_generated: sessions.length },
   })
 

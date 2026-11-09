@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PROGRAM_MODEL } from '@/lib/gemini/client'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { PlanGenerationSchema, type MacroPlan, type PlanParams } from '@/lib/schemas/plan'
 import { generateMacroWeeks, toWeekColumns } from '@/lib/plan/macro'
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
     plan_id: plan.id,
     trigger: 'initial',
     scope: { weeks: [1, total_weeks] },
-    model: 'gemini-2.5-flash',
+    model: PROGRAM_MODEL,
     response_meta: { weeks_generated: normalizedWeeks.length },
   })
 
