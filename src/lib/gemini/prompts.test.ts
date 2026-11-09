@@ -163,6 +163,23 @@ describe('buildMacroPrompt (profil et objectifs)', () => {
     expect(out).toContain('temps visé 2:15:00')
     expect(out).toContain('course 45:00')
   })
+  it("ne plafonne pas le volume sur l'historique des montres", () => {
+    const out = buildMacroPrompt({
+      ...macroBase,
+      recent_activity_summary: 'Volume moyen réel : 1.3h/semaine',
+    })
+    expect(out).not.toContain('sans dépasser de plus de 15%')
+    expect(out).toContain('jamais en dessous')
+    expect(out).toContain('peut être incomplet')
+  })
+  it('part du volume actuel déclaré, plafonné à la disponibilité', () => {
+    const out = buildMacroPrompt({ ...macroBase, current_weekly_hours: 4 })
+    expect(out).toContain('Volume actuel déclaré : 4h/semaine')
+    expect(out).toContain('Volume de la semaine 1 = 4h')
+    expect(buildMacroPrompt({ ...macroBase, current_weekly_hours: 15 })).toContain(
+      'Volume de la semaine 1 = 10h',
+    )
+  })
   it('impose la liste des phases', () => {
     expect(buildMacroPrompt(macroBase)).toContain('prep, base, build, peak, taper, race')
   })
