@@ -1,6 +1,14 @@
 import { GoogleGenAI } from '@google/genai'
 
-const MODEL = 'gemini-2.5-flash'
+// Offre gratuite : quota journalier très bas (20 requêtes pour 2.5 Flash). Les
+// modèles suivants prennent le relais quand le précédent est épuisé ou indisponible.
+// Tous doivent accepter `thinkingBudget: 0` (ce n'est pas le cas de 3.5 Flash-Lite).
+const MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite']
+// Conversation et bilans de séance : on préserve les modèles les plus capables
+// pour la génération des programmes.
+const LIGHT_FIRST_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash']
+
+const QUOTA_MESSAGE = "Quota quotidien de l'IA atteint, réessaie demain matin."
 
 function getClient() {
   const apiKey = process.env.GEMINI_API_KEY
@@ -11,6 +19,14 @@ function getClient() {
 const RATE_LIMIT_DELAY_MS = 20_000
 const RATE_LIMIT_RETRIES = 2
 
+function isDailyQuotaError(err: unknown): boolean {
+  return (
+    (err as { status?: number }).status === 429 &&
+    err instanceof Error &&
+    err.message.includes('PerDay')
+  )
+}
+
 /** Un dépassement de quota à la minute se résorbe vite : on patiente au lieu d'échouer. */
 export async function retryOnRateLimit<T>(
   call: () => Promise<T>,
@@ -20,15 +36,32 @@ export async function retryOnRateLimit<T>(
     try {
       return await call()
     } catch (err: unknown) {
-      if ((err as { status?: number }).status !== 429) throw err
-      // Le quota journalier ne se recharge pas à la minute : inutile de patienter.
-      if (err instanceof Error && err.message.includes('PerDay')) {
-        throw new Error("Quota quotidien de l'IA atteint, réessaie plus tard.")
-      }
-      if (retriesLeft === 0) throw err
+      const isRateLimit = (err as { status?: number }).status === 429
+      if (!isRateLimit || isDailyQuotaError(err) || retriesLeft === 0) throw err
       await new Promise((resolve) => setTimeout(resolve, delayMs))
     }
   }
+}
+
+/** Essaie chaque modèle dans l'ordre tant que le précédent est épuisé ou indisponible. */
+export async function callWithModelFallback<T>(
+  models: string[],
+  call: (model: string) => Promise<T>,
+  delayMs = RATE_LIMIT_DELAY_MS,
+): Promise<T> {
+  let quotaExhausted = false
+  let lastError: unknown
+  for (const model of models) {
+    try {
+      return await retryOnRateLimit(() => call(model), delayMs)
+    } catch (err: unknown) {
+      const status = (err as { status?: number }).status
+      if (isDailyQuotaError(err)) quotaExhausted = true
+      else if (status !== 404 && status !== 503) throw err
+      lastError = err
+    }
+  }
+  throw quotaExhausted ? new Error(QUOTA_MESSAGE) : lastError
 }
 
 /**
@@ -40,21 +73,23 @@ export async function retryOnRateLimit<T>(
 export async function generateJSON<T>(
   systemPrompt: string,
   userPrompt: string,
-  options?: { temperature?: number; thinkingBudget?: number },
+  options?: { temperature?: number; thinkingBudget?: number; lightFirst?: boolean },
 ): Promise<T> {
   const ai = getClient()
 
-  const response = await retryOnRateLimit(() =>
-    ai.models.generateContent({
-      model: MODEL,
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        thinkingConfig: { thinkingBudget: options?.thinkingBudget ?? 0 },
-        responseMimeType: 'application/json',
-        temperature: options?.temperature ?? 0.7,
-      },
-    }),
+  const response = await callWithModelFallback(
+    options?.lightFirst ? LIGHT_FIRST_MODELS : MODELS,
+    (model) =>
+      ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        config: {
+          systemInstruction: systemPrompt,
+          thinkingConfig: { thinkingBudget: options?.thinkingBudget ?? 0 },
+          responseMimeType: 'application/json',
+          temperature: options?.temperature ?? 0.7,
+        },
+      }),
   )
 
   // Filter out thinking parts (thought === true) and collect text

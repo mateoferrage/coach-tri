@@ -15,8 +15,8 @@ type Session = MicroSessions['sessions'][number]
 const MAX_ATTEMPTS = 2
 /** En dessous de ce volume restant, la semaine est considérée comme terminée. */
 const MIN_REMAINING_HOURS = 0.25
-/** Le prompt demande ±10 % ; on ne relance l'IA qu'au-delà de cette marge. */
-const VOLUME_TOLERANCE = 0.15
+/** La réflexion ne consomme pas de requête du quota et fiabilise le calcul du volume. */
+const MICRO_THINKING_BUDGET = 1024
 
 const VALID_SESSION_TYPES = new Set([
   'easy',
@@ -100,14 +100,6 @@ export function validateMicroSessions(
   return { valid, violations }
 }
 
-/** Écart de volume à corriger, ou null si la semaine est dans la tolérance. */
-export function volumeViolation(sessions: Session[], targetHours: number): string | null {
-  const targetMin = Math.round(targetHours * 60)
-  const totalMin = sessions.reduce((acc, s) => acc + s.duration_min, 0)
-  if (Math.abs(totalMin - targetMin) <= targetMin * VOLUME_TOLERANCE) return null
-  return `volume total de ${totalMin} min au lieu de ${targetMin} min : ajuste les durées pour atteindre la cible à 10% près`
-}
-
 /**
  * Génère les séances d'une semaine et vérifie qu'elles respectent le programme,
  * avec une nouvelle tentative corrigée. Renvoie `[]` sans appeler l'IA s'il ne
@@ -134,10 +126,9 @@ export async function generateWeekSessions(
     const raw = await generateJSON<Partial<MicroSessions>>(
       TRIATHLON_COACH_SYSTEM,
       userPrompt + correction,
+      { thinkingBudget: MICRO_THINKING_BUDGET },
     )
     const { valid, violations } = validateMicroSessions(raw.sessions ?? [], constraints)
-    const volumeIssue = valid.length ? volumeViolation(valid, targetHours) : null
-    if (volumeIssue) violations.push(volumeIssue)
     if (valid.length && !violations.length) return valid
     // À nombre égal de séances, la réponse corrigée est la meilleure.
     if (valid.length >= best.length) best = valid

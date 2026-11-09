@@ -28,10 +28,6 @@ export interface MicroReplanOverrides {
   training_disciplines: string[]
   complementary_disciplines: string[]
   plan_overview: PlanWeekOverview[]
-  /** Seules les semaines antérieures à celle-ci sont lues en base. */
-  cutoff_week: number
-  /** Semaines de la nouvelle fin de plan déjà générées, dans l'ordre. */
-  generated_weeks: PriorWeek[]
 }
 
 const SESSION_HISTORY_COLUMNS =
@@ -213,8 +209,7 @@ export async function buildMicroInputForWeek(params: {
     }))
 
   // ── Prior weeks with their generated sessions ────────────────────────────────
-  const dbPriorLimit = replan ? Math.min(replan.cutoff_week, week_num) : week_num
-  const priorWeekRows = allPlanWeeks.filter((w) => (w.week_num as number) < dbPriorLimit)
+  const priorWeekRows = allPlanWeeks.filter((w) => (w.week_num as number) < week_num)
   let priorWeeks: PriorWeek[] = []
 
   if (priorWeekRows.length > 0) {
@@ -244,7 +239,6 @@ export async function buildMicroInputForWeek(params: {
       sessions: (sessionsByWeekId.get(w.id as string) ?? []).map(toPriorSession),
     }))
   }
-  if (replan) priorWeeks = [...priorWeeks, ...replan.generated_weeks]
 
   // ── Wellness summary ─────────────────────────────────────────────────────────
   const wellnessSummary = wellness.length

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
-import type { PlanWeekOverview, PriorWeek, buildMacroPrompt } from '@/lib/gemini/prompts'
+import type { PlanWeekOverview, buildMacroPrompt } from '@/lib/gemini/prompts'
 import type { MacroPlan, MicroSessions, PlanParams } from '@/lib/schemas/plan'
 import { generateMacroWeeks, toWeekColumns } from '@/lib/plan/macro'
 import { buildMicroInputForWeek } from '@/lib/plan/micro-context'
@@ -14,8 +14,9 @@ import { computeReplanScope } from '@/lib/plan/replan'
 import { addWeeks, format, parseISO } from 'date-fns'
 import { z } from 'zod'
 
-// Une génération IA par semaine restante, enchaînées pour que chacune voie la précédente.
-export const maxDuration = 300
+// Quota IA gratuit : seule la première semaine recalculée est générée ici, les
+// suivantes le sont à la demande, chacune voyant alors les précédentes.
+export const maxDuration = 120
 
 const BodySchema = z.object({
   goal_ids: z.array(z.string().uuid()).min(1).max(3),
@@ -108,7 +109,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // 3. Tout générer en mémoire : tant que ce n'est pas terminé, rien n'est écrit
   // et un échec de l'IA laisse le plan exactement tel qu'il était.
   let macro: { phases: MacroPlan['phases']; weeks: MacroPlan['weeks'] }
-  const microByWeek = new Map<number, MicroSessions['sessions']>()
+  let firstWeekSessions: MicroSessions['sessions'] = []
   const weekStart = (weekNum: number) =>
     format(addWeeks(parseISO(plan.start_date), weekNum - 1), 'yyyy-MM-dd')
 
@@ -133,50 +134,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ...weeks.filter((w) => w.week_num < cutoffWeek),
       ...tailWeeks,
     ]
-    const existingIdByNum = new Map(weeks.map((w) => [w.week_num, w.id]))
-    const generatedWeeks: PriorWeek[] = []
-
-    for (const week of tailWeeks) {
-      const input = await buildMicroInputForWeek({
-        supabase,
-        admin,
-        userId: user.id,
-        plan_id,
-        week: {
-          ...week,
-          id: existingIdByNum.get(week.week_num),
-          start_date: weekStart(week.week_num),
-        },
-        replan: {
-          goals: goalContexts,
-          training_disciplines: trainingDisciplines,
-          complementary_disciplines: complementaryDisciplines,
-          plan_overview: planOverview,
-          cutoff_week: cutoffWeek,
-          generated_weeks: generatedWeeks,
-        },
-      })
-      const sessions = await generateWeekSessions(input)
-      microByWeek.set(week.week_num, sessions)
-      generatedWeeks.push({
-        week_num: week.week_num,
-        phase: week.phase,
-        is_recovery_week: week.is_recovery_week,
-        planned_volume_hours: week.planned_volume_hours,
-        planned_tss: week.planned_tss,
-        sessions: sessions.map((s) => ({
-          session_date: s.session_date,
-          discipline: s.discipline,
-          session_type: s.session_type,
-          title: s.title,
-          duration_min: s.duration_min,
-          planned_tss: s.planned_tss,
-          target_zone: s.target_zone,
-          status: 'planned',
-          actual_rpe: null,
-          actual_duration_min: null,
-        })),
-      })
+    const [firstWeek] = tailWeeks
+    if (firstWeek) {
+      firstWeekSessions = await generateWeekSessions(
+        await buildMicroInputForWeek({
+          supabase,
+          admin,
+          userId: user.id,
+          plan_id,
+          week: {
+            ...firstWeek,
+            id: weeks.find((w) => w.week_num === firstWeek.week_num)?.id,
+            start_date: weekStart(firstWeek.week_num),
+          },
+          replan: {
+            goals: goalContexts,
+            training_disciplines: trainingDisciplines,
+            complementary_disciplines: complementaryDisciplines,
+            plan_overview: planOverview,
+          },
+        }),
+      )
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur Gemini'
@@ -247,14 +225,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .insert(macro.phases.map((p) => ({ plan_id, ...p })))
   if (phaseError) return apiError(`Échec enregistrement des phases : ${phaseError.message}`, 500)
 
-  // 8. Écrire les séances : seules les séances encore « planifiées » sont remplacées.
-  for (const [weekNum, sessions] of microByWeek) {
+  // 8. Écrire la première semaine et retirer les séances encore planifiées des
+  // suivantes : elles ne correspondent plus au nouveau plan.
+  const tailWeekNums = macro.weeks
+    .map((w) => w.week_num)
+    .filter((n) => n >= cutoffWeek)
+    .sort((a, b) => a - b)
+  for (const [index, weekNum] of tailWeekNums.entries()) {
     const { error } = await replaceWeekSessions({
       admin,
       plan_id,
       plan_week_id: weekIdByNum.get(weekNum)!,
       user_id: user.id,
-      sessions,
+      sessions: index === 0 ? firstWeekSessions : [],
     })
     if (error) return apiError(`Échec enregistrement des séances : ${error.message}`, 500)
   }

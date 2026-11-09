@@ -739,7 +739,7 @@ Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
 Contraintes STRICTES :
 - Au maximum une séance par date listée (deux seulement pour un enchaînement). Tu n'es PAS obligé d'utiliser toutes les dates : choisis le nombre de séances selon le volume, le niveau et la récupération
 - Au moins 1 jour sans séance dans la semaine. Ne génère jamais de séance "rest" : un jour sans séance est un jour de repos
-- Volume total des séances ≈ ${targetVolume}h (±10%)
+- Volume total des séances ≈ ${targetVolume}h, soit ${Math.round(targetVolume * 60)} min (±10%) : additionne les duration_min avant de répondre et ajuste les durées si besoin
 - Respecter la répartition d'intensité : ${intensityDesc}
 - ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : ctx.prior_weeks?.length ? 'Assurer une progression cohérente par rapport aux semaines précédentes (types de séances, durées, intensités)' : 'Commencer progressivement, le volume indiqué tient déjà compte de la montée en charge'}
 - session_date doit être exactement l'une des dates listées ci-dessus
