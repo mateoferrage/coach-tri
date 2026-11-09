@@ -16,7 +16,7 @@ export default async function OnboardingPage() {
   const { data: profile } = (await supabase
     .from('profiles')
     .select(
-      'first_name, birth_date, sex, weight_kg, height_cm, level, weekly_hours_avg, available_disciplines',
+      'first_name, birth_date, sex, weight_kg, height_cm, level, weekly_hours_avg, available_disciplines, experience_years, notes',
     )
     .eq('id', user.id)
     .maybeSingle()) as {
@@ -29,6 +29,8 @@ export default async function OnboardingPage() {
       level: string | null
       weekly_hours_avg: number | null
       available_disciplines: string[] | null
+      experience_years: number | null
+      notes: string | null
     } | null
   }
 

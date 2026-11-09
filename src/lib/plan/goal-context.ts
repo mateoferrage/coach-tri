@@ -20,10 +20,18 @@ export function buildGoalContexts(
     run_distance_m: g.run_distance_m as number | null,
     elevation_gain_m: g.run_elevation_m as number | null, // D+ ← colonne DB run_elevation_m
     elevation_loss_m: g.elevation_loss_m as number | null,
+    bike_elevation_m: g.bike_elevation_m as number | null,
     surface: g.surface as string | null,
     terrain: g.terrain as string | null,
     max_altitude_m: g.max_altitude_m as number | null,
     cutoff_time_s: g.cutoff_time_s as number | null,
     estimated_finish_time_s: g.estimated_finish_time_s as number | null,
+    target_type: g.target_type as string | null,
+    target_time_seconds: g.target_time_seconds as number | null,
+    swim_target_time_s: g.swim_target_time_s as number | null,
+    t1_target_time_s: g.t1_target_time_s as number | null,
+    bike_target_time_s: g.bike_target_time_s as number | null,
+    t2_target_time_s: g.t2_target_time_s as number | null,
+    run_target_time_s: g.run_target_time_s as number | null,
   }))
 }

@@ -51,7 +51,7 @@ export function AddRaceDialog({
   async function handleConfirm() {
     if (!selectedId) return
     setLoading(true)
-    toast.info("Recalcul du programme par l'IA… (10-30 s)", { duration: 30000 })
+    toast.info("Recalcul du programme par l'IA… (1 à 3 min)", { duration: 180000 })
     try {
       const res = await fetch(`/api/plans/${planId}/replan`, {
         method: 'POST',

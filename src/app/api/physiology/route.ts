@@ -61,29 +61,44 @@ export async function POST(request: Request) {
   // Dérive allure seuil / VMA / CSS depuis les records saisis.
   const derived = derivePhysiologyFromRecords(parsed.data)
 
-  const { data, error } = (await admin
+  const testDate = parsed.data.test_date ?? today
+  const row = {
+    user_id: user.id,
+    test_date: testDate,
+    source: 'manual',
+    // Records saisis (source de vérité)
+    run_5k_time_s: parsed.data.run_5k_time_s ?? null,
+    run_10k_time_s: parsed.data.run_10k_time_s ?? null,
+    run_half_time_s: parsed.data.run_half_time_s ?? null,
+    swim_100m_time_s: parsed.data.swim_100m_time_s ?? null,
+    swim_200m_time_s: parsed.data.swim_200m_time_s ?? null,
+    swim_400m_time_s: parsed.data.swim_400m_time_s ?? null,
+    swim_800m_time_s: parsed.data.swim_800m_time_s ?? null,
+    // Vélo + cardio saisis directement
+    ftp_watts: parsed.data.ftp_watts ?? null,
+    hr_max: parsed.data.hr_max ?? null,
+    resting_hr: parsed.data.resting_hr ?? null,
+    // Seuils dérivés (pour que le calcul de zones reste inchangé)
+    run_threshold_pace_sec_per_km: derived.run_threshold_pace_sec_per_km,
+    vma_kmh: derived.vma_kmh,
+    css_pace_sec_per_100m: derived.css_pace_sec_per_100m,
+  }
+
+  // Une seule mesure par date : `physiology_current` départage par date, deux
+  // lignes le même jour rendraient la valeur retenue aléatoire.
+  const { data: sameDay } = await admin
     .from('physiology')
-    .insert({
-      user_id: user.id,
-      test_date: parsed.data.test_date ?? today,
-      source: 'manual',
-      // Records saisis (source de vérité)
-      run_5k_time_s: parsed.data.run_5k_time_s ?? null,
-      run_10k_time_s: parsed.data.run_10k_time_s ?? null,
-      run_half_time_s: parsed.data.run_half_time_s ?? null,
-      swim_100m_time_s: parsed.data.swim_100m_time_s ?? null,
-      swim_200m_time_s: parsed.data.swim_200m_time_s ?? null,
-      swim_400m_time_s: parsed.data.swim_400m_time_s ?? null,
-      swim_800m_time_s: parsed.data.swim_800m_time_s ?? null,
-      // Vélo + cardio saisis directement
-      ftp_watts: parsed.data.ftp_watts ?? null,
-      hr_max: parsed.data.hr_max ?? null,
-      resting_hr: parsed.data.resting_hr ?? null,
-      // Seuils dérivés (pour que le calcul de zones reste inchangé)
-      run_threshold_pace_sec_per_km: derived.run_threshold_pace_sec_per_km,
-      vma_kmh: derived.vma_kmh,
-      css_pace_sec_per_100m: derived.css_pace_sec_per_100m,
-    })
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('test_date', testDate)
+    .limit(1)
+    .maybeSingle()
+
+  const { data, error } = (await (
+    sameDay
+      ? admin.from('physiology').update(row).eq('id', sameDay.id)
+      : admin.from('physiology').insert(row)
+  )
     .select()
     .single()) as { data: Record<string, unknown> | null; error: { message: string } | null }
 

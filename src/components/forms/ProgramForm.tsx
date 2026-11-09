@@ -10,19 +10,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { format } from 'date-fns'
 import { Loader2, Plus, Sparkles } from 'lucide-react'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 import { cn } from '@/lib/utils/cn'
-import {
-  CHOICE_TAB_CLASS,
-  CHOICE_TABS_LIST_CLASS,
-  GoalSlot,
-  type Goal,
-  type SlotMode,
-} from './GoalSlot'
+import { GoalSlot, type Goal, type SlotMode } from './GoalSlot'
 import type { GoalFieldsetHandle, GoalFormData } from './GoalFieldset'
 import { assembleGoalIds } from '@/lib/plan/goal-slots'
 
@@ -64,9 +57,26 @@ const DISCIPLINE_LABELS: Record<string, string> = {
   swim: 'Natation',
   bike: 'Vélo',
   run: 'Course à pied',
-  strength: 'Renforcement',
 }
-const COMPLEMENTARY_CHOICES = ['swim', 'bike', 'run', 'strength'] as const
+// Le renforcement fait déjà partie de tout programme : pas besoin de le proposer.
+const COMPLEMENTARY_CHOICES = ['swim', 'bike', 'run'] as const
+
+const WEEK_DAYS = [
+  { value: 1, label: 'Lun' },
+  { value: 2, label: 'Mar' },
+  { value: 3, label: 'Mer' },
+  { value: 4, label: 'Jeu' },
+  { value: 5, label: 'Ven' },
+  { value: 6, label: 'Sam' },
+  { value: 0, label: 'Dim' },
+]
+const DEFAULT_TRAINING_DAYS = [1, 2, 4, 6, 0]
+
+const PILL_CLASS =
+  'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+const PILL_ON_CLASS = 'border-primary bg-accent text-primary-ink'
+const PILL_OFF_CLASS =
+  'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
 
 export function ProgramForm({
   goals,
@@ -76,8 +86,8 @@ export function ProgramForm({
   availableDisciplines: string[]
 }) {
   const router = useRouter()
-  const [mode, setMode] = useState<'race' | 'maintenance'>('race')
   const [loading, setLoading] = useState(false)
+  const [trainingDays, setTrainingDays] = useState<number[]>(DEFAULT_TRAINING_DAYS)
   // Dévoilement progressif : objectifs secondaires et disciplines
   // complémentaires n'apparaissent qu'à la demande.
   const [visibleSecondaries, setVisibleSecondaries] = useState(0) // 0 → aucun, max 2 (B, C)
@@ -112,6 +122,7 @@ export function ProgramForm({
   })
   const selectedMethodology = useWatch({ control: settingsForm.control, name: 'methodology' })
   const methodologyLabelId = useId()
+  const trainingDaysLabelId = useId()
   const noMethodologyActive = !METHODOLOGIES.some((m) => m.value === selectedMethodology)
   function selectMethodology(value: string) {
     settingsForm.setValue('methodology', value as ProgramSettings['methodology'])
@@ -170,65 +181,59 @@ export function ProgramForm({
   }
 
   async function onGenerate(settings: ProgramSettings) {
+    if (!trainingDays.length) {
+      toast.error("Choisis au moins un jour d'entraînement.")
+      return
+    }
     setLoading(true)
     try {
-      let body: Record<string, unknown>
-
-      if (mode === 'race') {
-        // 1) Valider tous les slots avant de créer quoi que ce soit.
-        const resolutions = {} as Record<
-          SlotKey,
-          'skip' | { existingId: string } | { create: GoalFormData }
-        >
-        for (const slot of SLOTS) {
-          const r = await resolveSlot(slot)
-          if (typeof r === 'object' && 'invalid' in r) {
-            console.error('[ProgramForm] slot invalide', {
-              slot,
-              mode: slotModes[slot],
-              existingId: existingIds[slot],
-              hasRef: !!fieldsetRefs[slot].current,
-              reason: r.invalid,
-            })
-            toast.error(r.invalid)
-            return
-          }
-          resolutions[slot] = r
-        }
-
-        // 2) Créer les nouvelles courses (A puis B puis C).
-        const idBySlot: Partial<Record<SlotKey, string>> = {}
-        for (const slot of SLOTS) {
-          const r = resolutions[slot]
-          if (r === 'skip') continue
-          idBySlot[slot] = 'existingId' in r ? r.existingId : await createGoal(r.create)
-        }
-
-        const primaryId = idBySlot.A
-        if (!primaryId) {
-          toast.error('Course principale requise.')
+      // 1) Valider tous les slots avant de créer quoi que ce soit.
+      const resolutions = {} as Record<
+        SlotKey,
+        'skip' | { existingId: string } | { create: GoalFormData }
+      >
+      for (const slot of SLOTS) {
+        const r = await resolveSlot(slot)
+        if (typeof r === 'object' && 'invalid' in r) {
+          console.error('[ProgramForm] slot invalide', {
+            slot,
+            mode: slotModes[slot],
+            existingId: existingIds[slot],
+            hasRef: !!fieldsetRefs[slot].current,
+            reason: r.invalid,
+          })
+          toast.error(r.invalid)
           return
         }
+        resolutions[slot] = r
+      }
 
-        // 3) Assembler + générer.
-        const { goal_ids, primary_goal_id } = assembleGoalIds({
-          primaryId,
-          secondaryIds: [idBySlot.B, idBySlot.C],
-        })
-        body = {
-          mode,
-          goal_ids,
-          primary_goal_id,
-          complementary_disciplines: complementary.length ? complementary : undefined,
-          methodology: settings.methodology,
-          start_date: settings.start_date,
-        }
-      } else {
-        body = {
-          mode,
-          methodology: settings.methodology,
-          start_date: settings.start_date,
-        }
+      // 2) Créer les nouvelles courses (A puis B puis C).
+      const idBySlot: Partial<Record<SlotKey, string>> = {}
+      for (const slot of SLOTS) {
+        const r = resolutions[slot]
+        if (r === 'skip') continue
+        idBySlot[slot] = 'existingId' in r ? r.existingId : await createGoal(r.create)
+      }
+
+      const primaryId = idBySlot.A
+      if (!primaryId) {
+        toast.error('Course principale requise.')
+        return
+      }
+
+      // 3) Assembler + générer.
+      const { goal_ids, primary_goal_id } = assembleGoalIds({
+        primaryId,
+        secondaryIds: [idBySlot.B, idBySlot.C],
+      })
+      const body = {
+        goal_ids,
+        primary_goal_id,
+        complementary_disciplines: complementary.length ? complementary : undefined,
+        methodology: settings.methodology,
+        start_date: settings.start_date,
+        available_days: trainingDays,
       }
 
       toast.info("Génération du programme par l'IA… (peut prendre 10-20 secondes)", {
@@ -257,118 +262,87 @@ export function ProgramForm({
   return (
     <div className="space-y-8">
       {/* Mode selector */}
-      <section aria-labelledby="program-mode-label" className="space-y-3">
-        <SectionLabel id="program-mode-label">Type de programme</SectionLabel>
-        <Tabs value={mode} onValueChange={(v) => setMode(v as 'race' | 'maintenance')}>
-          <TabsList className={CHOICE_TABS_LIST_CLASS}>
-            <TabsTrigger value="race" className={CHOICE_TAB_CLASS}>
-              Préparation course
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" className={CHOICE_TAB_CLASS}>
-              Maintien de forme
-            </TabsTrigger>
-          </TabsList>
+      <section aria-labelledby="program-goals-label" className="space-y-4">
+        <SectionLabel id="program-goals-label">Objectifs</SectionLabel>
+        {SLOTS.slice(0, 1 + visibleSecondaries).map((slot) => (
+          <GoalSlot
+            key={slot}
+            priority={slot}
+            title={SLOT_META[slot].title}
+            description={SLOT_META[slot].description}
+            optional={SLOT_META[slot].optional}
+            goals={goals}
+            excludeIds={excludeFor(slot)}
+            mode={slotModes[slot]}
+            onModeChange={(m) => setSlotModes((prev) => ({ ...prev, [slot]: m }))}
+            existingId={existingIds[slot]}
+            onExistingIdChange={(id) => setExistingIds((prev) => ({ ...prev, [slot]: id }))}
+            fieldsetRef={fieldsetRefs[slot]}
+          />
+        ))}
 
-          {/* Race mode : objectif principal d'emblée, le reste à la demande */}
-          <TabsContent value="race" className="mt-4 space-y-4">
-            {SLOTS.slice(0, 1 + visibleSecondaries).map((slot) => (
-              <GoalSlot
-                key={slot}
-                priority={slot}
-                title={SLOT_META[slot].title}
-                description={SLOT_META[slot].description}
-                optional={SLOT_META[slot].optional}
-                goals={goals}
-                excludeIds={excludeFor(slot)}
-                mode={slotModes[slot]}
-                onModeChange={(m) => setSlotModes((prev) => ({ ...prev, [slot]: m }))}
-                existingId={existingIds[slot]}
-                onExistingIdChange={(id) => setExistingIds((prev) => ({ ...prev, [slot]: id }))}
-                fieldsetRef={fieldsetRefs[slot]}
-              />
-            ))}
+        {/* Boutons de dévoilement progressif */}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {visibleSecondaries < 2 && (
+            <Button
+              type="button"
+              variant="outline-primary"
+              className="flex-1"
+              onClick={() => setVisibleSecondaries((n) => Math.min(2, n + 1))}
+            >
+              <Plus aria-hidden />
+              Ajouter un objectif secondaire
+            </Button>
+          )}
+          {!showComplementary && (
+            <Button
+              type="button"
+              variant="outline-primary"
+              className="flex-1"
+              onClick={() => setShowComplementary(true)}
+            >
+              <Plus aria-hidden />
+              Ajouter des disciplines complémentaires
+            </Button>
+          )}
+        </div>
 
-            {/* Boutons de dévoilement progressif */}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {visibleSecondaries < 2 && (
-                <Button
-                  type="button"
-                  variant="outline-primary"
-                  className="flex-1"
-                  onClick={() => setVisibleSecondaries((n) => Math.min(2, n + 1))}
-                >
-                  <Plus aria-hidden />
-                  Ajouter un objectif secondaire
-                </Button>
-              )}
-              {!showComplementary && (
-                <Button
-                  type="button"
-                  variant="outline-primary"
-                  className="flex-1"
-                  onClick={() => setShowComplementary(true)}
-                >
-                  <Plus aria-hidden />
-                  Ajouter des disciplines complémentaires
-                </Button>
-              )}
-            </div>
-
-            {/* Disciplines complémentaires (cross-training) */}
-            {showComplementary && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-bold">Disciplines complémentaires</CardTitle>
-                  <CardDescription>
-                    Entraînées en plus de ton objectif, avec une vraie progression. Elles se
-                    réduisent automatiquement en fin de prépa (pic / affûtage) pour protéger ton
-                    objectif. Celles déjà couvertes par ton objectif sont ignorées.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap gap-2">
-                  {COMPLEMENTARY_CHOICES.filter(
-                    (d) => !availableDisciplines.length || availableDisciplines.includes(d),
-                  ).map((d) => {
-                    const active = complementary.includes(d)
-                    return (
-                      <button
-                        key={d}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() =>
-                          setComplementary((prev) =>
-                            prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-                          )
-                        }
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                          active
-                            ? 'border-primary bg-accent text-primary-ink'
-                            : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                        )}
-                      >
-                        <DisciplineIcon discipline={d} className="size-4" />
-                        {DISCIPLINE_LABELS[d] ?? d}
-                      </button>
-                    )
-                  })}
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Maintenance mode */}
-          <TabsContent value="maintenance" className="mt-4">
-            <Card>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Programme continu sans date de fin. L&apos;IA génère 12 semaines de base,
-                  renouvelables automatiquement selon tes données Garmin.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Disciplines complémentaires (cross-training) */}
+        {showComplementary && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold">Disciplines complémentaires</CardTitle>
+              <CardDescription>
+                Entraînées en plus de ton objectif, avec une vraie progression. Elles se réduisent
+                automatiquement en fin de prépa (pic / affûtage) pour protéger ton objectif. Celles
+                déjà couvertes par ton objectif sont ignorées.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {COMPLEMENTARY_CHOICES.filter(
+                (d) => !availableDisciplines.length || availableDisciplines.includes(d),
+              ).map((d) => {
+                const active = complementary.includes(d)
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setComplementary((prev) =>
+                        prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+                      )
+                    }
+                    className={cn(PILL_CLASS, active ? PILL_ON_CLASS : PILL_OFF_CLASS)}
+                  >
+                    <DisciplineIcon discipline={d} className="size-4" />
+                    {DISCIPLINE_LABELS[d] ?? d}
+                  </button>
+                )
+              })}
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       {/* Program settings (common) */}
@@ -386,6 +360,35 @@ export function ProgramForm({
             className="sm:max-w-xs"
             {...settingsForm.register('start_date')}
           />
+        </div>
+
+        <div className="space-y-3">
+          <Label id={trainingDaysLabelId}>Jours où tu peux t&apos;entraîner</Label>
+          <div role="group" aria-labelledby={trainingDaysLabelId} className="flex flex-wrap gap-2">
+            {WEEK_DAYS.map((day) => {
+              const active = trainingDays.includes(day.value)
+              return (
+                <button
+                  key={day.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    setTrainingDays((prev) =>
+                      prev.includes(day.value)
+                        ? prev.filter((d) => d !== day.value)
+                        : [...prev, day.value],
+                    )
+                  }
+                  className={cn(PILL_CLASS, active ? PILL_ON_CLASS : PILL_OFF_CLASS)}
+                >
+                  {day.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Le coach n&apos;utilisera que ces jours et garde au moins un jour de repos par semaine.
+          </p>
         </div>
 
         <div className="space-y-3">
