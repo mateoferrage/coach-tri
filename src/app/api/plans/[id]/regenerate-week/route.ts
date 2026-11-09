@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PROGRAM_MODEL } from '@/lib/gemini/client'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
-import { generateJSON } from '@/lib/gemini/client'
-import { TRIATHLON_COACH_SYSTEM, buildMicroPrompt } from '@/lib/gemini/prompts'
 import type { MicroSessions } from '@/lib/schemas/plan'
-import { replaceWeekSessions } from '@/lib/plan/micro'
+import { generateWeekSessions, replaceWeekSessions } from '@/lib/plan/micro'
 import { buildMicroInputForWeek } from '@/lib/plan/micro-context'
 import { z } from 'zod'
 
+export const maxDuration = 120
+
 const BodySchema = z.object({
   week_num: z.number().int().positive(),
-  available_days: z.array(z.number().int().min(0).max(6)).min(1),
+  // Choix ponctuel ; par défaut, les jours choisis à la création du plan.
+  available_days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
 })
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -62,33 +64,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (!week) return apiError(`Semaine ${week_num} introuvable`, 404)
 
-  const userPrompt = buildMicroPrompt(
-    await buildMicroInputForWeek({
-      supabase,
-      admin,
-      userId: user.id,
-      plan_id,
-      week,
-      available_days,
-    }),
-  )
-
-  let microPlan: MicroSessions
+  let sessions: MicroSessions['sessions']
   try {
-    microPlan = await generateJSON<MicroSessions>(TRIATHLON_COACH_SYSTEM, userPrompt)
+    sessions = await generateWeekSessions(
+      await buildMicroInputForWeek({
+        supabase,
+        admin,
+        userId: user.id,
+        plan_id,
+        week,
+        available_days,
+      }),
+    )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erreur Gemini'
     return apiError(`Génération IA échouée : ${msg}`, 500)
   }
 
-  if (!microPlan.sessions?.length) return apiError("Gemini n'a retourné aucune séance", 500)
+  if (!sessions.length) return apiError('Plus aucune séance à planifier cette semaine', 400)
 
   const { data: insertedSessions, error: insertError } = await replaceWeekSessions({
     admin,
     plan_id,
-    plan_week_id: week.id as string,
+    plan_week_id: week.id,
     user_id: user.id,
-    sessions: microPlan.sessions,
+    sessions,
   })
   if (insertError) return apiError(insertError.message)
 
@@ -98,8 +98,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     plan_id,
     trigger: 'week_regenerate',
     scope: { week_num },
-    model: 'gemini-2.5-flash',
-    response_meta: { sessions_generated: microPlan.sessions.length },
+    model: PROGRAM_MODEL,
+    response_meta: { sessions_generated: sessions.length },
   })
 
   return apiSuccess({

@@ -138,7 +138,7 @@ export default async function ProgramPage() {
               : ''}
           </p>
           <h1 className="text-3xl md:text-4xl">
-            {goal ? (goal.race_name as string) : 'Programme Maintien'}
+            {goal ? (goal.race_name as string) : 'Programme'}
           </h1>
           {total_weeks > 0 && (
             <p className="text-sm font-semibold text-primary-ink">

@@ -36,8 +36,6 @@ interface Week {
   sessions: Session[]
 }
 
-const DEFAULT_DAYS = [1, 2, 3, 4, 5, 6] // lundi–samedi
-
 interface WeekViewProps {
   week: Week
   planId: string
@@ -61,10 +59,7 @@ export function WeekView({ week, planId, isCurrentWeek, defaultOpen = false }: W
       const res = await fetch(`/api/plans/${planId}/regenerate-week`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          week_num: week.week_num,
-          available_days: DEFAULT_DAYS,
-        }),
+        body: JSON.stringify({ week_num: week.week_num }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Erreur')

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { DisciplineIcon } from '@/components/plan/DisciplineIcon'
 import { cn } from '@/lib/utils/cn'
@@ -22,6 +23,8 @@ const Step1Schema = z.object({
   height_cm: z.number().optional(),
   level: z.enum(['beginner', 'intermediate', 'advanced', 'elite']),
   weekly_hours_avg: z.number().optional(),
+  experience_years: z.number().int().min(0).max(50).optional(),
+  notes: z.string().max(1000, '1000 caractères maximum').optional(),
 })
 
 const Step3Schema = z.object({
@@ -144,6 +147,8 @@ interface InitialData {
   level: string | null
   weekly_hours_avg: number | null
   available_disciplines: string[] | null
+  experience_years: number | null
+  notes: string | null
 }
 
 export function OnboardingFlow({
@@ -171,6 +176,8 @@ export function OnboardingFlow({
       height_cm: initialData?.height_cm ?? undefined,
       level: (initialData?.level as Step1Data['level']) ?? 'beginner',
       weekly_hours_avg: initialData?.weekly_hours_avg ?? undefined,
+      experience_years: initialData?.experience_years ?? undefined,
+      notes: initialData?.notes ?? '',
     },
   })
   const form3 = useForm<Step3Data>({ resolver: zodResolver(Step3Schema) })
@@ -324,6 +331,31 @@ export function OnboardingFlow({
                   {...form1.register('height_cm', { valueAsNumber: true })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="experience_years">Années de pratique en endurance</Label>
+              <Input
+                id="experience_years"
+                type="number"
+                min={0}
+                max={50}
+                className="h-10"
+                {...form1.register('experience_years', {
+                  setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)),
+                })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Blessures et contraintes</Label>
+              <Textarea
+                id="notes"
+                rows={3}
+                maxLength={1000}
+                placeholder="Ex. tendinite d'Achille à surveiller, pas de piscine le mardi…"
+                {...form1.register('notes')}
+              />
             </div>
 
             <ChoicePills

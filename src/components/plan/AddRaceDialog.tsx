@@ -51,7 +51,7 @@ export function AddRaceDialog({
   async function handleConfirm() {
     if (!selectedId) return
     setLoading(true)
-    toast.info("Recalcul du programme par l'IA… (10-30 s)", { duration: 30000 })
+    toast.info("Recalcul du programme par l'IA… (environ 30 s)", { duration: 45000 })
     try {
       const res = await fetch(`/api/plans/${planId}/replan`, {
         method: 'POST',
@@ -66,7 +66,7 @@ export function AddRaceDialog({
         toast.error((data as { error?: string }).error ?? 'Erreur')
         return
       }
-      toast.success('Programme recalculé')
+      toast.success('Programme recalculé. Génère les semaines suivantes depuis ton programme.')
       setOpen(false)
       router.refresh()
     } catch {

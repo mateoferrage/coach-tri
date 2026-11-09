@@ -30,7 +30,6 @@ export const PHASE_LABEL: Record<string, string> = {
   peak: 'Pic',
   taper: 'Affûtage',
   race: 'Course',
-  maintenance: 'Maintien',
 }
 
 /** 0 → « — », 45 → « 45 min », 90 → « 1 h 30 », 125 → « 2 h 05 ». */

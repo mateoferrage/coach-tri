@@ -2,9 +2,8 @@ import { z } from 'zod'
 
 export const PlanGenerationSchema = z
   .object({
-    mode: z.enum(['race', 'maintenance']),
-    goal_ids: z.array(z.string().uuid()).min(1).max(3).optional(),
-    primary_goal_id: z.string().uuid().optional(),
+    goal_ids: z.array(z.string().uuid()).min(1, 'Au moins une course requise').max(3),
+    primary_goal_id: z.string().uuid({ message: 'Course principale requise' }),
     // Disciplines complémentaires (cross-training) à entraîner en plus de
     // l'objectif, avec progression structurée mais dégressive en peak/taper.
     complementary_disciplines: z
@@ -13,34 +12,31 @@ export const PlanGenerationSchema = z
       .optional(),
     methodology: z.enum(['polarized', 'pyramidal', 'threshold']).default('polarized'),
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    // Jours où l'athlète peut s'entraîner (0=dim … 6=sam).
+    available_days: z
+      .array(z.number().int().min(0).max(6))
+      .min(1, "Choisis au moins un jour d'entraînement")
+      .max(7),
   })
   .superRefine((v, ctx) => {
-    if (v.mode === 'race') {
-      if (!v.goal_ids?.length) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['goal_ids'],
-          message: 'Au moins une course requise en mode course',
-        })
-        return
-      }
-      if (!v.primary_goal_id) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['primary_goal_id'],
-          message: 'Course principale requise',
-        })
-      } else if (!v.goal_ids.includes(v.primary_goal_id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['primary_goal_id'],
-          message: 'La course principale doit faire partie des courses',
-        })
-      }
+    if (!v.goal_ids.includes(v.primary_goal_id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['primary_goal_id'],
+        message: 'La course principale doit faire partie des courses',
+      })
     }
   })
 
 export type PlanGeneration = z.infer<typeof PlanGenerationSchema>
+
+/** Configuration d'un plan persistée dans `plans.params`. */
+export interface PlanParams {
+  total_weeks?: number
+  training_disciplines?: string[] | null
+  complementary_disciplines?: string[] | null
+  available_days?: number[] | null
+}
 
 // Gemini macro response shape
 export interface MacroPlan {
@@ -75,5 +71,7 @@ export interface MicroSessions {
     target_zone: string | null
     expected_rpe: number | null
     coaching_note: string | null
+    day_part?: string | null
+    template_code?: string | null
   }[]
 }

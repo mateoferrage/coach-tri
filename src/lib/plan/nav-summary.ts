@@ -17,7 +17,7 @@ export interface RaceSummaryInput {
 
 /**
  * Résumé de la course principale affiché dans le menu latéral.
- * Renvoie null si le plan n'a pas de course datée (plan maintien), pas de
+ * Renvoie null si le plan n'a pas de course datée (ancien plan sans objectif), pas de
  * semaines, ou si la course est passée. La semaine en cours suit le même
  * calcul que le tableau de bord.
  */

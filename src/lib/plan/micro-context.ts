@@ -5,18 +5,54 @@ import {
   buildEquipmentBlock,
   buildStravaStatsBlock,
   type PriorWeek,
+  type PriorWeekSession,
   type PlanWeekOverview,
   type EquipmentData,
+  type GoalContext,
 } from '@/lib/gemini/prompts'
+import { buildGoalContexts } from '@/lib/plan/goal-context'
+import { availableDatesForWeek, resolveAvailableDays } from '@/lib/plan/schedule'
+import type { PlanParams } from '@/lib/schemas/plan'
+import { todayIn } from '@/lib/utils/today'
 import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
 import { addDays, format, parseISO } from 'date-fns'
 import { refreshIfNeeded, getAthleteStatsCompact } from '@/lib/strava/client'
 import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 
 /**
+ * Valeurs d'une replanification en cours : le plan n'est écrit qu'une fois toutes
+ * les générations réussies, la base contient donc encore l'ancien plan.
+ */
+export interface MicroReplanOverrides {
+  goals: GoalContext[]
+  training_disciplines: string[]
+  complementary_disciplines: string[]
+  plan_overview: PlanWeekOverview[]
+}
+
+const SESSION_HISTORY_COLUMNS =
+  'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min'
+
+function toPriorSession(s: Record<string, unknown>): PriorWeekSession {
+  return {
+    session_date: s.session_date as string,
+    discipline: s.discipline as string,
+    session_type: s.session_type as string,
+    title: s.title as string | null,
+    duration_min: s.duration_min as number,
+    planned_tss: s.planned_tss as number | null,
+    target_zone: s.target_zone as string | null,
+    status: s.status as string,
+    actual_rpe: s.actual_rpe as number | null,
+    actual_duration_min: s.actual_duration_min as number | null,
+  }
+}
+
+/**
  * Construit l'objet de contexte passé à `buildMicroPrompt` pour une semaine
- * donnée : profil + zones, semaines antérieures et leurs séances, vue macro du
- * plan, bien-être, contraintes d'agenda, stats Strava et équipement.
+ * donnée : profil + zones, courses visées, semaines antérieures et leurs séances,
+ * séances déjà traitées, vue macro du plan, bien-être, contraintes d'agenda,
+ * stats Strava et équipement.
  *
  * L'appelant reste responsable de récupérer la ligne `week` ciblée (via
  * `week_num`) et de la fournir ici ; cette fonction récupère tout le reste pour
@@ -28,7 +64,8 @@ export async function buildMicroInputForWeek(params: {
   userId: string
   plan_id: string
   week: {
-    id: string
+    /** Absent pour une semaine qui n'existe pas encore (extension du plan). */
+    id?: string
     week_num: number
     phase: string
     is_recovery_week: boolean
@@ -38,9 +75,11 @@ export async function buildMicroInputForWeek(params: {
     notes: string | null
     start_date: string
   }
-  available_days: number[]
+  /** Choix ponctuel de jours ; par défaut ceux choisis à la création du plan. */
+  available_days?: number[]
+  replan?: MicroReplanOverrides
 }): Promise<Parameters<typeof buildMicroPrompt>[0]> {
-  const { supabase, admin, userId, plan_id, week, available_days } = params
+  const { supabase, admin, userId, plan_id, week, available_days, replan } = params
   const week_num = week.week_num
 
   const [
@@ -50,10 +89,14 @@ export async function buildMicroInputForWeek(params: {
     physiologyResult,
     garminStatsResult,
     planResult,
+    planGoalsResult,
+    keptSessionsResult,
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('level, weekly_hours_avg, available_disciplines, equipment')
+      .select(
+        'level, weekly_hours_avg, available_disciplines, equipment, birth_date, sex, weight_kg, height_cm, experience_years, notes',
+      )
       .eq('id', userId)
       .single(),
     admin
@@ -80,7 +123,15 @@ export async function buildMicroInputForWeek(params: {
     // Garmin stats for VO2max fallback when no physiology data
     admin.from('garmin_stats').select('vo2max_run').eq('user_id', userId).maybeSingle(),
     // Config disciplines du plan (persistée dans params à la génération)
-    admin.from('plans').select('params').eq('id', plan_id).maybeSingle(),
+    admin.from('plans').select('params, methodology, goal_id').eq('id', plan_id).maybeSingle(),
+    admin.from('plan_goals').select('goal_id').eq('plan_id', plan_id),
+    week.id
+      ? admin
+          .from('sessions')
+          .select(SESSION_HISTORY_COLUMNS)
+          .eq('plan_week_id', week.id)
+          .neq('status', 'planned')
+      : Promise.resolve({ data: [] }),
   ])
 
   const profile = profileResult.data
@@ -93,10 +144,39 @@ export async function buildMicroInputForWeek(params: {
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
   const garminStats = garminStatsResult.data
-  const planParams = (planResult.data?.params ?? null) as {
-    training_disciplines?: string[] | null
-    complementary_disciplines?: string[] | null
-  } | null
+  const plan = planResult.data
+  const planParams = (plan?.params ?? null) as PlanParams | null
+  const keptSessions = ((keptSessionsResult.data ?? []) as Array<Record<string, unknown>>).map(
+    toPriorSession,
+  )
+
+  // ── Courses visées ─────────────────────────────────────────────────────────
+  let goals = replan?.goals
+  if (!goals) {
+    const primaryGoalId = plan?.goal_id as string | null
+    const goalIds = [
+      ...new Set([
+        ...(planGoalsResult.data ?? []).map((g) => g.goal_id as string),
+        ...(primaryGoalId ? [primaryGoalId] : []),
+      ]),
+    ]
+    const { data: goalRows } = goalIds.length
+      ? await admin.from('goals').select('*').in('id', goalIds).eq('user_id', userId)
+      : { data: [] }
+    goals = buildGoalContexts(
+      (goalRows ?? []) as Array<Record<string, unknown>>,
+      primaryGoalId ?? '',
+    )
+  }
+  const primaryRaceDate = goals.find((g) => g.role === 'primary')?.race_date
+
+  const available_dates = availableDatesForWeek({
+    week_start_date: week.start_date,
+    available_days: resolveAvailableDays(available_days, planParams?.available_days),
+    blocked_dates: [...keptSessions.map((s) => s.session_date), ...goals.map((g) => g.race_date)],
+    last_date: primaryRaceDate,
+    today: todayIn(),
+  })
 
   // ── Athlete training zones ─────────────────────────────────────────────────
   const zones = calculateZones({
@@ -118,13 +198,15 @@ export async function buildMicroInputForWeek(params: {
   const athleteZones = zones ? formatZonesForPrompt(zones) : undefined
 
   // ── Plan overview (all weeks, macro) ────────────────────────────────────────
-  const planOverview: PlanWeekOverview[] = allPlanWeeks.map((w) => ({
-    week_num: w.week_num as number,
-    phase: w.phase as string,
-    is_recovery_week: w.is_recovery_week as boolean,
-    planned_volume_hours: w.planned_volume_hours as number,
-    planned_tss: w.planned_tss as number,
-  }))
+  const planOverview: PlanWeekOverview[] =
+    replan?.plan_overview ??
+    allPlanWeeks.map((w) => ({
+      week_num: w.week_num as number,
+      phase: w.phase as string,
+      is_recovery_week: w.is_recovery_week as boolean,
+      planned_volume_hours: w.planned_volume_hours as number,
+      planned_tss: w.planned_tss as number,
+    }))
 
   // ── Prior weeks with their generated sessions ────────────────────────────────
   const priorWeekRows = allPlanWeeks.filter((w) => (w.week_num as number) < week_num)
@@ -135,9 +217,7 @@ export async function buildMicroInputForWeek(params: {
 
     const { data: priorSessions } = (await admin
       .from('sessions')
-      .select(
-        'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min',
-      )
+      .select(SESSION_HISTORY_COLUMNS)
       .in('plan_week_id', priorWeekIds)
       .order('session_date', { ascending: true })) as {
       data: Array<Record<string, unknown>> | null
@@ -156,18 +236,7 @@ export async function buildMicroInputForWeek(params: {
       is_recovery_week: w.is_recovery_week as boolean,
       planned_volume_hours: w.planned_volume_hours as number,
       planned_tss: w.planned_tss as number,
-      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map((s) => ({
-        session_date: s.session_date as string,
-        discipline: s.discipline as string,
-        session_type: s.session_type as string,
-        title: s.title as string | null,
-        duration_min: s.duration_min as number,
-        planned_tss: s.planned_tss as number | null,
-        target_zone: s.target_zone as string | null,
-        status: s.status as string,
-        actual_rpe: s.actual_rpe as number | null,
-        actual_duration_min: s.actual_duration_min as number | null,
-      })),
+      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map(toPriorSession),
     }))
   }
 
@@ -253,6 +322,8 @@ export async function buildMicroInputForWeek(params: {
     }
   }
 
+  const complementary = replan?.complementary_disciplines ?? planParams?.complementary_disciplines
+
   return {
     week: {
       week_num: week.week_num,
@@ -271,13 +342,21 @@ export async function buildMicroInputForWeek(params: {
       level: profile?.level as string | null,
       weekly_hours_avg: profile?.weekly_hours_avg as number | null,
       available_disciplines: profile?.available_disciplines as string[] | null,
+      birth_date: profile?.birth_date as string | null,
+      sex: profile?.sex as string | null,
+      weight_kg: profile?.weight_kg as number | null,
+      height_cm: profile?.height_cm as number | null,
+      experience_years: profile?.experience_years as number | null,
+      notes: profile?.notes as string | null,
     },
-    available_days,
+    available_dates,
     week_start_date: week.start_date,
-    training_disciplines: planParams?.training_disciplines ?? undefined,
-    complementary_disciplines: planParams?.complementary_disciplines?.length
-      ? planParams.complementary_disciplines
-      : undefined,
+    goals: goals.length ? goals : undefined,
+    methodology: (plan?.methodology as string | undefined) ?? undefined,
+    training_disciplines:
+      replan?.training_disciplines ?? planParams?.training_disciplines ?? undefined,
+    complementary_disciplines: complementary?.length ? complementary : undefined,
+    kept_sessions: keptSessions.length ? keptSessions : undefined,
     prior_weeks: priorWeeks.length ? priorWeeks : undefined,
     plan_overview: planOverview.length ? planOverview : undefined,
     athlete_zones: athleteZones,

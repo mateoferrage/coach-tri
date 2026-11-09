@@ -3,7 +3,7 @@ import { ZONES_REF } from './zones-ref'
 import { SESSIONS_LIB } from './sessions-lib'
 import { NUTRITION } from './nutrition'
 import { SWIM_TECHNIQUE } from './swim'
-import { MAINTENANCE } from './maintenance'
+import { ADAPTATION } from './adaptation'
 import { TRAIL_KNOWLEDGE } from './trail'
 
 /**
@@ -16,7 +16,7 @@ export const KNOWLEDGE_BASE = [
   SESSIONS_LIB,
   NUTRITION,
   SWIM_TECHNIQUE,
-  MAINTENANCE,
+  ADAPTATION,
 ].join('\n\n---\n\n')
 
 /** Lightweight subset for prompts where token budget is a concern. */
@@ -25,8 +25,8 @@ export const KNOWLEDGE_BASE_CORE = [METHODOLOGIES, ZONES_REF].join('\n\n---\n\n'
 /** Sessions + zones reference — most relevant for micro-generation. */
 export const KNOWLEDGE_BASE_MICRO = [ZONES_REF, SESSIONS_LIB].join('\n\n---\n\n')
 
-/** Methodologies + maintenance — most relevant for chat and macro-generation. */
-export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, MAINTENANCE].join('\n\n---\n\n')
+/** Methodologies + form-based adaptation — most relevant for chat. */
+export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, ADAPTATION].join('\n\n---\n\n')
 
 /** Trail/running specialisation — injected conditionally when a running goal is present. */
 export const KNOWLEDGE_BASE_TRAIL = TRAIL_KNOWLEDGE
@@ -37,6 +37,6 @@ export {
   SESSIONS_LIB,
   NUTRITION,
   SWIM_TECHNIQUE,
-  MAINTENANCE,
+  ADAPTATION,
   TRAIL_KNOWLEDGE,
 }

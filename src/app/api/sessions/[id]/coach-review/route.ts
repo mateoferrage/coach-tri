@@ -84,7 +84,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const review = await generateJSON<CoachReview>(
     COACH_SESSION_REVIEW_SYSTEM,
     buildSessionReviewPrompt(ctx),
-    { temperature: 0.8 },
+    { temperature: 0.8, conversation: true },
   )
 
   // Persist review in sessions table

@@ -1,8 +1,22 @@
 import { asJson } from '@/lib/utils/json'
 import type { MicroSessions } from '@/lib/schemas/plan'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { generateJSON } from '@/lib/gemini/client'
+import {
+  TRIATHLON_COACH_SYSTEM,
+  allowedMicroDisciplines,
+  buildMicroPrompt,
+  remainingVolumeHours,
+} from '@/lib/gemini/prompts'
 
 type AdminClient = ReturnType<typeof createAdminClient>
+type Session = MicroSessions['sessions'][number]
+
+const MAX_ATTEMPTS = 2
+/** En dessous de ce volume restant, la semaine est considérée comme terminée. */
+const MIN_REMAINING_HOURS = 0.25
+/** La réflexion ne consomme pas de requête du quota et fiabilise le calcul du volume. */
+const MICRO_THINKING_BUDGET = 1024
 
 const VALID_SESSION_TYPES = new Set([
   'easy',
@@ -51,39 +65,119 @@ export function normalizeExpectedRpe(raw: unknown): number | null {
   return Math.min(rounded, 10)
 }
 
+const VALID_DAY_PARTS = new Set(['morning', 'midday', 'evening'])
+/** Créneau choisi par l'IA, sinon soir en semaine, matin le samedi, midi le dimanche. */
+export function resolveDayPart(raw: unknown, sessionDate: string): string {
+  if (typeof raw === 'string' && VALID_DAY_PARTS.has(raw)) return raw
+  const jsDay = new Date(`${sessionDate}T00:00:00Z`).getUTCDay()
+  return jsDay === 0 ? 'midday' : jsDay === 6 ? 'morning' : 'evening'
+}
+
+/**
+ * Sépare les séances conformes de celles que le programme interdit (discipline
+ * non entraînée, date non disponible, durée nulle). Les lignes « repos » sont
+ * retirées sans être une erreur : un jour sans séance est un jour de repos.
+ */
+export function validateMicroSessions(
+  sessions: Session[],
+  constraints: { allowedDates: string[]; allowedDisciplines: string[] },
+): { valid: Session[]; violations: string[] } {
+  const valid: Session[] = []
+  const violations: string[] = []
+  for (const s of sessions) {
+    const discipline = normalizeDiscipline(s.discipline)
+    if (discipline === 'rest') continue
+    if (!constraints.allowedDisciplines.includes(discipline)) {
+      violations.push(`${s.session_date} : discipline « ${discipline} » interdite`)
+    } else if (!constraints.allowedDates.includes(s.session_date)) {
+      violations.push(`date ${s.session_date} interdite`)
+    } else if (!(s.duration_min > 0)) {
+      violations.push(`${s.session_date} : durée invalide`)
+    } else {
+      valid.push(s)
+    }
+  }
+  return { valid, violations }
+}
+
+/**
+ * Génère les séances d'une semaine et vérifie qu'elles respectent le programme,
+ * avec une nouvelle tentative corrigée. Renvoie `[]` sans appeler l'IA s'il ne
+ * reste rien à planifier ; lève une Error si aucune séance valide n'est produite.
+ */
+export async function generateWeekSessions(
+  input: Parameters<typeof buildMicroPrompt>[0],
+): Promise<Session[]> {
+  if (!input.available_dates.length) return []
+  const targetHours = input.kept_sessions?.length
+    ? remainingVolumeHours(input)
+    : input.week.planned_volume_hours
+  if (input.kept_sessions?.length && targetHours < MIN_REMAINING_HOURS) return []
+
+  const constraints = {
+    allowedDates: input.available_dates,
+    allowedDisciplines: allowedMicroDisciplines(input),
+  }
+  const userPrompt = buildMicroPrompt(input)
+  let correction = ''
+  let best: Session[] = []
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const raw = await generateJSON<Partial<MicroSessions>>(
+      TRIATHLON_COACH_SYSTEM,
+      userPrompt + correction,
+      { thinkingBudget: MICRO_THINKING_BUDGET },
+    )
+    const { valid, violations } = validateMicroSessions(raw.sessions ?? [], constraints)
+    if (valid.length && !violations.length) return valid
+    // À nombre égal de séances, la réponse corrigée est la meilleure.
+    if (valid.length >= best.length) best = valid
+    correction = `\n\nTa réponse précédente était invalide. Corrige impérativement :\n- ${
+      violations.join('\n- ') || 'aucune séance générée'
+    }`
+  }
+
+  if (best.length) return best
+  throw new Error(`Aucune séance valide générée pour la semaine ${input.week.week_num}`)
+}
+
 /**
  * Remplace les séances `planned` d'une semaine par celles générées par l'IA
- * (les séances done/skipped sont conservées). Renvoie les séances insérées.
+ * (les séances déjà traitées sont conservées). Renvoie les séances insérées.
  */
 export async function replaceWeekSessions(params: {
   admin: AdminClient
   plan_id: string
   plan_week_id: string
   user_id: string
-  sessions: MicroSessions['sessions']
+  sessions: Session[]
 }): Promise<{ data: Array<Record<string, unknown>> | null; error: { message: string } | null }> {
   const { admin, plan_id, plan_week_id, user_id, sessions } = params
 
   await admin.from('sessions').delete().eq('plan_week_id', plan_week_id).eq('status', 'planned')
+  if (!sessions.length) return { data: [], error: null }
 
-  const rows = sessions.map((s) => {
-    const jsDay = new Date(s.session_date + 'T00:00:00').getDay() // 0=dim, 6=sam
-    // Weekdays → evening (18h), Saturday → morning (7h), Sunday → midday (12h)
-    const day_part = jsDay === 0 ? 'midday' : jsDay === 6 ? 'morning' : 'evening'
-    return {
-      plan_id,
-      plan_week_id,
-      user_id,
-      ...s,
-      discipline: normalizeDiscipline(s.discipline),
-      session_type: normalizeSessionType(s.session_type),
-      expected_rpe: normalizeExpectedRpe(s.expected_rpe),
-      day_part,
-      status: 'planned',
-      structure: asJson(s.structure),
-      target_values: asJson(s.target_values),
-    }
-  })
+  // Colonnes explicites : un champ inattendu renvoyé par l'IA ne doit pas faire
+  // échouer tout l'insert.
+  const rows = sessions.map((s) => ({
+    plan_id,
+    plan_week_id,
+    user_id,
+    session_date: s.session_date,
+    title: s.title,
+    duration_min: Math.round(s.duration_min),
+    planned_tss: s.planned_tss == null ? null : Math.round(s.planned_tss),
+    target_zone: s.target_zone ?? null,
+    coaching_note: s.coaching_note ?? null,
+    template_code: s.template_code ?? null,
+    discipline: normalizeDiscipline(s.discipline),
+    session_type: normalizeSessionType(s.session_type),
+    expected_rpe: normalizeExpectedRpe(s.expected_rpe),
+    day_part: resolveDayPart(s.day_part, s.session_date),
+    status: 'planned',
+    structure: asJson(s.structure),
+    target_values: asJson(s.target_values),
+  }))
 
   return (await admin
     .from('sessions')

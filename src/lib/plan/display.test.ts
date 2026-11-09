@@ -63,7 +63,7 @@ describe('libellés', () => {
     ]) {
       expect(SESSION_TYPE_LABEL[t]).toBeTruthy()
     }
-    for (const p of ['prep', 'base', 'build', 'peak', 'taper', 'race', 'maintenance']) {
+    for (const p of ['prep', 'base', 'build', 'peak', 'taper', 'race']) {
       expect(PHASE_LABEL[p]).toBeTruthy()
     }
   })
