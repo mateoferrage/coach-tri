@@ -120,6 +120,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       methodology: plan.methodology,
       start_date: plan.start_date,
       total_weeks: newTotalWeeks,
+      current_weekly_hours: plan.params?.current_weekly_hours,
       goals: goalContexts,
       disciplines: trainingDisciplines,
       complementary_disciplines: complementaryDisciplines.length

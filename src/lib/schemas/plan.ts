@@ -17,6 +17,11 @@ export const PlanGenerationSchema = z
       .array(z.number().int().min(0).max(6))
       .min(1, "Choisis au moins un jour d'entraînement")
       .max(7),
+    // Volume réellement pratiqué aujourd'hui : point de départ de la progression.
+    current_weekly_hours: z
+      .number({ error: 'Indique ton volume actuel' })
+      .min(0.5, 'Volume actuel : 0,5 h minimum')
+      .max(40, 'Volume actuel : 40 h maximum'),
   })
   .superRefine((v, ctx) => {
     if (!v.goal_ids.includes(v.primary_goal_id)) {
@@ -36,6 +41,7 @@ export interface PlanParams {
   training_disciplines?: string[] | null
   complementary_disciplines?: string[] | null
   available_days?: number[] | null
+  current_weekly_hours?: number | null
 }
 
 // Gemini macro response shape

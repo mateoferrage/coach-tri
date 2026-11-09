@@ -22,6 +22,10 @@ import { assembleGoalIds } from '@/lib/plan/goal-slots'
 const ProgramSettingsSchema = z.object({
   methodology: z.enum(['polarized', 'pyramidal', 'threshold']),
   start_date: z.string().min(1),
+  current_weekly_hours: z
+    .number({ error: 'Indique ton volume actuel.' })
+    .min(0.5, 'Volume actuel : 0,5 h minimum.')
+    .max(40, 'Volume actuel : 40 h maximum.'),
 })
 
 type ProgramSettings = z.infer<typeof ProgramSettingsSchema>
@@ -234,6 +238,7 @@ export function ProgramForm({
         methodology: settings.methodology,
         start_date: settings.start_date,
         available_days: trainingDays,
+        current_weekly_hours: settings.current_weekly_hours,
       }
 
       toast.info("Génération du programme par l'IA… (peut prendre 10-20 secondes)", {
@@ -362,6 +367,24 @@ export function ProgramForm({
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="program-current-hours">Volume actuel (heures par semaine)</Label>
+          <Input
+            id="program-current-hours"
+            type="number"
+            min={0.5}
+            max={40}
+            step={0.5}
+            inputMode="decimal"
+            className="sm:max-w-xs"
+            {...settingsForm.register('current_weekly_hours', { valueAsNumber: true })}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ce que tu fais réellement en ce moment, en moyenne. Le programme part de là et monte
+            progressivement vers ta disponibilité.
+          </p>
+        </div>
+
         <div className="space-y-3">
           <Label id={trainingDaysLabelId}>Jours où tu peux t&apos;entraîner</Label>
           <div role="group" aria-labelledby={trainingDaysLabelId} className="flex flex-wrap gap-2">
@@ -449,7 +472,13 @@ export function ProgramForm({
         size="lg"
         className="w-full"
         disabled={loading}
-        onClick={() => settingsForm.handleSubmit(onGenerate)()}
+        onClick={() =>
+          settingsForm.handleSubmit(onGenerate, (errors) =>
+            toast.error(
+              errors.current_weekly_hours?.message ?? 'Vérifie les paramètres du programme.',
+            ),
+          )()
+        }
       >
         {loading ? (
           <>

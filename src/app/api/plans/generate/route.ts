@@ -32,6 +32,7 @@ export async function POST(request: Request) {
     methodology,
     start_date,
     available_days,
+    current_weekly_hours,
   } = parsed.data
 
   const admin = createAdminClient()
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       methodology,
       start_date,
       total_weeks,
+      current_weekly_hours,
       goals: goalContexts,
       disciplines: scopedDisciplines,
       complementary_disciplines: complementaryDisciplines.length
@@ -109,6 +111,7 @@ export async function POST(request: Request) {
     training_disciplines: scopedDisciplines,
     complementary_disciplines: complementaryDisciplines,
     available_days,
+    current_weekly_hours,
   }
 
   const { data: plan, error: planError } = (await admin

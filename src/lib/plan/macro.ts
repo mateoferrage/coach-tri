@@ -6,8 +6,10 @@ import type { MacroPlan } from '@/lib/schemas/plan'
 /** La structure du plan engage toute la préparation : on laisse l'IA réfléchir. */
 const MACRO_THINKING_BUDGET = 2048
 const MAX_ATTEMPTS = 2
-const MIN_LOAD_SHARE = 0.5
+const CURRENT_FLOOR_SHARE = 0.9
+const AVAILABILITY_FLOOR_SHARE = 0.5
 const RECOVERY_SHARE = 0.65
+const FIRST_WEEK_MAX_SHARE = 1.15
 
 /**
  * Normalise les phases et liste tout ce qui rend la réponse inexploitable :
@@ -71,17 +73,30 @@ export function applyLevelRules(weeks: MacroPlan['weeks'], level: string | null)
 }
 
 /**
- * Garde-fou sur le volume : une semaine de charge ne descend pas sous la moitié de
- * la disponibilité déclarée. L'historique des montres est souvent incomplet et ne
- * doit pas écraser ce que l'athlète annonce. L'affûtage et la course sont exclus.
+ * Garde-fous sur le volume, quoi que réponde l'IA : aucune semaine au-dessus de la
+ * disponibilité, et un plancher sur les semaines de charge. Le plancher suit le
+ * volume actuel déclaré ; à défaut (ancien plan), la moitié de la disponibilité.
+ * La semaine 1 reste proche du volume actuel.
  */
-export function applyVolumeFloor(weeks: MacroPlan['weeks'], weeklyHours: number | null) {
-  if (!weeklyHours) return weeks
+export function applyVolumeGuards(
+  weeks: MacroPlan['weeks'],
+  weeklyHours: number | null,
+  currentHours?: number | null,
+) {
+  const start = currentHours ? Math.min(currentHours, weeklyHours ?? currentHours) : null
+  const baseFloor = start
+    ? start * CURRENT_FLOOR_SHARE
+    : (weeklyHours ?? 0) * AVAILABILITY_FLOOR_SHARE
+
   return weeks.map((w) => {
-    if (w.phase === 'taper' || w.phase === 'race') return w
-    const floor = weeklyHours * MIN_LOAD_SHARE * (w.is_recovery_week ? RECOVERY_SHARE : 1)
-    if (w.planned_volume_hours >= floor) return w
-    const hours = Math.round(floor * 10) / 10
+    const isLoadPhase = w.phase !== 'taper' && w.phase !== 'race'
+    const floor = isLoadPhase ? baseFloor * (w.is_recovery_week ? RECOVERY_SHARE : 1) : 0
+    const ceiling = Math.min(
+      weeklyHours ?? Infinity,
+      w.week_num === 1 && start ? start * FIRST_WEEK_MAX_SHARE : Infinity,
+    )
+    const hours = Math.round(Math.min(Math.max(w.planned_volume_hours, floor), ceiling) * 10) / 10
+    if (hours === Math.round(w.planned_volume_hours * 10) / 10) return w
     return {
       ...w,
       planned_volume_hours: hours,
@@ -113,9 +128,10 @@ export async function generateMacroWeeks(
     if (!result.errors.length) {
       return {
         phases: result.plan.phases,
-        weeks: applyVolumeFloor(
+        weeks: applyVolumeGuards(
           applyLevelRules(result.plan.weeks, input.profile.level),
           input.profile.weekly_hours_avg,
+          input.current_weekly_hours,
         ),
       }
     }

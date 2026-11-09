@@ -348,6 +348,8 @@ interface MacroContext {
   start_date: string
   total_weeks: number
   goals: GoalContext[]
+  /** Volume hebdomadaire actuel déclaré à la création du programme. */
+  current_weekly_hours?: number | null
   /** Disciplines à entraîner (dérivées des courses ∩ profil). Si absent, on
    *  retombe sur les disciplines du profil. */
   disciplines?: string[]
@@ -391,6 +393,15 @@ export function buildMacroPrompt(ctx: MacroContext): string {
   const detailLines = buildAthleteDetailLines(ctx.profile, ctx.start_date)
   const hasSecondaryGoal = ctx.goals.some((g) => g.role === 'secondary')
 
+  const startHours = ctx.current_weekly_hours
+    ? Math.min(ctx.current_weekly_hours, ctx.profile.weekly_hours_avg ?? ctx.current_weekly_hours)
+    : null
+  const volumeRules = startHours
+    ? `- Volume de la semaine 1 = ${startHours}h (±10%), le volume actuel déclaré par l'athlète : il prime sur l'historique enregistré
+- Ensuite, progression régulière vers la disponibilité hebdomadaire, sans dépasser +10 à 15% d'une semaine de charge à la suivante`
+    : `- Le volume cible est la disponibilité hebdomadaire : les semaines de charge les plus hautes doivent en être proches (90-100%)
+- Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)${ctx.recent_activity_summary ? ". L'historique peut être incomplet (séances non enregistrées) : s'il est nettement plus bas, descends jusqu'à 50% du volume cible, jamais en dessous" : ''}`
+
   const hasRunningGoal = ctx.goals.some((g) => g.sport === 'running')
   const trailBlock = hasRunningGoal
     ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}`
@@ -416,7 +427,7 @@ PROFIL ATHLÈTE :
 - Niveau : ${levelLabels[ctx.profile.level ?? ''] ?? ctx.profile.level ?? 'Non précisé'}
 - Disponibilité : ${ctx.profile.weekly_hours_avg ?? 8}h/semaine
 - Disciplines : ${disciplines}
-${detailLines.join('\n')}
+${ctx.current_weekly_hours ? `- Volume actuel déclaré : ${ctx.current_weekly_hours}h/semaine\n` : ''}${detailLines.join('\n')}
 
 ${performanceBlock ? performanceBlock + '\n' : ''}
 ${goalSection}${complementaryBlock}
@@ -459,8 +470,7 @@ Règles :
 - La somme de "distribution" vaut 1 pour chaque semaine
 - Semaines de récupération toutes les ${cycle} semaines${cycle === 3 ? ' (athlète Masters : 2 semaines de charge + 1 de récupération)' : ''} (is_recovery_week: true, volume réduit de 35%)
 - La disponibilité hebdomadaire est un plafond : aucune semaine ne la dépasse
-- Le volume cible est la disponibilité hebdomadaire : les semaines de charge les plus hautes doivent en être proches (90-100%)
-- Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)${ctx.recent_activity_summary ? ". L'historique peut être incomplet (séances non enregistrées) : s'il est nettement plus bas, descends jusqu'à 50% du volume cible, jamais en dessous" : ''}
+${volumeRules}
 - La dernière semaine (taper final) doit avoir un volume de 40-50% du pic
 - planned_tss cohérent avec le volume et l'intensité (1h Z2 vélo ≈ 50 TSS, 1h run Z2 ≈ 60 TSS)
 - L'ambition de chaque course (terminer, temps visé, podium) détermine la part de travail à allure spécifique en phases build et peak

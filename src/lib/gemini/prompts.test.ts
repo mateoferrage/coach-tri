@@ -172,6 +172,14 @@ describe('buildMacroPrompt (profil et objectifs)', () => {
     expect(out).toContain('jamais en dessous')
     expect(out).toContain('peut être incomplet')
   })
+  it('part du volume actuel déclaré, plafonné à la disponibilité', () => {
+    const out = buildMacroPrompt({ ...macroBase, current_weekly_hours: 4 })
+    expect(out).toContain('Volume actuel déclaré : 4h/semaine')
+    expect(out).toContain('Volume de la semaine 1 = 4h')
+    expect(buildMacroPrompt({ ...macroBase, current_weekly_hours: 15 })).toContain(
+      'Volume de la semaine 1 = 10h',
+    )
+  })
   it('impose la liste des phases', () => {
     expect(buildMacroPrompt(macroBase)).toContain('prep, base, build, peak, taper, race')
   })
