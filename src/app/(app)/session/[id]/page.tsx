@@ -51,6 +51,29 @@ const RPE_LABELS: Record<number, string> = {
 
 const ZONES = [1, 2, 3, 4, 5] as const
 
+/**
+ * Libellés des cibles chiffrées. `target_values` vient de l'IA sans validation :
+ * une clé peut valoir `null` (« watts": null » sur une séance de renfo) ou ne pas
+ * avoir le type attendu — on ignore ce qui n'est pas exploitable.
+ */
+function targetLabels(values: Record<string, unknown> | null): string[] {
+  if (!values) return []
+  const range = (v: unknown) =>
+    Array.isArray(v) && v.length > 0 && v.every((n) => typeof n === 'number') ? v.join('–') : null
+  const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+  const hr = range(values.hr)
+  const watts = range(values.watts)
+  const paceKm = text(values.pace_per_km) ?? text(values.pace)
+  const pace100 = text(values.pace_per_100m)
+  return [
+    hr && `FC ${hr} bpm`,
+    watts && `${watts} W`,
+    paceKm && `Allure ${paceKm}/km`,
+    pace100 && `Allure ${pace100}/100 m`,
+  ].filter((l): l is string => Boolean(l))
+}
+
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient()
   const {
@@ -177,19 +200,11 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               <dt className="flex flex-col gap-1">
                 <span className="text-muted-foreground">Zone cible</span>
                 <span className="font-mono font-semibold">{session.target_zone as string}</span>
-                {targetValues &&
-                  Object.entries(targetValues).map(([key, val]) => {
-                    let label = ''
-                    if (key === 'hr') label = `FC ${(val as number[]).join('–')} bpm`
-                    if (key === 'watts') label = `${(val as number[]).join('–')} W`
-                    if (key === 'pace') label = `Allure ${String(val)}/km`
-                    if (!label) return null
-                    return (
-                      <span key={key} className="text-xs text-muted-foreground tabular-nums">
-                        {label}
-                      </span>
-                    )
-                  })}
+                {targetLabels(targetValues).map((label) => (
+                  <span key={label} className="text-xs text-muted-foreground tabular-nums">
+                    {label}
+                  </span>
+                ))}
               </dt>
               {mainZone && (
                 <dd
