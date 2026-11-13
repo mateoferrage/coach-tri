@@ -1,7 +1,7 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -20,7 +20,6 @@ import type { GoalFieldsetHandle, GoalFormData } from './GoalFieldset'
 import { assembleGoalIds } from '@/lib/plan/goal-slots'
 
 const ProgramSettingsSchema = z.object({
-  methodology: z.enum(['polarized', 'pyramidal', 'threshold']),
   start_date: z.string().min(1),
   current_weekly_hours: z
     .number({ error: 'Indique ton volume actuel.' })
@@ -30,23 +29,7 @@ const ProgramSettingsSchema = z.object({
 
 type ProgramSettings = z.infer<typeof ProgramSettingsSchema>
 
-const METHODOLOGIES = [
-  {
-    value: 'polarized',
-    label: 'Polarisé',
-    desc: '80% basse intensité / 20% haute intensité — recommandé pour la plupart des athlètes',
-  },
-  {
-    value: 'pyramidal',
-    label: 'Pyramidal',
-    desc: '70% Z1-Z2 / 20% Z3 / 10% Z4-Z5 — bon équilibre',
-  },
-  {
-    value: 'threshold',
-    label: 'Seuil',
-    desc: 'Focus sur la Zone 3-4 — pour athlètes expérimentés avec moins de temps',
-  },
-]
+type SlotResolution = { existingId: string; update?: GoalFormData } | { create: GoalFormData }
 
 const SLOTS = ['A', 'B', 'C'] as const
 type SlotKey = (typeof SLOTS)[number]
@@ -120,17 +103,10 @@ export function ProgramForm({
   const settingsForm = useForm<ProgramSettings>({
     resolver: zodResolver(ProgramSettingsSchema),
     defaultValues: {
-      methodology: 'polarized',
       start_date: format(new Date(), 'yyyy-MM-dd'),
     },
   })
-  const selectedMethodology = useWatch({ control: settingsForm.control, name: 'methodology' })
-  const methodologyLabelId = useId()
   const trainingDaysLabelId = useId()
-  const noMethodologyActive = !METHODOLOGIES.some((m) => m.value === selectedMethodology)
-  function selectMethodology(value: string) {
-    settingsForm.setValue('methodology', value as ProgramSettings['methodology'])
-  }
 
   // Ids existants retenus par les autres slots (pour exclure des menus).
   function excludeFor(slot: SlotKey): string[] {
@@ -141,13 +117,19 @@ export function ProgramForm({
 
   // Résout un slot : 'skip' (vide/optionnel), { invalid } (à compléter, avec
   // raison), ou les données à utiliser (course existante ou nouvelle à créer).
-  async function resolveSlot(
-    slot: SlotKey,
-  ): Promise<'skip' | { invalid: string } | { existingId: string } | { create: GoalFormData }> {
+  async function resolveSlot(slot: SlotKey): Promise<'skip' | { invalid: string } | SlotResolution> {
     const required = slot === 'A'
     if (slotModes[slot] === 'existing') {
       const id = existingIds[slot]
-      if (id) return { existingId: id }
+      if (id) {
+        // Course existante : ses infos sont modifiables, on ne réenregistre que si elles ont changé.
+        const ref = fieldsetRefs[slot].current
+        if (!ref?.isDirty()) return { existingId: id }
+        if (!(await ref.validate())) {
+          return { invalid: `Objectif ${slot} : complète les infos de la course.` }
+        }
+        return { existingId: id, update: ref.getValues() }
+      }
       return required
         ? {
             invalid: `Objectif ${slot} : choisis une course existante ou passe sur « Nouvelle course ».`,
@@ -165,9 +147,21 @@ export function ProgramForm({
     if (!required && ref.isPristine()) return 'skip'
     const ok = await ref.validate()
     if (!ok) {
-      return { invalid: `Objectif ${slot} : complète les champs requis (nom, date, type).` }
+      return { invalid: `Objectif ${slot} : complète les champs requis (nom, date, distance…).` }
     }
     return { create: ref.getValues() }
+  }
+
+  async function updateGoal(id: string, values: GoalFormData): Promise<void> {
+    const res = await fetch(`/api/goals/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(values),
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.error ?? 'Erreur mise à jour de la course')
+    }
   }
 
   async function createGoal(values: GoalFormData): Promise<string> {
@@ -192,10 +186,7 @@ export function ProgramForm({
     setLoading(true)
     try {
       // 1) Valider tous les slots avant de créer quoi que ce soit.
-      const resolutions = {} as Record<
-        SlotKey,
-        'skip' | { existingId: string } | { create: GoalFormData }
-      >
+      const resolutions = {} as Record<SlotKey, 'skip' | SlotResolution>
       for (const slot of SLOTS) {
         const r = await resolveSlot(slot)
         if (typeof r === 'object' && 'invalid' in r) {
@@ -217,7 +208,12 @@ export function ProgramForm({
       for (const slot of SLOTS) {
         const r = resolutions[slot]
         if (r === 'skip') continue
-        idBySlot[slot] = 'existingId' in r ? r.existingId : await createGoal(r.create)
+        if ('existingId' in r) {
+          if (r.update) await updateGoal(r.existingId, r.update)
+          idBySlot[slot] = r.existingId
+        } else {
+          idBySlot[slot] = await createGoal(r.create)
+        }
       }
 
       const primaryId = idBySlot.A
@@ -235,7 +231,6 @@ export function ProgramForm({
         goal_ids,
         primary_goal_id,
         complementary_disciplines: complementary.length ? complementary : undefined,
-        methodology: settings.methodology,
         start_date: settings.start_date,
         available_days: trainingDays,
         current_weekly_hours: settings.current_weekly_hours,
@@ -414,57 +409,6 @@ export function ProgramForm({
           </p>
         </div>
 
-        <div className="space-y-3">
-          <Label id={methodologyLabelId}>Méthodologie</Label>
-          <div role="radiogroup" aria-labelledby={methodologyLabelId} className="space-y-2">
-            {METHODOLOGIES.map((m, index) => {
-              const active = selectedMethodology === m.value
-              return (
-                <button
-                  key={m.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  tabIndex={active || (noMethodologyActive && index === 0) ? 0 : -1}
-                  onClick={() => selectMethodology(m.value)}
-                  onKeyDown={(e) => {
-                    const step =
-                      e.key === 'ArrowRight' || e.key === 'ArrowDown'
-                        ? 1
-                        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
-                          ? -1
-                          : 0
-                    if (!step) return
-                    e.preventDefault()
-                    const nextIndex = (index + step + METHODOLOGIES.length) % METHODOLOGIES.length
-                    selectMethodology(METHODOLOGIES[nextIndex].value)
-                    const radios =
-                      e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-                        '[role="radio"]',
-                      )
-                    radios?.[nextIndex]?.focus()
-                  }}
-                  className={cn(
-                    'w-full rounded-xl border-[1.5px] p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                    active
-                      ? 'border-primary bg-accent'
-                      : 'border-border bg-card hover:border-primary/40',
-                  )}
-                >
-                  <p
-                    className={cn(
-                      'text-sm font-semibold',
-                      active ? 'text-primary-ink' : 'text-foreground',
-                    )}
-                  >
-                    {m.label}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{m.desc}</p>
-                </button>
-              )
-            })}
-          </div>
-        </div>
       </section>
 
       <Button

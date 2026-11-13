@@ -59,7 +59,7 @@ describe('buildMacroPrompt (multi-courses)', () => {
     expect(out).toContain('principale')
     expect(out).toContain('secondaire')
   })
-  it('affiche les champs trail (D+, D-, technicité)', () => {
+  it('affiche les champs trail (distance en km, D+, technicité) sans D- ni barrière', () => {
     const out = buildMacroPrompt({
       profile,
       methodology: 'polarized',
@@ -67,9 +67,37 @@ describe('buildMacroPrompt (multi-courses)', () => {
       total_weeks: 25,
       goals: [trail],
     })
-    expect(out).toContain('D+')
-    expect(out).toContain('D-')
+    expect(out).toContain('171 km')
+    expect(out).toContain('D+ 10000m')
+    expect(out).not.toMatch(/D- \d/)
+    expect(out).not.toMatch(/barrière horaire \d|altitude max \d|temps estimé \d/i)
     expect(out).toMatch(/technicit|mountain|montagne/i)
+  })
+  it("impose la règle d'intensité unique, sans méthodologie au choix", () => {
+    const out = buildMacroPrompt({ ...macroBase, methodology: 'threshold' })
+    expect(out).toContain('30 à 40 % des séances')
+    expect(out).not.toMatch(/Méthodologie : Seuil/)
+  })
+  it("objectif « terminer » : temps confortable estimé depuis les allures actuelles", () => {
+    const out = buildMacroPrompt({ ...macroBase, goals: [{ ...trail, target_type: 'finish' }] })
+    expect(out).toContain('TERMINER')
+    expect(out).toMatch(/allures actuelles/)
+  })
+  it('objectif chrono : allure cible calculée et progression depuis les allures actuelles', () => {
+    const road: GoalContext = {
+      role: 'primary',
+      sport: 'running',
+      race_name: 'Marathon de Paris',
+      race_type: 'road',
+      race_date: '2026-04-12',
+      run_distance_m: 42195,
+      target_type: 'time',
+      target_time_seconds: 3 * 3600,
+    }
+    const out = buildMacroPrompt({ ...macroBase, goals: [road] })
+    expect(out).toContain('CHRONO CIBLE 3:00:00')
+    expect(out).toContain('4:16/km')
+    expect(out).toMatch(/allures ACTUELLES/)
   })
   it('injecte la spécialisation trail quand une course running est présente', () => {
     const out = buildMacroPrompt({
@@ -160,7 +188,8 @@ describe('buildMacroPrompt (profil et objectifs)', () => {
         },
       ],
     })
-    expect(out).toContain('temps visé 2:15:00')
+    expect(out).toContain('CHRONO CIBLE 2:15:00')
+    expect(out).toContain('4:30/km')
     expect(out).toContain('course 45:00')
   })
   it("ne plafonne pas le volume sur l'historique des montres", () => {
@@ -267,7 +296,7 @@ describe('buildMicroPrompt', () => {
     expect(out).toContain('UTMB')
     expect(out).toContain('D+ 10000m')
     expect(out).toContain('SPÉCIALISATION TRAIL')
-    expect(out).toContain('Méthodologie du plan : Polarisé')
+    expect(out).toContain("Règle d'intensité du plan : 30 à 40 % des séances")
   })
   it('signale une course qui tombe dans la semaine', () => {
     const out = buildMicroPrompt({

@@ -218,13 +218,6 @@ export interface GoalContext {
   run_target_time_s?: number | null
 }
 
-function fmtHms(sec?: number | null): string {
-  if (sec == null) return '?'
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`
-}
-
 const SURFACE_FR: Record<string, string> = {
   road: 'route',
   gravel: 'chemin roulant',
@@ -232,7 +225,17 @@ const SURFACE_FR: Record<string, string> = {
   mountain: 'montagne',
 }
 
-/** Ambition de l'athlète sur la course (terminer, chrono, podium). */
+/** Allure moyenne (min:s/km) pour couvrir `distanceM` en `timeS`. */
+function paceFor(timeS?: number | null, distanceM?: number | null): string | null {
+  if (!timeS || !distanceM) return null
+  return fmtDuration(Math.round(timeS / (distanceM / 1000)))
+}
+
+/**
+ * Ambition de l'athlète sur la course : terminer ou viser un chrono.
+ * Les anciens objectifs « podium » sont traités comme un chrono s'ils en ont
+ * un, sinon comme « terminer ».
+ */
 function describeTarget(g: GoalContext): string | null {
   const splits = [
     g.swim_target_time_s && `natation ${fmtDuration(g.swim_target_time_s)}`,
@@ -242,11 +245,18 @@ function describeTarget(g: GoalContext): string | null {
     g.run_target_time_s && `course ${fmtDuration(g.run_target_time_s)}`,
   ].filter(Boolean)
   const detail = splits.length ? ` (${splits.join(', ')})` : ''
-  if (g.target_type === 'podium') return `Ambition : viser le podium${detail}`
-  if (g.target_type === 'time' || g.target_time_seconds) {
-    return `Ambition : temps visé ${fmtDuration(g.target_time_seconds ?? null) ?? 'non précisé'}${detail}`
+  if (g.target_time_seconds && g.target_type !== 'finish') {
+    const runTime = g.sport === 'running' ? g.target_time_seconds : g.run_target_time_s
+    const pace = paceFor(runTime, g.run_distance_m)
+    return [
+      `Ambition : CHRONO CIBLE ${fmtDuration(g.target_time_seconds)}${detail}${pace ? `, soit ${pace}/km en course à pied` : ''}.`,
+      `  → Les séances à allure spécifique partent des allures ACTUELLES de l'athlète en début de programme, puis s'en rapprochent progressivement de l'allure cible au fil des phases build et peak (jamais l'allure cible d'emblée).`,
+    ].join('\n')
   }
-  return g.target_type === 'finish' ? 'Ambition : terminer la course' : null
+  return [
+    'Ambition : TERMINER, sans chrono imposé.',
+    `  → Estime à partir des allures actuelles de l'athlète un temps de course confortable (allure qu'il tient sereinement jusqu'au bout) et cale le travail à allure spécifique sur cette allure, sans chercher la performance.`,
+  ].join('\n')
 }
 
 /** Décrit une course (tri ou running/trail) pour les prompts macro et micro. */
@@ -259,14 +269,11 @@ function describeGoal(g: GoalContext, planStartDate?: string): string {
   const lines = [`${roleFr} — ${g.race_name} (${g.race_type}, ${g.race_date}${weekFr})`]
   if (g.sport === 'running') {
     lines.push(
-      `  Course à pied : ${g.run_distance_m ?? '?'}m, D+ ${g.elevation_gain_m ?? '?'}m, D- ${g.elevation_loss_m ?? '?'}m`,
+      `  Course à pied : ${g.run_distance_m != null ? `${g.run_distance_m / 1000} km` : 'distance ?'}${g.elevation_gain_m ? `, D+ ${g.elevation_gain_m}m` : ''}`,
     )
     const detail = [
       g.surface && `technicité ${SURFACE_FR[g.surface] ?? g.surface}`,
       g.terrain && `profil ${g.terrain}`,
-      g.max_altitude_m != null && `altitude max ${g.max_altitude_m}m`,
-      g.cutoff_time_s != null && `barrière horaire ${fmtHms(g.cutoff_time_s)}`,
-      g.estimated_finish_time_s != null && `temps estimé ${fmtHms(g.estimated_finish_time_s)}`,
     ].filter(Boolean)
     if (detail.length) lines.push(`  ${detail.join(', ')}`)
   } else {
@@ -331,11 +338,13 @@ function buildAthleteDetailLines(p: AthleteDetails, onDate: string): string[] {
   ].filter((l): l is string => !!l)
 }
 
-const METHODOLOGY_LABELS: Record<string, string> = {
-  polarized: 'Polarisé (80% basse intensité / 20% haute intensité)',
-  pyramidal: 'Pyramidal (70% Z1-Z2 / 20% Z3 / 10% Z4-Z5)',
-  threshold: 'Seuil (focus sur la Zone 3-4)',
-}
+/**
+ * Répartition d'intensité unique, imposée à tous les plans (l'athlète ne choisit
+ * plus de méthodologie). Compté en séances : 30-40 % de séances de qualité ; en
+ * temps, cela reste ~80 % facile car échauffements, récupérations et retours au
+ * calme des séances de qualité sont eux-mêmes faciles.
+ */
+export const INTENSITY_RULE = `30 à 40 % des séances de la semaine sont des séances de qualité (allure spécifique, seuil, VMA/VO2, côtes), toutes les autres en endurance facile ou récupération. En temps passé, cela reste environ 80 % en Z1-Z2 (échauffements, récupérations et retours au calme compris). Bas de fourchette en prep/base et en semaine de récupération (qualité surtout tempo, côtes courtes, éducatifs), haut de fourchette en build/peak ; en taper, séances raccourcies mais quelques rappels d'intensité courts maintenus. Jamais deux séances de qualité deux jours de suite pour un débutant.`
 
 interface MacroContext {
   profile: AthleteDetails & {
@@ -433,7 +442,7 @@ ${performanceBlock ? performanceBlock + '\n' : ''}
 ${goalSection}${complementaryBlock}
 
 PROGRAMME :
-- Méthodologie : ${METHODOLOGY_LABELS[ctx.methodology] ?? ctx.methodology}
+- Répartition d'intensité (imposée) : ${INTENSITY_RULE}
 - Début : ${ctx.start_date}
 - Durée totale : ${ctx.total_weeks} semaines
 
@@ -473,8 +482,8 @@ Règles :
 ${volumeRules}
 - La dernière semaine (taper final) doit avoir un volume de 40-50% du pic
 - planned_tss cohérent avec le volume et l'intensité (1h Z2 vélo ≈ 50 TSS, 1h run Z2 ≈ 60 TSS)
-- L'ambition de chaque course (terminer, temps visé, podium) détermine la part de travail à allure spécifique en phases build et peak
-${ctx.profile.level === 'beginner' ? '- Athlète débutant : aucune intensité en Z4-Z5 (z4z5 = 0), quelle que soit la méthodologie\n' : ''}${hasSecondaryGoal ? '- Course secondaire : alléger 3 à 5 jours avant et prévoir 3 à 5 jours faciles après, sans casser la progression vers la course principale\n' : ''}`.trim()
+- L'ambition de chaque course (terminer ou chrono cible) détermine la part de travail à allure spécifique en phases build et peak
+${ctx.profile.level === 'beginner' ? '- Athlète débutant : aucune intensité en Z4-Z5 (z4z5 = 0) ; ses séances de qualité restent en Z3 (tempo, côtes courtes)\n' : ''}${hasSecondaryGoal ? '- Course secondaire : alléger 3 à 5 jours avant et prévoir 3 à 5 jours faciles après, sans casser la progression vers la course principale\n' : ''}`.trim()
 }
 
 // ─── Micro generation (sessions detail) ────────────────────────────────────────
@@ -707,7 +716,8 @@ ${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorW
 Cibles de la semaine :
 - Volume${ctx.kept_sessions?.length ? ' restant à planifier' : ''} : ${targetVolume}h
 - TSS : ${ctx.week.planned_tss}
-- Répartition intensité : ${intensityDesc}${ctx.methodology ? `\n- Méthodologie du plan : ${METHODOLOGY_LABELS[ctx.methodology] ?? ctx.methodology}` : ''}
+- Répartition intensité : ${intensityDesc}
+- Règle d'intensité du plan : ${INTENSITY_RULE}
 - Note du coach : ${ctx.week.notes}
 
 Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine disponibles

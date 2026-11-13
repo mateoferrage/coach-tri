@@ -9,10 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { GoalFieldset, type GoalFieldsetHandle } from './GoalFieldset'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { GoalFieldset, goalRowToFormValues, type GoalFieldsetHandle } from './GoalFieldset'
 
-export interface Goal {
+/** Course enregistrée (ligne complète de `goals`, pour pré-remplir le formulaire). */
+export interface Goal extends Record<string, unknown> {
   id: string
   race_name: string
   race_date: string
@@ -65,6 +66,7 @@ export function GoalSlot({
   const hasGoals = goals.length > 0
   // Garde la course déjà choisie dans ce slot, exclut celles prises ailleurs.
   const availableGoals = goals.filter((g) => g.id === existingId || !excludeIds.includes(g.id))
+  const selectedGoal = existingId ? goals.find((g) => g.id === existingId) : undefined
 
   return (
     <Card>
@@ -83,39 +85,49 @@ export function GoalSlot({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="existing" className="mt-2">
-            {hasGoals ? (
-              <Select
-                value={existingId ?? ''}
-                onValueChange={(v) => onExistingIdChange(v ? String(v) : undefined)}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={optional ? 'Aucune (optionnel)' : 'Choisir une course...'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {optional && <SelectItem value="">Aucune</SelectItem>}
-                  {availableGoals.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {goalLabel(g)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucune course enregistrée. Crée-en une via « Nouvelle course ».
-              </p>
-            )}
-          </TabsContent>
-
-          {/* keepMounted : le fieldset reste monté même quand l'onglet « existante »
-              est actif, pour que son ref impératif soit toujours attaché au submit. */}
-          <TabsContent value="new" keepMounted className="mt-2 data-[hidden]:hidden">
-            <GoalFieldset ref={fieldsetRef} priority={priority} />
-          </TabsContent>
         </Tabs>
+
+        {mode === 'existing' &&
+          (hasGoals ? (
+            <Select
+              value={existingId ?? ''}
+              onValueChange={(v) => onExistingIdChange(v ? String(v) : undefined)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={optional ? 'Aucune (optionnel)' : 'Choisir une course...'} />
+              </SelectTrigger>
+              <SelectContent>
+                {optional && <SelectItem value="">Aucune</SelectItem>}
+                {availableGoals.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {goalLabel(g)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucune course enregistrée. Crée-en une via « Nouvelle course ».
+            </p>
+          ))}
+
+        {/* Un seul fieldset monté à la fois → le ref du slot pointe toujours sur
+            le formulaire visible : vierge (nouvelle) ou pré-rempli (existante). */}
+        {mode === 'existing' && selectedGoal && (
+          <div className="space-y-4 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">
+              Vérifie ou ajuste les infos de la course : tes modifications seront enregistrées à la
+              génération du programme.
+            </p>
+            <GoalFieldset
+              key={selectedGoal.id}
+              ref={fieldsetRef}
+              priority={priority}
+              initial={goalRowToFormValues(selectedGoal)}
+            />
+          </div>
+        )}
+        {mode === 'new' && <GoalFieldset key="new" ref={fieldsetRef} priority={priority} />}
       </CardContent>
     </Card>
   )
