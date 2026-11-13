@@ -26,4 +26,12 @@ describe('syncSummary', () => {
       message: 'Garmin : erreur réseau',
     })
   })
+
+  it('mentionne les séances validées automatiquement', () => {
+    const { message } = syncSummary([
+      { source: 'garmin', ok: true, count: 3, linked: 2 },
+      { source: 'strava', ok: true, count: 1, linked: 0 },
+    ])
+    expect(message).toMatch(/2 séances validées automatiquement$/)
+  })
 })

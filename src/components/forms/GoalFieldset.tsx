@@ -475,7 +475,7 @@ export const GoalFieldset = forwardRef<
           {raceType !== 'road' && (
             <div className="space-y-1">
               <Label htmlFor={`${idPrefix}-elevation`}>
-                Dénivelé positif <span className="font-normal text-muted-foreground">(optionnel)</span>
+                D+ <span className="font-normal text-muted-foreground">(optionnel)</span>
               </Label>
               <div className="relative">
                 <Input
@@ -520,6 +520,7 @@ export const GoalFieldset = forwardRef<
           value={terrain}
           onChange={(v) => set('terrain', v)}
           columns={3}
+          mobileColumns={3}
           size="sm"
         />
       </div>

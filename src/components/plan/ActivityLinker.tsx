@@ -28,8 +28,12 @@ const VERDICT_CONFIG: Record<
   poor: { label: 'À revoir', variant: 'highlight' },
 }
 
-interface GarminActivity {
-  id: string
+/** Activité Garmin et/ou Strava (dédoublonnée) proposable pour une séance. */
+export interface LinkableActivity {
+  key: string
+  garmin_id: string | null
+  strava_id: string | null
+  sources: string[]
   activity_type: string
   name: string | null
   started_at: string
@@ -44,9 +48,14 @@ interface CoachReview {
 
 interface Props {
   sessionId: string
-  linkedActivity: GarminActivity | null
-  candidates: GarminActivity[]
+  linkedActivity: LinkableActivity | null
+  candidates: LinkableActivity[]
   initialReview?: CoachReview | null
+}
+
+const SOURCE_LABEL: Record<string, string> = { garmin: 'Garmin', strava: 'Strava' }
+function sourcesLabel(a: LinkableActivity): string {
+  return a.sources.map((s) => SOURCE_LABEL[s] ?? s).join(' + ')
 }
 
 function fmt(duration_s: number | null, distance_m: number | null, activityType: string): string {
@@ -66,8 +75,10 @@ function fmt(duration_s: number | null, distance_m: number | null, activityType:
   return parts.join(' · ') || '—'
 }
 
+/** started_at est l'heure locale stockée en +00 : on l'affiche telle quelle (UTC). */
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('fr-FR', {
+    timeZone: 'UTC',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -76,9 +87,9 @@ function formatDateTime(iso: string): string {
   })
 }
 
-export function GarminLinker({ sessionId, linkedActivity, candidates, initialReview }: Props) {
+export function ActivityLinker({ sessionId, linkedActivity, candidates, initialReview }: Props) {
   const router = useRouter()
-  const [linked, setLinked] = useState<GarminActivity | null>(linkedActivity)
+  const [linked, setLinked] = useState<LinkableActivity | null>(linkedActivity)
   const [pending, setPending] = useState(false)
   const [open, setOpen] = useState(false)
   const [review, setReview] = useState<CoachReview | null>(initialReview ?? null)
@@ -100,33 +111,35 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
     }
   }
 
-  async function handleLink(garminId: string | null) {
+  async function handleLink(activity: LinkableActivity | null) {
     setPending(true)
     try {
       const linkRes = await fetch(`/api/sessions/${sessionId}/link-garmin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ garmin_activity_id: garminId }),
+        body: JSON.stringify({
+          garmin_activity_id: activity?.garmin_id ?? null,
+          strava_activity_id: activity?.strava_id ?? null,
+        }),
       })
       if (!linkRes.ok) {
         const json = (await linkRes.json()) as { error?: string }
-        setReviewError(json.error ?? 'Erreur lors du lien Garmin')
+        setReviewError(json.error ?? "Erreur lors de la liaison de l'activité")
         return
       }
 
-      const newStatus = garminId ? 'done' : 'planned'
+      const newStatus = activity ? 'done' : 'planned'
       await fetch(`/api/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
 
-      const found = garminId ? (candidates.find((c) => c.id === garminId) ?? null) : null
-      setLinked(found)
+      setLinked(activity)
       setOpen(false)
       setReview(null)
       router.refresh()
-      if (garminId) fetchReview()
+      if (activity) fetchReview()
     } finally {
       setPending(false)
     }
@@ -136,7 +149,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
 
   return (
     <section aria-labelledby="garmin-title" className="space-y-3">
-      <SectionLabel id="garmin-title">Activité Garmin liée</SectionLabel>
+      <SectionLabel id="garmin-title">Activité liée</SectionLabel>
 
       {linked ? (
         /* ── Activité liée ── */
@@ -152,7 +165,8 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                 {formatDateTime(linked.started_at)} ·{' '}
-                {fmt(linked.duration_s, linked.distance_m, linked.activity_type)}
+                {fmt(linked.duration_s, linked.distance_m, linked.activity_type)} ·{' '}
+                {sourcesLabel(linked)}
               </p>
             </div>
           </div>
@@ -172,20 +186,21 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
           {!open ? (
             <Button variant="outline-primary" onClick={() => setOpen(true)} className="w-full">
               <Plus aria-hidden />
-              Lier une activité Garmin
+              Lier une activité
             </Button>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
               {candidates.length === 0 ? (
                 <p className="px-4 py-5 text-center text-sm text-muted-foreground">
-                  Aucune activité Garmin trouvée à ±3 jours de cette séance.
+                  Aucune activité Garmin ou Strava trouvée à ±3 jours de cette séance. Lance une
+                  synchronisation depuis la page Activités.
                 </p>
               ) : (
                 <ul>
                   {candidates.map((c) => (
-                    <li key={c.id} className="border-t border-border first:border-t-0">
+                    <li key={c.key} className="border-t border-border first:border-t-0">
                       <button
-                        onClick={() => handleLink(c.id)}
+                        onClick={() => handleLink(c)}
                         disabled={pending}
                         className="flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 text-left transition-colors hover:border-primary hover:bg-accent focus-visible:border-primary focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50"
                       >
@@ -199,7 +214,7 @@ export function GarminLinker({ sessionId, linkedActivity, candidates, initialRev
                           </p>
                           <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                             {formatDateTime(c.started_at)} ·{' '}
-                            {fmt(c.duration_s, c.distance_m, c.activity_type)}
+                            {fmt(c.duration_s, c.distance_m, c.activity_type)} · {sourcesLabel(c)}
                           </p>
                         </div>
                         <Link2 aria-hidden className="size-4 shrink-0 text-primary-ink" />

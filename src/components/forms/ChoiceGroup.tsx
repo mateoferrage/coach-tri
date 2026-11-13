@@ -21,6 +21,7 @@ export function ChoiceGroup<T extends string>({
   value,
   onChange,
   columns = 2,
+  mobileColumns = 2,
   size = 'md',
 }: {
   label: string
@@ -28,6 +29,8 @@ export function ChoiceGroup<T extends string>({
   value: T | undefined
   onChange: (value: T) => void
   columns?: 2 | 3
+  /** Options courtes (ex. Plat / Vallonné / Montagneux) : 3 colonnes dès le mobile. */
+  mobileColumns?: 2 | 3
   size?: 'sm' | 'md'
 }) {
   const activeIndex = choices.findIndex((c) => c.value === value)
@@ -36,7 +39,11 @@ export function ChoiceGroup<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn('grid gap-2', columns === 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2')}
+      className={cn(
+        'grid gap-2',
+        mobileColumns === 3 ? 'grid-cols-3' : 'grid-cols-2',
+        columns === 3 && 'sm:grid-cols-3',
+      )}
     >
       {choices.map((c, index) => {
         const active = c.value === value

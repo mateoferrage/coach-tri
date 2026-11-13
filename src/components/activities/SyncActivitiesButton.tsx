@@ -13,7 +13,12 @@ async function syncOne(source: ActivitySource): Promise<SyncResult> {
     const res = await fetch(`/api/${source}/sync`, { method: 'POST' })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) return { source, ok: false, error: data.error ?? 'échec de la synchronisation' }
-    return { source, ok: true, count: data.activities_synced ?? 0 }
+    return {
+      source,
+      ok: true,
+      count: data.activities_synced ?? 0,
+      linked: data.sessions_linked ?? 0,
+    }
   } catch {
     return { source, ok: false, error: 'erreur réseau' }
   }

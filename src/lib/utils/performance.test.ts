@@ -6,6 +6,7 @@ import {
   deriveSwimCssSecPer100m,
   deriveVmaKmh,
   derivePhysiologyFromRecords,
+  withFreshDerivations,
 } from './performance'
 
 describe('criticalVelocity', () => {
@@ -120,5 +121,20 @@ describe('derivePhysiologyFromRecords', () => {
     expect(d.run_threshold_pace_sec_per_km).toBeNull()
     expect(d.css_pace_sec_per_100m).toBeNull()
     expect(d.vma_kmh).toBeNull()
+  })
+})
+
+describe('withFreshDerivations', () => {
+  it('recalcule depuis les records', () => {
+    const r = withFreshDerivations({ run_5k_time_s: 1200, run_threshold_pace_sec_per_km: 240 })
+    expect(r.run_threshold_pace_sec_per_km).toBe(255)
+  })
+  it('garde un seuil mesuré par un test', () => {
+    const r = withFreshDerivations({
+      run_5k_time_s: 1200,
+      run_threshold_pace_sec_per_km: 262,
+      measured_fields: ['run_threshold_pace_sec_per_km'],
+    })
+    expect(r.run_threshold_pace_sec_per_km).toBe(262)
   })
 })

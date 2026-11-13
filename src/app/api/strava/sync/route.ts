@@ -4,6 +4,7 @@ import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { refreshIfNeeded, getActivitiesForSync, type StravaTokens } from '@/lib/strava/client'
 import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
 import { StravaApiError, stravaSyncErrorMessage } from '@/lib/strava/errors'
+import { safeAutoLink } from '@/lib/activities/auto-link'
 
 export async function POST() {
   const supabase = await createClient()
@@ -70,5 +71,7 @@ export async function POST() {
     .update({ last_sync_at: new Date().toISOString() })
     .eq('user_id', user.id)
 
-  return apiSuccess({ activities_synced: activities.length })
+  const sessionsLinked = await safeAutoLink(admin, user.id)
+
+  return apiSuccess({ activities_synced: activities.length, sessions_linked: sessionsLinked })
 }

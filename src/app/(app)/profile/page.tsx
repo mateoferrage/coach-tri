@@ -2,6 +2,7 @@ import { Activity, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { GarminConnectCard } from '@/components/garmin/GarminConnectCard'
 import { PhysiologySection } from '@/components/profile/PhysiologySection'
+import { withFreshDerivations } from '@/lib/utils/performance'
 import { EquipmentSection } from '@/components/profile/EquipmentSection'
 import { StravaConnectCard } from '@/components/strava/StravaConnectCard'
 import { SectionLabel } from '@/components/common/SectionLabel'
@@ -205,7 +206,7 @@ export default async function ProfilePage() {
       supabase
         .from('physiology_current')
         .select(
-          'run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s, ftp_watts, hr_max, resting_hr, vma_kmh, run_threshold_pace_sec_per_km, css_pace_sec_per_100m, test_date',
+          'run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s, ftp_watts, hr_max, resting_hr, vma_kmh, run_threshold_pace_sec_per_km, css_pace_sec_per_100m, hr_threshold_run, hr_threshold_bike, measured_fields, test_date',
         )
         .eq('user_id', user!.id)
         .maybeSingle(),
@@ -229,7 +230,8 @@ export default async function ProfilePage() {
   const garminCreds = garminCredsRes.data as { last_sync_at: string | null } | null
   const gStats = garminStatsRes.data as Record<string, unknown> | null
   const activities = (activitiesRes.data ?? []) as ActivityRow[]
-  const physiology = physiologyRes.data as {
+  // Mêmes seuils que ceux utilisés par la génération (recalculés depuis les records).
+  const physiologyRaw = physiologyRes.data as {
     run_5k_time_s: number | null
     run_10k_time_s: number | null
     run_half_time_s: number | null
@@ -243,8 +245,12 @@ export default async function ProfilePage() {
     vma_kmh: number | null
     run_threshold_pace_sec_per_km: number | null
     css_pace_sec_per_100m: number | null
+    hr_threshold_run: number | null
+    hr_threshold_bike: number | null
+    measured_fields: string[] | null
     test_date: string | null
   } | null
+  const physiology = physiologyRaw ? withFreshDerivations(physiologyRaw) : null
   const stravaCreds = stravaCredsRes.data as { last_sync_at: string | null } | null
 
   // Volume 30j
