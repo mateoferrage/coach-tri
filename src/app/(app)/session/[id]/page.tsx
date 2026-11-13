@@ -6,7 +6,13 @@ import { Badge } from '@/components/ui/badge'
 import { SectionLabel } from '@/components/common/SectionLabel'
 import { SessionActions } from '@/components/plan/SessionActions'
 import { SessionHero } from '@/components/plan/SessionHero'
-import { GarminLinker } from '@/components/plan/GarminLinker'
+import { ActivityLinker, type LinkableActivity } from '@/components/plan/ActivityLinker'
+import { SessionComparison } from '@/components/plan/SessionComparison'
+import { TestResultCard, type TestPrefill } from '@/components/plan/TestResultCard'
+import { testKindFor } from '@/lib/physiology/test-results'
+import { compareSession } from '@/lib/activities/compare'
+import { fetchLinkedActivities, fetchUnifiedActivities, linkFor, linkKey } from '@/lib/activities/linked'
+import type { UnifiedActivity } from '@/lib/activities/unify'
 import { PHASE_LABEL, SESSION_TYPE_LABEL } from '@/lib/plan/display'
 import { effortSegments } from '@/lib/plan/effort'
 import type { DashboardSession } from '@/lib/plan/week-summary'
@@ -91,7 +97,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { data: session } = (await supabase
     .from('sessions')
     .select(
-      '*, plan_week:plan_weeks(week_num, phase, start_date), linked_garmin:garmin_activity_id(id, activity_type, name, started_at, duration_s, distance_m)',
+      '*, plan_week:plan_weeks(week_num, phase, start_date)',
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -99,33 +105,88 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
   if (!session) notFound()
 
-  // Fetch Garmin activity candidates (same discipline, ±3 days)
+  // Activités Garmin + Strava (dédoublonnées) à ±3 jours, de la même discipline.
   const sessionDate = session.session_date as string
-  const disciplineToGarmin: Record<string, string[]> = {
+  const discipline = session.discipline as string
+  const disciplineTypes: Record<string, string[]> = {
     swim: ['swim'],
     bike: ['bike'],
     run: ['run'],
     brick: ['bike', 'run'],
-    strength: ['strength'],
-    rest: [],
+    strength: ['strength', 'other'],
   }
-  const garminTypes = disciplineToGarmin[session.discipline as string] ?? []
-  const dateFrom = new Date(sessionDate)
-  dateFrom.setDate(dateFrom.getDate() - 3)
-  const dateTo = new Date(sessionDate)
-  dateTo.setDate(dateTo.getDate() + 1)
+  const types = disciplineTypes[discipline] ?? []
+  const shift = (days: number) =>
+    new Date(Date.parse(`${sessionDate}T00:00:00Z`) + days * 86400000).toISOString()
+  const nearby = types.length
+    ? (await fetchUnifiedActivities(supabase, user.id, shift(-3), shift(2))).filter((a) =>
+        types.includes(a.activity_type),
+      )
+    : []
 
-  const { data: garminCandidates } =
-    garminTypes.length > 0
-      ? await supabase
-          .from('garmin_activities')
-          .select('id, activity_type, name, started_at, duration_s, distance_m')
-          .eq('user_id', user.id)
-          .in('activity_type', garminTypes)
-          .gte('started_at', dateFrom.toISOString())
-          .lte('started_at', dateTo.toISOString())
-          .order('started_at', { ascending: false })
-      : { data: [] }
+  const link = {
+    garmin_activity_id: session.garmin_activity_id as string | null,
+    strava_activity_id: (session.strava_activity_id as string | null) ?? null,
+  }
+  const toLinkable = (a: UnifiedActivity): LinkableActivity => {
+    const l = linkFor(a)
+    return {
+      key: linkKey(l) ?? a.id,
+      garmin_id: l.garmin_activity_id,
+      strava_id: l.strava_activity_id,
+      sources: a.sources,
+      activity_type: a.activity_type,
+      name: a.name,
+      started_at: a.started_at,
+      duration_s: a.duration_s,
+      distance_m: a.distance_m,
+    }
+  }
+  const isLinked = (a: UnifiedActivity) => {
+    const l = linkFor(a)
+    return (
+      (!!l.garmin_activity_id && l.garmin_activity_id === link.garmin_activity_id) ||
+      (!!l.strava_activity_id && l.strava_activity_id === link.strava_activity_id)
+    )
+  }
+  const linkedUnified = linkKey(link)
+    ? (nearby.find(isLinked) ??
+      (
+        await fetchUnifiedActivities(supabase, user.id, shift(-30), shift(30))
+      ).find(isLinked) ??
+      null)
+    : null
+  const linkedActivity = linkedUnified ? toLinkable(linkedUnified) : null
+  const candidates = nearby.filter((a) => !isLinked(a)).map(toLinkable)
+
+  const actual = linkKey(link)
+    ? (await fetchLinkedActivities(supabase, user.id, [link])).get(linkKey(link)!)
+    : undefined
+  const comparison = actual
+    ? compareSession(
+        {
+          discipline,
+          session_type: session.session_type as string,
+          duration_min: session.duration_min as number,
+          target_values: session.target_values as Record<string, unknown> | null,
+        },
+        actual,
+      )
+    : []
+
+  // Séance de test : saisie du résultat → zones du profil. Pré-remplie depuis
+  // l'activité liée quand sa durée correspond au seul bloc de test.
+  const isTest =
+    session.session_type === 'test' ||
+    String(session.template_code ?? '').toUpperCase().startsWith('TEST')
+  const testKind = isTest ? testKindFor(discipline) : null
+  const actualMin = actual?.duration_s ? actual.duration_s / 60 : 0
+  const testPrefill: TestPrefill | undefined =
+    testKind === 'run' && actualMin >= 27 && actualMin <= 33
+      ? { distance_m: actual?.distance_m, avg_hr: actual?.avg_hr }
+      : testKind === 'bike' && actualMin >= 18 && actualMin <= 22
+        ? { avg_power: actual?.avg_watts }
+        : undefined
 
   const date = parseISO(session.session_date as string)
   const structure = session.structure as {
@@ -283,18 +344,20 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         </section>
       )}
 
-      {/* Lier une activité Garmin */}
-      {(session.discipline as string) !== 'rest' && (
-        <GarminLinker
+      {testKind && <TestResultCard kind={testKind} prefill={testPrefill} />}
+
+      {/* Prévu / réalisé (activité liée) */}
+      <SessionComparison rows={comparison} />
+
+      {/* Lier une activité Garmin ou Strava */}
+      {discipline !== 'rest' && (
+        <ActivityLinker
           sessionId={id}
-          linkedActivity={
-            session.linked_garmin as Record<string, unknown> | null as Parameters<
-              typeof GarminLinker
-            >[0]['linkedActivity']
-          }
-          candidates={(garminCandidates ?? []) as Parameters<typeof GarminLinker>[0]['candidates']}
+          linkedActivity={linkedActivity}
+          candidates={candidates}
           initialReview={
-            (session.garmin_review as Parameters<typeof GarminLinker>[0]['initialReview']) ?? null
+            (session.garmin_review as Parameters<typeof ActivityLinker>[0]['initialReview']) ??
+            null
           }
         />
       )}

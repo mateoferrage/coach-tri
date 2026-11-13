@@ -3,6 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { apiError, apiSuccess } from '@/lib/utils/errors'
 import { derivePhysiologyFromRecords } from '@/lib/utils/performance'
 import { z } from 'zod'
+import { CARRIED_FIELDS, fetchCurrentPhysiology, saveSnapshot } from '@/lib/physiology/snapshot'
+
+const RUN_RECORDS = ['run_5k_time_s', 'run_10k_time_s', 'run_half_time_s'] as const
+const RUN_MEASURED: readonly string[] = ['run_threshold_pace_sec_per_km', 'vma_kmh']
 
 // L'athlète saisit des records (temps) + FTP + FC ; les seuils (allure seuil,
 // VMA, CSS) sont dérivés côté serveur puis stockés (voir performance.ts).
@@ -60,6 +64,18 @@ export async function POST(request: Request) {
 
   // Dérive allure seuil / VMA / CSS depuis les records saisis.
   const derived = derivePhysiologyFromRecords(parsed.data)
+  const current = await fetchCurrentPhysiology(supabase, user.id)
+
+  // Un seuil mesuré par un test reste valable tant que les records course ne
+  // changent pas ; s'ils changent, les records reprennent la main.
+  const runRecordsUnchanged = RUN_RECORDS.every(
+    (k) => (parsed.data[k] ?? null) === (current?.[k] ?? null),
+  )
+  const keptMeasured = runRecordsUnchanged
+    ? (current?.measured_fields ?? []).filter((f) => RUN_MEASURED.includes(f))
+    : []
+  const measuredRun = (k: 'run_threshold_pace_sec_per_km' | 'vma_kmh') =>
+    keptMeasured.includes(k) ? ((current?.[k] as number | null | undefined) ?? null) : null
 
   const testDate = parsed.data.test_date ?? today
   const row = {
@@ -78,30 +94,17 @@ export async function POST(request: Request) {
     ftp_watts: parsed.data.ftp_watts ?? null,
     hr_max: parsed.data.hr_max ?? null,
     resting_hr: parsed.data.resting_hr ?? null,
-    // Seuils dérivés (pour que le calcul de zones reste inchangé)
-    run_threshold_pace_sec_per_km: derived.run_threshold_pace_sec_per_km,
-    vma_kmh: derived.vma_kmh,
+    // Seuils dérivés, sauf ceux mesurés par un test encore valable
+    run_threshold_pace_sec_per_km:
+      measuredRun('run_threshold_pace_sec_per_km') ?? derived.run_threshold_pace_sec_per_km,
+    vma_kmh: measuredRun('vma_kmh') ?? derived.vma_kmh,
     css_pace_sec_per_100m: derived.css_pace_sec_per_100m,
+    // FC seuil (tests) : absentes du formulaire, reportées
+    ...Object.fromEntries(CARRIED_FIELDS.map((f) => [f, current?.[f] ?? null])),
+    measured_fields: keptMeasured,
   }
 
-  // Une seule mesure par date : `physiology_current` départage par date, deux
-  // lignes le même jour rendraient la valeur retenue aléatoire.
-  const { data: sameDay } = await admin
-    .from('physiology')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('test_date', testDate)
-    .limit(1)
-    .maybeSingle()
-
-  const { data, error } = (await (
-    sameDay
-      ? admin.from('physiology').update(row).eq('id', sameDay.id)
-      : admin.from('physiology').insert(row)
-  )
-    .select()
-    .single()) as { data: Record<string, unknown> | null; error: { message: string } | null }
-
+  const { data, error } = await saveSnapshot(admin, row)
   if (error) return apiError(error.message)
   return apiSuccess(data, 201)
 }

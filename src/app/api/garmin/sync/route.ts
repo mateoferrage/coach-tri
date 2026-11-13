@@ -6,6 +6,7 @@ import { buildGarminClient, type StoredTokens } from '@/lib/garmin/client'
 import { asJson } from '@/lib/utils/json'
 import type { TablesInsert } from '@/types/db'
 import { fixEncoding } from '@/lib/garmin/encoding'
+import { safeAutoLink } from '@/lib/activities/auto-link'
 
 const MAX_DAYS = 14
 
@@ -408,9 +409,12 @@ export async function POST() {
       .update({ last_sync_at: new Date().toISOString(), session_data: asJson(tokens) })
       .eq('user_id', user.id)
 
+    const sessionsLinked = await safeAutoLink(admin, user.id)
+
     return apiSuccess({
       success: true,
       activities_synced: activities.length,
+      sessions_linked: sessionsLinked,
       wellness_synced: wellness.length,
       stats_synced: true,
     })

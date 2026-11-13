@@ -147,18 +147,23 @@ export function derivePhysiologyFromRecords(records: RunRecords & SwimRecords): 
 
 /**
  * Recalcule les seuils à la lecture depuis les records (source de vérité) :
- * les valeurs stockées peuvent dater d'une ancienne formule. Sans record, les
- * valeurs stockées sont conservées.
+ * les valeurs stockées peuvent dater d'une ancienne formule. Un seuil MESURÉ
+ * par un test (`measured_fields`) prime et n'est pas recalculé. Sans record,
+ * les valeurs stockées sont conservées.
  */
-export function withFreshDerivations<T extends RunRecords & SwimRecords & Partial<DerivedPhysiology>>(
-  row: T,
-): T {
+export function withFreshDerivations<
+  T extends RunRecords & SwimRecords & Partial<DerivedPhysiology> & {
+    measured_fields?: string[] | null
+  },
+>(row: T): T {
   const d = derivePhysiologyFromRecords(row)
+  const measured = new Set(row.measured_fields ?? [])
+  const pick = (k: keyof DerivedPhysiology) =>
+    measured.has(k) ? (row[k] ?? null) : (d[k] ?? row[k] ?? null)
   return {
     ...row,
-    run_threshold_pace_sec_per_km:
-      d.run_threshold_pace_sec_per_km ?? row.run_threshold_pace_sec_per_km ?? null,
-    vma_kmh: d.vma_kmh ?? row.vma_kmh ?? null,
-    css_pace_sec_per_100m: d.css_pace_sec_per_100m ?? row.css_pace_sec_per_100m ?? null,
+    run_threshold_pace_sec_per_km: pick('run_threshold_pace_sec_per_km'),
+    vma_kmh: pick('vma_kmh'),
+    css_pace_sec_per_100m: pick('css_pace_sec_per_100m'),
   }
 }

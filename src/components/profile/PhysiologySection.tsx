@@ -123,11 +123,13 @@ function ValueRow({
   value,
   unit,
   estimated,
+  measured,
 }: {
   label: string
   value: string | null
   unit?: string
   estimated?: boolean
+  measured?: boolean
 }) {
   return (
     <div className="space-y-0.5">
@@ -145,7 +147,11 @@ function ValueRow({
       </p>
       <p className="text-xs text-muted-foreground">
         {label}
-        {estimated && <span className="ml-1">(estimé)</span>}
+        {measured ? (
+          <span className="ml-1">(test)</span>
+        ) : (
+          estimated && <span className="ml-1">(estimé)</span>
+        )}
       </p>
     </div>
   )
@@ -181,6 +187,10 @@ export interface PhysiologyData {
   vma_kmh: number | null
   run_threshold_pace_sec_per_km: number | null
   css_pace_sec_per_100m: number | null
+  // Mesurées par un test de terrain (page de la séance de test)
+  hr_threshold_run?: number | null
+  hr_threshold_bike?: number | null
+  measured_fields?: string[] | null
   test_date: string | null
 }
 
@@ -188,6 +198,7 @@ export interface PhysiologyData {
 
 export function PhysiologySection({ initial }: { initial: PhysiologyData | null }) {
   const router = useRouter()
+  const isMeasured = (f: string) => !!initial?.measured_fields?.includes(f)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -308,12 +319,14 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 }
                 unit="/km"
                 estimated
+                measured={isMeasured('run_threshold_pace_sec_per_km')}
               />
               <ValueRow
                 label="VMA"
                 value={initial?.vma_kmh != null ? initial.vma_kmh.toFixed(1) : null}
                 unit="km/h"
                 estimated
+                measured={isMeasured('vma_kmh')}
               />
             </div>
           </div>
@@ -323,7 +336,12 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
               Vélo
             </GroupLabel>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <ValueRow label="FTP" value={initial?.ftp_watts?.toString() ?? null} unit="W" />
+              <ValueRow
+                label="FTP"
+                value={initial?.ftp_watts?.toString() ?? null}
+                unit="W"
+                measured={isMeasured('ftp_watts')}
+              />
             </div>
           </div>
           {/* Swimming */}
@@ -372,6 +390,22 @@ export function PhysiologySection({ initial }: { initial: PhysiologyData | null 
                 value={initial?.resting_hr?.toString() ?? null}
                 unit="bpm"
               />
+              {initial?.hr_threshold_run != null && (
+                <ValueRow
+                  label="FC seuil course"
+                  value={initial.hr_threshold_run.toString()}
+                  unit="bpm"
+                  measured
+                />
+              )}
+              {initial?.hr_threshold_bike != null && (
+                <ValueRow
+                  label="FC seuil vélo"
+                  value={initial.hr_threshold_bike.toString()}
+                  unit="bpm"
+                  measured
+                />
+              )}
             </div>
           </div>
 

@@ -631,6 +631,8 @@ export interface PriorWeekSession {
   status: string
   actual_rpe: number | null
   actual_duration_min: number | null
+  /** Prévu / réalisé de l'activité liée, résumé en code (semaines récentes). */
+  actual_summary?: string | null
 }
 
 export interface PriorWeek {
@@ -679,6 +681,8 @@ interface MicroContext {
   /** Séances de la semaine déjà traitées, conservées à la régénération. */
   kept_sessions?: PriorWeekSession[]
   prior_weeks?: PriorWeek[]
+  /** Tendances d'exécution récentes (prévu vs réalisé), voir executionTrends. */
+  execution_trends?: string[]
   plan_overview?: PlanWeekOverview[]
   athlete_zones?: string // pre-formatted zone table from calculateZones()
   /** Allure seuil course (s/km), pour situer le chrono visé. */
@@ -774,7 +778,7 @@ export function buildMicroPrompt(ctx: MicroContext): string {
     ? `\nSÉANCES DÉJÀ TRAITÉES CETTE SEMAINE (conservées, ne pas les reprogrammer) :\n${ctx.kept_sessions
         .map(
           (s) =>
-            `  - ${s.session_date} : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${s.actual_duration_min ?? s.duration_min}min — ${s.session_type} — ${STATUS_FR[s.status] ?? s.status}`,
+            `  - ${s.session_date} : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${s.actual_duration_min ?? s.duration_min}min — ${s.session_type} — ${STATUS_FR[s.status] ?? s.status}${s.actual_summary ? `\n      réel : ${s.actual_summary}` : ''}`,
         )
         .join(
           '\n',
@@ -829,7 +833,8 @@ export function buildMicroPrompt(ctx: MicroContext): string {
           const zone = s.target_zone ? ` | ${s.target_zone}` : ''
           const tss = s.planned_tss ? ` | TSS: ${s.planned_tss}` : ''
           const status = s.status === 'done' ? '✓' : s.status === 'skipped' ? '✗' : '○'
-          return `  ${status} ${s.session_date} : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${dur}min — ${s.session_type}${zone}${tss}${rpe}`
+          const real = s.actual_summary ? `\n      réel : ${s.actual_summary}` : ''
+          return `  ${status} ${s.session_date} : ${DISCIPLINE_FR[s.discipline] ?? s.discipline} ${dur}min — ${s.session_type}${zone}${tss}${rpe}${real}`
         })
         .join('\n')
       const summary = `  → Volume hors séances sautées : ${(actualVolMin / 60).toFixed(1)}h | TSS : ${actualTSS}`
@@ -847,7 +852,11 @@ export function buildMicroPrompt(ctx: MicroContext): string {
     : ''
   const noZonesRule = ctx.athlete_zones
     ? `- Pour une discipline sans zone personnalisée ci-dessus : cibles au ressenti (RPE, test de la parole) uniquement, aucune allure, aucun watt ni FC inventés\n`
-    : `- Aucune zone personnalisée connue : cibles au ressenti (RPE, test de la parole) uniquement, aucune allure, aucun watt ni FC inventés.${ctx.week.week_num <= 2 ? " Place un test (TEST-RUN-30, TEST-FTP-20 ou TEST-CSS selon les disciplines) cette semaine, en indiquant dans coaching_note de saisir le résultat dans le profil pour calibrer les zones" : ''}\n`
+    : `- Aucune zone personnalisée connue : cibles au ressenti (RPE, test de la parole) uniquement, aucune allure, aucun watt ni FC inventés.${ctx.week.week_num <= 2 ? " Place un test (TEST-RUN-30, TEST-FTP-20 ou TEST-CSS selon les disciplines) cette semaine, avec session_type « test », en indiquant dans coaching_note de saisir le résultat sur la page de la séance (« Résultat du test ») pour calibrer les zones" : ''}\n`
+
+  const executionBlock = ctx.execution_trends?.length
+    ? `EXÉCUTION RÉCENTE (prévu vs réalisé, calculé sur les activités liées — À PRENDRE EN COMPTE) :\n${ctx.execution_trends.map((t) => `- ${t}`).join('\n')}`
+    : ''
 
   const zonesBlock = ctx.athlete_zones
     ? `ZONES D'ENTRAÎNEMENT PERSONNALISÉES (utilise ces valeurs pour target_values) :\n${ctx.athlete_zones}`
@@ -856,7 +865,7 @@ export function buildMicroPrompt(ctx: MicroContext): string {
   const knowledgeMicroBlock = `BASE DE CONNAISSANCES (zones + bibliothèque de séances) :\n${KNOWLEDGE_BASE_MICRO}${trailBlock}`
 
   return `
-${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorWeeksBlock + '\n\n' : ''}${knowledgeMicroBlock}\n\n${zonesBlock ? zonesBlock + '\n\n' : ''}GÉNÉRATION — SEMAINE ${ctx.week.week_num} — Phase : ${PHASE_LABELS[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
+${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorWeeksBlock + '\n\n' : ''}${executionBlock ? executionBlock + '\n\n' : ''}${knowledgeMicroBlock}\n\n${zonesBlock ? zonesBlock + '\n\n' : ''}GÉNÉRATION — SEMAINE ${ctx.week.week_num} — Phase : ${PHASE_LABELS[ctx.week.phase] ?? ctx.week.phase}${ctx.week.is_recovery_week ? ' (SEMAINE DE RÉCUPÉRATION)' : ''}
 
 Cibles de la semaine :
 - Volume${ctx.kept_sessions?.length ? ' restant à planifier' : ''} : ${targetVolume}h
@@ -1146,7 +1155,10 @@ export interface SessionReviewContext {
     elevation_gain_m: number | null
     aerobic_te: number | null
     anaerobic_te: number | null
+    avg_watts?: number | null
   }
+  /** Écarts prévu / réalisé calculés en code (voir lib/activities/compare). */
+  comparison?: string
 }
 
 function formatPace(discipline: string, avg_speed_ms: number | null): string | null {
@@ -1212,7 +1224,7 @@ ${session.expected_rpe ? `- RPE prévu : ${session.expected_rpe}/10` : ''}
 ${session.structure?.main ? `- Bloc principal : ${session.structure.main}` : ''}
 ${session.coaching_note ? `- Note du coach avant séance : ${session.coaching_note}` : ''}
 
-RÉALISATION (données Garmin) :
+RÉALISATION (données de la montre) :
 - Activité : ${activity.name ?? DISCIPLINE_FR[activity.activity_type] ?? activity.activity_type}
 ${actualDurationMin ? `- Durée réelle : ${actualDurationMin} min (prévu : ${session.duration_min} min)` : ''}
 ${actualDistanceKm ? `- Distance : ${actualDistanceKm}` : ''}
@@ -1220,10 +1232,11 @@ ${pace ? `- Allure / vitesse moyenne : ${pace}` : ''}
 ${activity.avg_hr ? `- FC moyenne : ${activity.avg_hr} bpm` : ''}
 ${activity.max_hr ? `- FC max : ${activity.max_hr} bpm` : ''}
 ${activity.elevation_gain_m ? `- Dénivelé positif : ${Math.round(activity.elevation_gain_m)} m` : ''}
+${activity.avg_watts ? `- Puissance moyenne : ${Math.round(activity.avg_watts)} W` : ''}
 ${activity.aerobic_te !== null && activity.aerobic_te !== undefined ? `- Effet d'entraînement aérobie : ${activity.aerobic_te.toFixed(1)}/5` : ''}
 ${activity.anaerobic_te !== null && activity.anaerobic_te !== undefined && activity.anaerobic_te > 0 ? `- Effet d'entraînement anaérobie : ${activity.anaerobic_te.toFixed(1)}/5` : ''}
 ${session.actual_rpe ? `- RPE ressenti par l'athlète : ${session.actual_rpe}/10` : ''}
 
-Donne ton retour de coach sur l'exécution de cette séance. Compare le prévu et le réel, identifie le point clé (positif ou à travailler), et donne un conseil actionnable si pertinent.
+${ctx.comparison ? `ÉCARTS CALCULÉS (fiables, à utiliser tels quels ; ✓ = conforme, ↑/↓ = écart) :\n${ctx.comparison}\n\n` : ''}Donne ton retour de coach sur l'exécution de cette séance. Compare le prévu et le réel, identifie le point clé (positif ou à travailler), et donne un conseil actionnable si pertinent.
 `.trim()
 }

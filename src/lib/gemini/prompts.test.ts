@@ -432,3 +432,31 @@ describe('spécialisation selon la course', () => {
     expect(out).toContain('75-82 % FTP')
   })
 })
+
+describe('prévu / réalisé dans le prompt micro', () => {
+  it('affiche le réel des séances récentes et les tendances', () => {
+    const out = buildMicroPrompt({
+      ...microBase,
+      prior_weeks: [
+        {
+          week_num: 5,
+          phase: 'build',
+          is_recovery_week: false,
+          planned_volume_hours: 5,
+          planned_tss: 300,
+          sessions: [
+            {
+              ...keptDone,
+              session_date: '2026-11-04',
+              actual_summary: 'FC moyenne 158 bpm (prévu 136-150 bpm) ↑ trop intense',
+            },
+          ],
+        },
+      ],
+      execution_trends: ['Séances faciles souvent trop intenses (2/3) : rappeler de ralentir.'],
+    })
+    expect(out).toContain('réel : FC moyenne 158 bpm (prévu 136-150 bpm) ↑ trop intense')
+    expect(out).toContain('EXÉCUTION RÉCENTE')
+    expect(out).toContain('- Séances faciles souvent trop intenses (2/3)')
+  })
+})

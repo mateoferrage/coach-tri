@@ -16,6 +16,8 @@ export type UnifiedActivity = {
   suffer_score: number | null // Strava uniquement
   is_manual: boolean
   sources: ActivitySource[]
+  /** Id de la ligne strava_activities correspondante (Strava seule ou fusionnée). */
+  strava_id?: string
 }
 
 export type GarminRow = {
@@ -86,6 +88,7 @@ export function normalizeStrava(row: StravaRow): UnifiedActivity {
     suffer_score: row.suffer_score,
     is_manual: false,
     sources: ['strava'],
+    strava_id: row.id,
   }
 }
 
@@ -142,6 +145,7 @@ export function mergeActivities(garmin: GarminRow[], strava: StravaRow[]): Unifi
       avg_watts: us[idx].avg_watts,
       suffer_score: us[idx].suffer_score,
       sources: ['garmin', 'strava'],
+      strava_id: us[idx].id,
     })
   }
   us.forEach((sActivity, idx) => {

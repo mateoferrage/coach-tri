@@ -425,6 +425,7 @@ export type Database = {
           hr_max_run: number | null
           hr_threshold_bike: number | null
           hr_threshold_run: number | null
+          measured_fields: string[]
           id: string
           resting_hr: number | null
           run_10k_time_s: number | null
@@ -449,6 +450,7 @@ export type Database = {
           hr_max_run?: number | null
           hr_threshold_bike?: number | null
           hr_threshold_run?: number | null
+          measured_fields?: string[]
           id?: string
           resting_hr?: number | null
           run_10k_time_s?: number | null
@@ -473,6 +475,7 @@ export type Database = {
           hr_max_run?: number | null
           hr_threshold_bike?: number | null
           hr_threshold_run?: number | null
+          measured_fields?: string[]
           id?: string
           resting_hr?: number | null
           run_10k_time_s?: number | null
@@ -840,6 +843,7 @@ export type Database = {
           expected_rpe: number | null
           garmin_activity_id: string | null
           garmin_review: Json | null
+          strava_activity_id: string | null
           id: string
           plan_id: string
           plan_week_id: string
@@ -869,6 +873,7 @@ export type Database = {
           expected_rpe?: number | null
           garmin_activity_id?: string | null
           garmin_review?: Json | null
+          strava_activity_id?: string | null
           id?: string
           plan_id: string
           plan_week_id: string
@@ -898,6 +903,7 @@ export type Database = {
           expected_rpe?: number | null
           garmin_activity_id?: string | null
           garmin_review?: Json | null
+          strava_activity_id?: string | null
           id?: string
           plan_id?: string
           plan_week_id?: string
@@ -1046,6 +1052,7 @@ export type Database = {
           hr_max_run: number | null
           hr_threshold_bike: number | null
           hr_threshold_run: number | null
+          measured_fields: string[] | null
           id: string | null
           resting_hr: number | null
           run_10k_time_s: number | null

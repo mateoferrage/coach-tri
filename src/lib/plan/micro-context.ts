@@ -12,6 +12,13 @@ import {
 } from '@/lib/gemini/prompts'
 import { buildGoalContexts } from '@/lib/plan/goal-context'
 import { weeklyElevationTargetM } from '@/lib/plan/race-targets'
+import {
+  compareSession,
+  executionTrends,
+  summarizeComparison,
+  type ComparisonRow,
+} from '@/lib/activities/compare'
+import { fetchLinkedActivities, linkKey } from '@/lib/activities/linked'
 import { availableDatesForWeek, resolveAvailableDays } from '@/lib/plan/schedule'
 import type { PlanParams } from '@/lib/schemas/plan'
 import { todayIn } from '@/lib/utils/today'
@@ -41,10 +48,17 @@ export interface MicroReplanOverrides {
 const RUN_SHARE_RUNNING_GOAL = 0.85
 
 const SESSION_HISTORY_COLUMNS =
-  'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min'
+  'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min, expected_rpe, target_values, garmin_activity_id, strava_activity_id'
 
-function toPriorSession(s: Record<string, unknown>): PriorWeekSession {
+/** Semaines récentes dont le réalisé (activités liées) est transmis à l'IA. */
+const EXECUTION_DETAIL_WEEKS = 2
+const EXECUTION_TREND_WEEKS = 3
+
+type SessionRow = Record<string, unknown>
+
+function toPriorSession(s: SessionRow, summaries?: Map<SessionRow, string>): PriorWeekSession {
   return {
+    actual_summary: summaries?.get(s) || null,
     session_date: s.session_date as string,
     discipline: s.discipline as string,
     session_type: s.session_type as string,
@@ -126,7 +140,7 @@ export async function buildMicroInputForWeek(params: {
     admin
       .from('physiology_current')
       .select(
-        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr, run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s',
+        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr, run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s, measured_fields',
       )
       .eq('user_id', userId)
       .maybeSingle(),
@@ -153,14 +167,13 @@ export async function buildMicroInputForWeek(params: {
   const allPlanWeeks = allPlanWeeksResult.data ?? []
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
-    ? withFreshDerivations(physiologyResult.data as Record<string, number | null>)
+    ? withFreshDerivations(physiologyResult.data)
     : null
   const garminStats = garminStatsResult.data
   const plan = planResult.data
   const planParams = (plan?.params ?? null) as PlanParams | null
-  const keptSessions = ((keptSessionsResult.data ?? []) as Array<Record<string, unknown>>).map(
-    toPriorSession,
-  )
+  const keptRows = (keptSessionsResult.data ?? []) as SessionRow[]
+  const keptSessions = keptRows.map((r) => toPriorSession(r))
 
   // ── Courses visées ─────────────────────────────────────────────────────────
   let goals = replan?.goals
@@ -231,6 +244,8 @@ export async function buildMicroInputForWeek(params: {
   // ── Prior weeks with their generated sessions ────────────────────────────────
   const priorWeekRows = allPlanWeeks.filter((w) => (w.week_num as number) < week_num)
   let priorWeeks: PriorWeek[] = []
+  let priorRows: SessionRow[] = []
+  const weekNumById = new Map(allPlanWeeks.map((w) => [w.id as string, w.week_num as number]))
 
   if (priorWeekRows.length > 0) {
     const priorWeekIds = priorWeekRows.map((w) => w.id as string)
@@ -242,6 +257,7 @@ export async function buildMicroInputForWeek(params: {
       .order('session_date', { ascending: true })) as {
       data: Array<Record<string, unknown>> | null
     }
+    priorRows = priorSessions ?? []
 
     const sessionsByWeekId = new Map<string, Array<Record<string, unknown>>>()
     for (const s of priorSessions ?? []) {
@@ -256,9 +272,66 @@ export async function buildMicroInputForWeek(params: {
       is_recovery_week: w.is_recovery_week as boolean,
       planned_volume_hours: w.planned_volume_hours as number,
       planned_tss: w.planned_tss as number,
-      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map(toPriorSession),
+      sessions: (sessionsByWeekId.get(w.id as string) ?? []).map((r) => toPriorSession(r)),
     }))
   }
+
+  // ── Prévu / réalisé des semaines récentes ───────────────────────────────────
+  const recentOf = (maxAge: number) => [
+    ...priorRows.filter((r) => week_num - (weekNumById.get(r.plan_week_id as string) ?? 0) <= maxAge),
+    ...keptRows,
+  ]
+  const trendRows = recentOf(EXECUTION_TREND_WEEKS)
+  const linkOf = (r: SessionRow) => ({
+    garmin_activity_id: (r.garmin_activity_id as string | null) ?? null,
+    strava_activity_id: (r.strava_activity_id as string | null) ?? null,
+  })
+  const actuals = await fetchLinkedActivities(admin, userId, trendRows.map(linkOf))
+  const rowsBySession = new Map<SessionRow, ComparisonRow[]>()
+  for (const r of trendRows) {
+    const key = linkKey(linkOf(r))
+    const actual = key ? actuals.get(key) : undefined
+    if (!actual) continue
+    rowsBySession.set(
+      r,
+      compareSession(
+        {
+          discipline: r.discipline as string,
+          session_type: r.session_type as string,
+          duration_min: r.duration_min as number,
+          target_values: (r.target_values as Record<string, unknown> | null) ?? null,
+        },
+        actual,
+      ),
+    )
+  }
+  const summaries = new Map<SessionRow, string>()
+  for (const r of recentOf(EXECUTION_DETAIL_WEEKS)) {
+    const rows = rowsBySession.get(r)
+    if (rows?.length) summaries.set(r, summarizeComparison(rows))
+  }
+  if (summaries.size) {
+    const sessionsByWeek = new Map<string, SessionRow[]>()
+    for (const r of priorRows) {
+      const wid = r.plan_week_id as string
+      sessionsByWeek.set(wid, [...(sessionsByWeek.get(wid) ?? []), r])
+    }
+    priorWeeks = priorWeeks.map((pw, i) => ({
+      ...pw,
+      sessions: (sessionsByWeek.get(priorWeekRows[i].id as string) ?? []).map((r) =>
+        toPriorSession(r, summaries),
+      ),
+    }))
+  }
+  const executionTrendLines = executionTrends(
+    trendRows.map((r) => ({
+      session_type: r.session_type as string,
+      status: r.status as string,
+      expected_rpe: (r.expected_rpe as number | null) ?? null,
+      actual_rpe: (r.actual_rpe as number | null) ?? null,
+      rows: rowsBySession.get(r) ?? [],
+    })),
+  )
 
   // ── Wellness summary ─────────────────────────────────────────────────────────
   const wellnessSummary = wellness.length
@@ -398,7 +471,8 @@ export async function buildMicroInputForWeek(params: {
     training_disciplines:
       replan?.training_disciplines ?? planParams?.training_disciplines ?? undefined,
     complementary_disciplines: complementary?.length ? complementary : undefined,
-    kept_sessions: keptSessions.length ? keptSessions : undefined,
+    kept_sessions: keptRows.length ? keptRows.map((r) => toPriorSession(r, summaries)) : undefined,
+    execution_trends: executionTrendLines.length ? executionTrendLines : undefined,
     prior_weeks: priorWeeks.length ? priorWeeks : undefined,
     plan_overview: planOverview.length ? planOverview : undefined,
     athlete_zones: athleteZones,
