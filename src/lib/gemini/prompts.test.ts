@@ -345,3 +345,90 @@ describe('allowedMicroDisciplines', () => {
     ).not.toContain('brick')
   })
 })
+
+describe('spécialisation selon la course', () => {
+  const marathon: GoalContext = {
+    role: 'primary',
+    sport: 'running',
+    race_name: 'Marathon de Paris',
+    race_type: 'road',
+    race_date: '2026-04-12',
+    run_distance_m: 42195,
+  }
+  const trail30: GoalContext = {
+    role: 'primary',
+    sport: 'running',
+    race_name: 'Trail des Cimes',
+    race_type: 'trail',
+    race_date: '2026-06-12',
+    run_distance_m: 30000,
+    elevation_gain_m: 1500,
+    surface: 'technical',
+  }
+
+  it('route : connaissances route, pas de bloc trail', () => {
+    const out = buildMacroPrompt({ ...macroBase, goals: [marathon] })
+    expect(out).toContain('SPÉCIALISATION COURSE SUR ROUTE')
+    expect(out).not.toContain('SPÉCIALISATION TRAIL')
+    expect(out).toMatch(/Spécifique marathon/)
+  })
+
+  it('trail : profil D+/km, côtes et descente au programme', () => {
+    const out = buildMacroPrompt({ ...macroBase, goals: [trail30] })
+    expect(out).toContain('SPÉCIALISATION TRAIL')
+    expect(out).not.toContain('SPÉCIALISATION COURSE SUR ROUTE')
+    expect(out).toMatch(/montagneux \(40-60 m D\+\/km\)/)
+    expect(out).toContain('45 km-effort')
+    expect(out).toMatch(/séance de côtes chaque semaine/)
+  })
+
+  it('terminer + allure seuil connue : temps confortable calculé', () => {
+    const out = buildMacroPrompt({
+      ...macroBase,
+      goals: [{ ...marathon, target_type: 'finish' }],
+      performance: { run_threshold_pace_sec_per_km: 270 } as PerformanceData,
+    })
+    expect(out).toMatch(/Temps confortable estimé au niveau actuel : 3:3\d:\d\d/)
+  })
+
+  it('chrono cible : niveau actuel et écart calculés', () => {
+    const out = buildMacroPrompt({
+      ...macroBase,
+      goals: [{ ...marathon, target_type: 'time', target_time_seconds: 3 * 3600 }],
+      performance: { run_threshold_pace_sec_per_km: 270 } as PerformanceData,
+    })
+    expect(out).toMatch(/Niveau actuel estimé \(depuis l'allure seuil\) : 3:2\d:\d\d/)
+    expect(out).toMatch(/Écart avec l'objectif : \+1\d(\.\d)? % → objectif TRÈS ambitieux/)
+  })
+
+  it('micro trail : D+ cible de la semaine et D+ par séance', () => {
+    const out = buildMicroPrompt({
+      ...microBase,
+      goals: [trail30],
+      weekly_elevation_target_m: 1200,
+    })
+    expect(out).toContain('D+ CIBLE DE LA SEMAINE : 1200 m')
+    expect(out).toContain('"elevation_gain_m": 400')
+    expect(out).toMatch(/jamais en allure/)
+  })
+
+  it('micro route : pas de consigne de D+', () => {
+    const out = buildMicroPrompt({ ...microBase, goals: [marathon] })
+    expect(out).not.toContain('"elevation_gain_m": 400')
+    expect(out).not.toContain('D+ CIBLE')
+  })
+
+  it('sans zones : ressenti uniquement et test en début de plan', () => {
+    const out = buildMicroPrompt({ ...microBase, week: { ...microBase.week, week_num: 1 } })
+    expect(out).toMatch(/aucune allure, aucun watt ni FC inventés/)
+    expect(out).toContain('TEST-RUN-30')
+  })
+
+  it('triathlon half : intensité vélo amateur', () => {
+    const out = buildMacroPrompt({
+      ...macroBase,
+      goals: [{ ...tri, role: 'primary', race_type: 'half' }],
+    })
+    expect(out).toContain('75-82 % FTP')
+  })
+})

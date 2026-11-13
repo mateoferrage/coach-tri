@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateZones, computeFitnessLevel } from './zones'
+import { calculateZones, computeFitnessLevel, formatZonesForPrompt } from './zones'
 
 describe('computeFitnessLevel', () => {
   it('classe selon les normes masculines par défaut', () => {
@@ -24,10 +24,10 @@ describe('calculateZones', () => {
     const z = calculateZones({ ftp_watts: 250 })
     expect(z?.bike).toBeDefined()
     expect(z?.bike?.zones).toHaveLength(5)
-    // Z4 Seuil = 90%–105% FTP
+    // Z4 Seuil = 91%–105% FTP (Coggan)
     const z4 = z!.bike!.zones[3]
     expect(z4.label).toContain('Seuil')
-    expect(z4.watts_min).toBe(225)
+    expect(z4.watts_min).toBe(228)
     expect(z4.watts_max).toBe(263)
     expect(z!.bike!.header).toContain('FTP: 250W')
   })
@@ -57,5 +57,61 @@ describe('calculateZones', () => {
     expect(z?.swim).toBeDefined()
     expect(z?.swim?.zones).toHaveLength(5)
     expect(z!.swim!.header).toContain('CSS: 1:30/100m')
+  })
+
+  it('zones d\'allure course de Friel (% allure seuil)', () => {
+    const z = calculateZones({ run_threshold_pace_sec_per_km: 270 }) // 4:30/km
+    const [z1, z2, , z4, z5] = z!.run!.zones
+    expect(z1.pace_min).toBe('5:48') // 129 %
+    expect(z2.pace_min).toBe('5:08') // 114 %
+    expect(z4.pace_min).toBe('4:27') // 99 %
+    expect(z4.pace_max).toBe('4:46') // 106 %
+    expect(z5.pace_max).toBe('4:27')
+  })
+
+  it('zones FC course et vélo de Friel (% FC seuil), bornes différentes', () => {
+    const z = calculateZones({
+      run_threshold_pace_sec_per_km: 270,
+      hr_threshold_run: 170,
+      ftp_watts: 250,
+      hr_threshold_bike: 160,
+    })
+    expect(z!.run!.zones[1]).toMatchObject({ hr_min: 145, hr_max: 151 }) // 85-89 %
+    expect(z!.run!.zones[3]).toMatchObject({ hr_min: 162, hr_max: 168 }) // 95-99 %
+    expect(z!.bike!.zones[1]).toMatchObject({ hr_min: 130, hr_max: 142 }) // 81-89 %
+  })
+
+  it('donne des zones FC même sans allure ni FTP connus', () => {
+    const z = calculateZones({ hr_max: 190 })
+    expect(z?.run?.zones[1].hr_max).toBeDefined()
+    expect(z?.bike?.zones[1].hr_max).toBeDefined()
+    expect(z!.run!.header).toMatch(/ressenti/)
+    expect(z!.run!.zones[1].pace_min).toBeUndefined()
+  })
+
+  it('zones natation en secondes autour de la CSS', () => {
+    const z = calculateZones({ css_pace_sec_per_100m: 105 }) // 1:45
+    const [z1, z2, , z4, z5] = z!.swim!.zones
+    expect(z1.pace_min).toBe('2:00')
+    expect(z2).toMatchObject({ pace_min: '1:53', pace_max: '2:00' })
+    expect(z4).toMatchObject({ pace_min: '1:43', pace_max: '1:48' })
+    expect(z5.pace_max).toBe('1:43')
+  })
+
+  it('formule les zones extrêmes sans ambiguïté (plus lent / plus rapide)', () => {
+    const out = formatZonesForPrompt(
+      calculateZones({ run_threshold_pace_sec_per_km: 270, css_pace_sec_per_100m: 105 })!,
+    )
+    expect(out).toContain('plus lent que 5:48/km')
+    expect(out).toContain('plus rapide que 4:27/km')
+    expect(out).toContain('plus lent que 2:00/100m')
+  })
+
+  it('ne garde que les zones des disciplines du programme', async () => {
+    const { pickZones } = await import('./zones')
+    const all = calculateZones({ hr_max: 190, css_pace_sec_per_100m: 100 })
+    expect(Object.keys(pickZones(all, ['run', 'strength'])!)).toEqual(['run'])
+    expect(pickZones(all, null)).toBe(all)
+    expect(pickZones(calculateZones({ ftp_watts: 200 }), ['run'])).toBeNull()
   })
 })

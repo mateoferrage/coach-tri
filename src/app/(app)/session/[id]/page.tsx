@@ -66,11 +66,16 @@ function targetLabels(values: Record<string, unknown> | null): string[] {
   const watts = range(values.watts)
   const paceKm = text(values.pace_per_km) ?? text(values.pace)
   const pace100 = text(values.pace_per_100m)
+  const gain =
+    typeof values.elevation_gain_m === 'number' && values.elevation_gain_m > 0
+      ? Math.round(values.elevation_gain_m)
+      : null
   return [
     hr && `FC ${hr} bpm`,
     watts && `${watts} W`,
     paceKm && `Allure ${paceKm}/km`,
     pace100 && `Allure ${pace100}/100 m`,
+    gain && `D+ ${gain} m`,
   ].filter((l): l is string => Boolean(l))
 }
 

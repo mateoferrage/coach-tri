@@ -5,6 +5,7 @@ import { NUTRITION } from './nutrition'
 import { SWIM_TECHNIQUE } from './swim'
 import { ADAPTATION } from './adaptation'
 import { TRAIL_KNOWLEDGE } from './trail'
+import { ROAD_KNOWLEDGE } from './road'
 
 /**
  * Full knowledge base — all 6 reference documents combined.
@@ -28,8 +29,11 @@ export const KNOWLEDGE_BASE_MICRO = [ZONES_REF, SESSIONS_LIB].join('\n\n---\n\n'
 /** Methodologies + form-based adaptation — most relevant for chat. */
 export const KNOWLEDGE_BASE_CHAT = [METHODOLOGIES, ADAPTATION].join('\n\n---\n\n')
 
-/** Trail/running specialisation — injected conditionally when a running goal is present. */
+/** Spécialisation trail — injectée quand une course trail est visée. */
 export const KNOWLEDGE_BASE_TRAIL = TRAIL_KNOWLEDGE
+
+/** Spécialisation course sur route — injectée quand une course sur route est visée. */
+export const KNOWLEDGE_BASE_ROAD = ROAD_KNOWLEDGE
 
 export {
   METHODOLOGIES,
@@ -39,4 +43,5 @@ export {
   SWIM_TECHNIQUE,
   ADAPTATION,
   TRAIL_KNOWLEDGE,
+  ROAD_KNOWLEDGE,
 }

@@ -1,6 +1,7 @@
 import { addWeeks, format } from 'date-fns'
 import type { createAdminClient } from '@/lib/supabase/admin'
 import type { PerformanceData } from '@/lib/gemini/prompts'
+import { withFreshDerivations } from '@/lib/utils/performance'
 
 const HISTORY_WEEKS = 8
 
@@ -84,7 +85,9 @@ export async function fetchAthleteContext(
   const activities = garminRes.data?.length ? garminRes.data : (stravaRes.data ?? [])
 
   return {
-    performance: (physiologyRes.data as PerformanceData | null) ?? undefined,
+    performance: physiologyRes.data
+      ? withFreshDerivations(physiologyRes.data as PerformanceData)
+      : undefined,
     recent_activity_summary: summarizeActivities(activities) || undefined,
     recent_wellness_summary:
       summarizeWellness((wellnessRes.data ?? []) as Array<Record<string, unknown>>) || undefined,

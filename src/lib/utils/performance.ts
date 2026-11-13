@@ -2,6 +2,8 @@
 // (records). Modèle de Vitesse Critique (CV) : distance = CV · temps + D', où la
 // pente CV (m/s) approxime la vitesse au seuil. Fallback : formule de Riegel.
 
+import { THRESHOLD_VMA_FRACTION } from './zones'
+
 const RIEGEL_EXP = 1.06
 
 export interface DistanceRecord {
@@ -53,14 +55,22 @@ export function riegelPredict(base: DistanceRecord, targetDistance_m: number): n
   return base.time_s * Math.pow(targetDistance_m / base.distance_m, RIEGEL_EXP)
 }
 
+/** Distance (m) couverte en `durationS` selon Riegel à partir d'un record. */
+export function riegelDistanceFor(base: DistanceRecord, durationS: number): number {
+  return base.distance_m * Math.pow(durationS / base.time_s, 1 / RIEGEL_EXP)
+}
+
+/** Ancre du seuil quand un seul record est connu : une durée ou une distance. */
+type ThresholdAnchor = { duration_s: number } | { distance_m: number }
+
 /**
  * Dérive une allure/pace au seuil (s par `unitDistance_m`) à partir de records.
- * ≥ 2 records → vitesse critique ; 1 record → Riegel vers `anchor_m`.
+ * ≥ 2 records → vitesse critique ; 1 record → Riegel vers l'ancre.
  */
 function deriveThresholdPace(
   records: DistanceRecord[],
   unitDistance_m: number,
-  anchor_m: number,
+  anchor: ThresholdAnchor,
 ): number | null {
   if (records.length === 0) return null
 
@@ -69,8 +79,10 @@ function deriveThresholdPace(
 
   // Fallback un seul record (ou CV dégénéré) : Riegel vers l'ancre.
   const longest = records.reduce((a, b) => (b.distance_m > a.distance_m ? b : a))
-  const anchorTime = riegelPredict(longest, anchor_m)
-  const speed = anchor_m / anchorTime // m/s
+  const speed =
+    'duration_s' in anchor
+      ? riegelDistanceFor(longest, anchor.duration_s) / anchor.duration_s
+      : anchor.distance_m / riegelPredict(longest, anchor.distance_m) // m/s
   return Math.round(unitDistance_m / speed)
 }
 
@@ -88,24 +100,32 @@ function swimRecordList(r: SwimRecords): DistanceRecord[] {
   if (r.swim_200m_time_s) list.push({ distance_m: 200, time_s: r.swim_200m_time_s })
   if (r.swim_400m_time_s) list.push({ distance_m: 400, time_s: r.swim_400m_time_s })
   if (r.swim_800m_time_s) list.push({ distance_m: 800, time_s: r.swim_800m_time_s })
-  return list
+  // Le 100 m est trop anaérobie pour la CSS : on l'écarte dès que 2 records plus longs existent.
+  const aerobic = list.filter((x) => x.distance_m >= 200)
+  return aerobic.length >= 2 ? aerobic : list
 }
 
-/** Allure au seuil en s/km depuis les records course (ancre Riegel : 10 km). */
+/**
+ * Allure au seuil en s/km depuis les records course. Un seul record : allure
+ * tenable 1 h (définition du seuil), et non l'allure 10 km, trop rapide.
+ */
 export function deriveRunThresholdPaceSecPerKm(r: RunRecords): number | null {
-  return deriveThresholdPace(runRecordList(r), 1000, 10000)
+  return deriveThresholdPace(runRecordList(r), 1000, { duration_s: 3600 })
 }
 
-/** CSS en s/100m depuis les records nage (ancre Riegel : 400 m). */
+/**
+ * CSS en s/100m depuis les records nage. Un seul record : allure 1 500 m
+ * (proche de la CSS), et non l'allure 400 m, 5 à 10 s/100 m trop rapide.
+ */
 export function deriveSwimCssSecPer100m(r: SwimRecords): number | null {
-  return deriveThresholdPace(swimRecordList(r), 100, 400)
+  return deriveThresholdPace(swimRecordList(r), 100, { distance_m: 1500 })
 }
 
-/** VMA (km/h) depuis l'allure seuil : seuil ≈ 90 % VMA. */
+/** VMA (km/h) depuis l'allure seuil. */
 export function deriveVmaKmh(thresholdPaceSecPerKm: number | null): number | null {
   if (!thresholdPaceSecPerKm || thresholdPaceSecPerKm <= 0) return null
   const thresholdSpeedMs = 1000 / thresholdPaceSecPerKm
-  const vmaMs = thresholdSpeedMs / 0.9
+  const vmaMs = thresholdSpeedMs / THRESHOLD_VMA_FRACTION
   return Math.round(vmaMs * 3.6 * 10) / 10 // km/h, 1 décimale
 }
 
@@ -122,5 +142,23 @@ export function derivePhysiologyFromRecords(records: RunRecords & SwimRecords): 
     run_threshold_pace_sec_per_km,
     css_pace_sec_per_100m: deriveSwimCssSecPer100m(records),
     vma_kmh: deriveVmaKmh(run_threshold_pace_sec_per_km),
+  }
+}
+
+/**
+ * Recalcule les seuils à la lecture depuis les records (source de vérité) :
+ * les valeurs stockées peuvent dater d'une ancienne formule. Sans record, les
+ * valeurs stockées sont conservées.
+ */
+export function withFreshDerivations<T extends RunRecords & SwimRecords & Partial<DerivedPhysiology>>(
+  row: T,
+): T {
+  const d = derivePhysiologyFromRecords(row)
+  return {
+    ...row,
+    run_threshold_pace_sec_per_km:
+      d.run_threshold_pace_sec_per_km ?? row.run_threshold_pace_sec_per_km ?? null,
+    vma_kmh: d.vma_kmh ?? row.vma_kmh ?? null,
+    css_pace_sec_per_100m: d.css_pace_sec_per_100m ?? row.css_pace_sec_per_100m ?? null,
   }
 }
