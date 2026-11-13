@@ -11,10 +11,17 @@ import {
   type GoalContext,
 } from '@/lib/gemini/prompts'
 import { buildGoalContexts } from '@/lib/plan/goal-context'
+import { weeklyElevationTargetM } from '@/lib/plan/race-targets'
 import { availableDatesForWeek, resolveAvailableDays } from '@/lib/plan/schedule'
 import type { PlanParams } from '@/lib/schemas/plan'
 import { todayIn } from '@/lib/utils/today'
-import { calculateZones, formatZonesForPrompt } from '@/lib/utils/zones'
+import {
+  calculateZones,
+  formatZonesForPrompt,
+  pickZones,
+  resolveRunThreshold,
+} from '@/lib/utils/zones'
+import { withFreshDerivations } from '@/lib/utils/performance'
 import { addDays, format, parseISO } from 'date-fns'
 import { refreshIfNeeded, getAthleteStatsCompact } from '@/lib/strava/client'
 import { decryptStravaCreds, encryptStravaTokens } from '@/lib/strava/credentials'
@@ -29,6 +36,9 @@ export interface MicroReplanOverrides {
   complementary_disciplines: string[]
   plan_overview: PlanWeekOverview[]
 }
+
+/** Part du volume en course pour un objectif course à pied (le reste : renfo, complémentaire). */
+const RUN_SHARE_RUNNING_GOAL = 0.85
 
 const SESSION_HISTORY_COLUMNS =
   'plan_week_id, session_date, discipline, session_type, title, duration_min, planned_tss, target_zone, status, actual_rpe, actual_duration_min'
@@ -116,7 +126,7 @@ export async function buildMicroInputForWeek(params: {
     admin
       .from('physiology_current')
       .select(
-        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr',
+        'vma_kmh, run_threshold_pace_sec_per_km, hr_max_run, hr_threshold_run, ftp_watts, hr_max, hr_threshold_bike, css_pace_sec_per_100m, resting_hr, run_5k_time_s, run_10k_time_s, run_half_time_s, swim_100m_time_s, swim_200m_time_s, swim_400m_time_s, swim_800m_time_s',
       )
       .eq('user_id', userId)
       .maybeSingle(),
@@ -143,6 +153,8 @@ export async function buildMicroInputForWeek(params: {
   const allPlanWeeks = allPlanWeeksResult.data ?? []
   const wellness = wellnessResult.data ?? []
   const physiology = physiologyResult.data
+    ? withFreshDerivations(physiologyResult.data as Record<string, number | null>)
+    : null
   const garminStats = garminStatsResult.data
   const plan = planResult.data
   const planParams = (plan?.params ?? null) as PlanParams | null
@@ -179,7 +191,7 @@ export async function buildMicroInputForWeek(params: {
   })
 
   // ── Athlete training zones ─────────────────────────────────────────────────
-  const zones = calculateZones({
+  const physiologyInput = {
     vma_kmh: physiology?.vma_kmh as number | null,
     run_threshold_pace_sec_per_km: physiology?.run_threshold_pace_sec_per_km as number | null,
     hr_max_run: physiology?.hr_max_run as number | null,
@@ -194,8 +206,16 @@ export async function buildMicroInputForWeek(params: {
       !physiology?.vma_kmh && !physiology?.run_threshold_pace_sec_per_km
         ? (garminStats?.vo2max_run as number | null)
         : null,
-  })
+  }
+  // Zones limitées aux disciplines du programme (pas de zones vélo pour un coureur).
+  const trainedDisciplines =
+    replan?.training_disciplines ??
+    planParams?.training_disciplines ??
+    (profile?.available_disciplines as string[] | null) ??
+    null
+  const zones = pickZones(calculateZones(physiologyInput), trainedDisciplines)
   const athleteZones = zones ? formatZonesForPrompt(zones) : undefined
+  const runThreshold = resolveRunThreshold(physiologyInput).threshPace
 
   // ── Plan overview (all weeks, macro) ────────────────────────────────────────
   const planOverview: PlanWeekOverview[] =
@@ -324,6 +344,28 @@ export async function buildMicroInputForWeek(params: {
 
   const complementary = replan?.complementary_disciplines ?? planParams?.complementary_disciplines
 
+  // ── D+ cible de la semaine (course principale en trail) ─────────────────────
+  const primaryGoal = goals.find((g) => g.role === 'primary')
+  const trailGain =
+    primaryGoal?.sport === 'running' &&
+    (primaryGoal.race_type === 'trail' || primaryGoal.race_type === 'ultra')
+      ? (primaryGoal.elevation_gain_m ?? 0)
+      : 0
+  const weeklyElevationTarget =
+    trailGain > 0 && planOverview.length
+      ? weeklyElevationTargetM({
+          raceGainM: trailGain,
+          week: {
+            week_num: week.week_num,
+            phase: week.phase,
+            is_recovery_week: week.is_recovery_week,
+          },
+          overview: planOverview,
+          // Objectif course à pied : l'essentiel du volume est de la course.
+          runHours: week.planned_volume_hours * RUN_SHARE_RUNNING_GOAL,
+        })
+      : null
+
   return {
     week: {
       week_num: week.week_num,
@@ -360,6 +402,8 @@ export async function buildMicroInputForWeek(params: {
     prior_weeks: priorWeeks.length ? priorWeeks : undefined,
     plan_overview: planOverview.length ? planOverview : undefined,
     athlete_zones: athleteZones,
+    run_threshold_pace_sec_per_km: runThreshold,
+    weekly_elevation_target_m: weeklyElevationTarget,
     recent_wellness_summary: wellnessSummary || undefined,
     schedule_constraints: scheduleConstraints || undefined,
     strava_stats_block: stravaStatsBlock,

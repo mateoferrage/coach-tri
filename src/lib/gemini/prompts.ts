@@ -3,9 +3,18 @@ import {
   KNOWLEDGE_BASE_MICRO,
   KNOWLEDGE_BASE_CHAT,
   KNOWLEDGE_BASE_TRAIL,
+  KNOWLEDGE_BASE_ROAD,
 } from '@/lib/coach/knowledge'
 import { currentWeekNum } from '@/lib/plan/replan-weeknum'
 import { PHASE_VALUES } from '@/lib/plan/phases'
+import {
+  comfortableFinishTimeS,
+  effortDistanceM,
+  predictRunTimeS,
+  targetGapPct,
+  trailProfile,
+  type RunRace,
+} from '@/lib/plan/race-targets'
 import type { StravaActivityCompact, StravaStatsCompact } from '@/lib/strava/client'
 
 // ─── Equipment ─────────────────────────────────────────────────────────────────
@@ -81,15 +90,15 @@ Tu es un coach expert certifié en triathlon ET en course à pied / trail / ultr
 
 **Phases et objectifs** :
 - PREP (optionnel, si > 20 semaines) : adaptation progressive, travail technique, volume faible
-- BASE : développement aérobie, 75-85% vol. en Z1-Z2, renforcement foncier
-- BUILD : introduction intensité, 60-70% endurance + 20-30% intensité seuil/VO2
+- BASE : développement aérobie, ~85 % du temps en Z1-Z2, qualité légère (côtes courtes, tempo, éducatifs), renforcement foncier
+- BUILD : intensité spécifique à la course (seuil, VO2, allure de course), ~80 % du temps reste en Z1-Z2
 - PEAK : haute intensité, séances spécifiques course, volume légèrement réduit
 - TAPER : réduction volume 40-60%, maintien intensité, préparer la fraîcheur
 
-**Équilibre disciplinaire** (objectif triathlon uniquement, ajustable selon profil ; n'entraîne jamais une discipline qui n'est pas au programme de l'athlète) :
-- Natation : 25-30% du volume total
-- Vélo : 35-40% du volume total
-- Course à pied : 30-35% du volume total
+**Équilibre disciplinaire** (objectif triathlon uniquement, en TEMPS, ajustable vers la discipline la plus faible ; n'entraîne jamais une discipline qui n'est pas au programme de l'athlète) :
+- Sprint / olympique : natation ~20-25 %, vélo ~40-45 %, course ~30-35 %
+- Half / Ironman : natation ~15-20 %, vélo ~50-55 %, course ~25-30 %
+- Une sortie longue par semaine en vélo et en course ; 2-3 séances de natation dont une technique
 
 **Règles de récupération** :
 - Ne jamais augmenter la charge de plus de 10% par semaine
@@ -218,11 +227,21 @@ export interface GoalContext {
   run_target_time_s?: number | null
 }
 
-function fmtHms(sec?: number | null): string {
-  if (sec == null) return '?'
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  return h > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${m}min`
+const RACE_TYPE_FR: Record<string, string> = {
+  sprint: 'triathlon sprint',
+  olympic: 'triathlon olympique',
+  half: 'triathlon half (70.3)',
+  full: 'triathlon Ironman',
+  xterra: 'triathlon XTERRA',
+  custom: 'triathlon distances personnalisées',
+  road: 'course sur route',
+  trail: 'trail',
+  ultra: 'trail',
+}
+const TERRAIN_FR: Record<string, string> = {
+  flat: 'plat',
+  hilly: 'vallonné',
+  mountainous: 'montagneux',
 }
 
 const SURFACE_FR: Record<string, string> = {
@@ -232,8 +251,29 @@ const SURFACE_FR: Record<string, string> = {
   mountain: 'montagne',
 }
 
-/** Ambition de l'athlète sur la course (terminer, chrono, podium). */
-function describeTarget(g: GoalContext): string | null {
+/** Allure moyenne (min:s/km) pour couvrir `distanceM` en `timeS`. */
+function paceFor(timeS?: number | null, distanceM?: number | null): string | null {
+  if (!timeS || !distanceM) return null
+  return fmtDuration(Math.round(timeS / (distanceM / 1000)))
+}
+
+function runRaceOf(g: GoalContext): RunRace | null {
+  if (g.sport !== 'running' || !g.run_distance_m) return null
+  return {
+    distance_m: g.run_distance_m,
+    elevation_gain_m: g.elevation_gain_m,
+    surface: g.surface,
+    trail: g.race_type === 'trail' || g.race_type === 'ultra',
+  }
+}
+
+/**
+ * Ambition de l'athlète sur la course : terminer ou viser un chrono. Avec une
+ * allure seuil connue, le temps au niveau actuel est calculé ici (et non
+ * laissé à l'IA) pour situer l'objectif. Les anciens objectifs « podium »
+ * sont traités comme un chrono s'ils en ont un, sinon comme « terminer ».
+ */
+function describeTarget(g: GoalContext, runThreshold?: number | null): string {
   const splits = [
     g.swim_target_time_s && `natation ${fmtDuration(g.swim_target_time_s)}`,
     g.t1_target_time_s && `T1 ${fmtDuration(g.t1_target_time_s)}`,
@@ -242,36 +282,118 @@ function describeTarget(g: GoalContext): string | null {
     g.run_target_time_s && `course ${fmtDuration(g.run_target_time_s)}`,
   ].filter(Boolean)
   const detail = splits.length ? ` (${splits.join(', ')})` : ''
-  if (g.target_type === 'podium') return `Ambition : viser le podium${detail}`
-  if (g.target_type === 'time' || g.target_time_seconds) {
-    return `Ambition : temps visé ${fmtDuration(g.target_time_seconds ?? null) ?? 'non précisé'}${detail}`
+  const race = runRaceOf(g)
+  const predicted = race && runThreshold ? predictRunTimeS(runThreshold, race) : null
+  const paceNote = race?.trail
+    ? " En trail, l'allure moyenne n'est qu'indicative : piloter les montées à la FC et au ressenti."
+    : ''
+
+  if (g.target_time_seconds && g.target_type !== 'finish') {
+    const runTime = g.sport === 'running' ? g.target_time_seconds : g.run_target_time_s
+    const pace = paceFor(runTime, g.run_distance_m)
+    const lines = [
+      `Ambition : CHRONO CIBLE ${fmtDuration(g.target_time_seconds)}${detail}${pace ? `, soit ${pace}/km en course à pied` : ''}.`,
+    ]
+    if (predicted && race) {
+      const gap = targetGapPct(g.target_time_seconds, predicted)
+      const verdict =
+        gap > 10
+          ? "objectif TRÈS ambitieux pour la durée du plan : progresser prudemment, ne l'aborder qu'en fin de build/peak et le présenter comme un objectif haut"
+          : gap > 3
+            ? 'objectif ambitieux mais atteignable avec une préparation complète'
+            : gap >= -3
+              ? 'objectif proche du niveau actuel : consolider et affiner l\'allure spécifique'
+              : "objectif déjà à la portée de l'athlète : le travail spécifique peut viser légèrement plus vite que l'allure cible"
+      lines.push(
+        `  → Niveau actuel estimé (depuis l'allure seuil) : ${fmtDuration(predicted)}, soit ${paceFor(predicted, race.distance_m)}/km. Écart avec l'objectif : ${gap > 0 ? '+' : ''}${gap} % → ${verdict}.`,
+      )
+    }
+    lines.push(
+      `  → Les séances à allure spécifique partent des allures ACTUELLES${predicted && race ? ` (${paceFor(predicted, race.distance_m)}/km)` : " de l'athlète"} en début de programme, puis s'en rapprochent progressivement de l'allure cible au fil des phases build et peak (jamais l'allure cible d'emblée).${paceNote}`,
+    )
+    return lines.join('\n')
   }
-  return g.target_type === 'finish' ? 'Ambition : terminer la course' : null
+
+  if (predicted && race && runThreshold) {
+    const comfy = comfortableFinishTimeS(runThreshold, race)
+    return [
+      'Ambition : TERMINER, sans chrono imposé.',
+      `  → Temps confortable estimé au niveau actuel : ${fmtDuration(comfy)} (≈ ${paceFor(comfy, race.distance_m)}/km). L'allure spécifique de course est cette allure confortable, tenable sereinement jusqu'au bout ; aucune recherche de performance.${paceNote}`,
+    ].join('\n')
+  }
+  return [
+    'Ambition : TERMINER, sans chrono imposé.',
+    `  → Estime à partir des allures actuelles de l'athlète un temps de course confortable (allure qu'il tient sereinement jusqu'au bout) et cale le travail à allure spécifique sur cette allure, sans chercher la performance.${paceNote}`,
+  ].join('\n')
+}
+
+/** Priorités d'entraînement propres au format de la course. */
+function raceSpecificity(g: GoalContext): string | null {
+  if (g.sport === 'running') {
+    const km = (g.run_distance_m ?? 0) / 1000
+    const race = runRaceOf(g)
+    if (race?.trail) {
+      const gain = g.elevation_gain_m ?? 0
+      const effortKm = effortDistanceM(race) / 1000
+      const lines = [
+        gain && km ? `Profil : ${trailProfile(race.distance_m, gain)}, ${Math.round(effortKm)} km-effort.` : null,
+        'Spécifique trail : séance de côtes chaque semaine dès la base (courtes en base, longues et soutenues en build), sortie longue comptée en DURÉE et en D+ sur un terrain proche de la course, travail de descente et renforcement excentrique (quadriceps) réguliers.',
+        gain / Math.max(km, 1) >= 40
+          ? 'Fort D+ : marche active rapide en montée raide (> 15-20 %), avec bâtons si autorisés, à intégrer dans les sorties longues.'
+          : null,
+        effortKm > 60
+          ? 'Format ultra : en build/peak, blocs de sorties longues enchaînées (samedi + dimanche), nutrition de course testée (60-90 g de glucides/h), matériel de course en sortie longue.'
+          : null,
+      ]
+      return lines.filter(Boolean).join('\n  ')
+    }
+    if (km <= 10)
+      return 'Spécifique 5-10 km : VMA (fractions de 400 à 1 000 m) et seuil en séances clés, sortie longue de 60 à 90 min.'
+    if (km <= 21.1)
+      return "Spécifique semi : seuil (fractions de 1 000 à 3 000 m), blocs à allure semi en build/peak, sortie longue jusqu'à 1h45-2h."
+    return "Spécifique marathon : sortie longue progressive jusqu'à 2h30-3h maximum (≈ 30-32 km, jamais plus de ~35 % du volume course de la semaine), blocs à allure marathon intégrés aux sorties longues en build/peak, une séance seuil par semaine, ravitaillement testé en sortie longue."
+  }
+  switch (g.race_type) {
+    case 'sprint':
+    case 'olympic':
+      return `Spécifique ${g.race_type === 'sprint' ? 'sprint' : 'olympique'} : intensité élevée en course (vélo à ${g.race_type === 'sprint' ? '88-95' : '83-90'} % FTP), séances seuil et VO2 dans les trois sports, un enchaînement vélo-course par semaine en build/peak, transitions travaillées.`
+    case 'half':
+      return "Spécifique half : vélo à 75-82 % FTP en course (amateur : bas de fourchette), sortie longue vélo jusqu'à 3h-3h30 et course longue jusqu'à 1h30-1h45, enchaînement long en build/peak, ravitaillement testé (60-90 g de glucides/h)."
+    case 'full':
+      return "Spécifique Ironman : vélo à 68-76 % FTP en course (amateur : bas de fourchette), sortie longue vélo jusqu'à 5-6 h, course longue plafonnée à ~2h30 (au-delà, risque de blessure sans gain), enchaînements longs, nutrition entraînée (60-90 g de glucides/h)."
+    case 'xterra':
+      return 'Spécifique XTERRA : VTT technique et en côte, course en trail, natation en eau libre.'
+    default:
+      return null
+  }
 }
 
 /** Décrit une course (tri ou running/trail) pour les prompts macro et micro. */
-function describeGoal(g: GoalContext, planStartDate?: string): string {
+function describeGoal(
+  g: GoalContext,
+  opts: { planStartDate?: string; runThreshold?: number | null } = {},
+): string {
   const roleFr =
     g.role === 'primary'
       ? 'Course principale — OBJECTIF PRINCIPAL (pic de forme)'
       : 'Course secondaire — objectif intermédiaire'
-  const weekFr = planStartDate ? `, semaine ${currentWeekNum(planStartDate, g.race_date)}` : ''
-  const lines = [`${roleFr} — ${g.race_name} (${g.race_type}, ${g.race_date}${weekFr})`]
+  const weekFr = opts.planStartDate
+    ? `, semaine ${currentWeekNum(opts.planStartDate, g.race_date)}`
+    : ''
+  const typeFr = RACE_TYPE_FR[g.race_type] ?? g.race_type
+  const lines = [`${roleFr} — ${g.race_name} (${typeFr}, ${g.race_date}${weekFr})`]
   if (g.sport === 'running') {
     lines.push(
-      `  Course à pied : ${g.run_distance_m ?? '?'}m, D+ ${g.elevation_gain_m ?? '?'}m, D- ${g.elevation_loss_m ?? '?'}m`,
+      `  Course à pied : ${g.run_distance_m != null ? `${g.run_distance_m / 1000} km` : 'distance ?'}${g.elevation_gain_m ? `, D+ ${g.elevation_gain_m}m` : ''}`,
     )
     const detail = [
-      g.surface && `technicité ${SURFACE_FR[g.surface] ?? g.surface}`,
-      g.terrain && `profil ${g.terrain}`,
-      g.max_altitude_m != null && `altitude max ${g.max_altitude_m}m`,
-      g.cutoff_time_s != null && `barrière horaire ${fmtHms(g.cutoff_time_s)}`,
-      g.estimated_finish_time_s != null && `temps estimé ${fmtHms(g.estimated_finish_time_s)}`,
+      g.surface && `terrain ${SURFACE_FR[g.surface] ?? g.surface}`,
+      g.terrain && `profil ${TERRAIN_FR[g.terrain] ?? g.terrain}`,
     ].filter(Boolean)
     if (detail.length) lines.push(`  ${detail.join(', ')}`)
   } else {
     lines.push(
-      `  Triathlon : ${g.swim_distance_m ?? '?'}m nage / ${g.bike_distance_m ?? '?'}m vélo / ${g.run_distance_m ?? '?'}m course${g.terrain ? ` (terrain ${g.terrain})` : ''}`,
+      `  Triathlon : ${g.swim_distance_m ?? '?'}m nage / ${g.bike_distance_m != null ? g.bike_distance_m / 1000 : '?'} km vélo / ${g.run_distance_m != null ? g.run_distance_m / 1000 : '?'} km course${g.terrain ? ` (parcours ${TERRAIN_FR[g.terrain] ?? g.terrain})` : ''}`,
     )
     const elevation = [
       g.bike_elevation_m != null && `D+ vélo ${g.bike_elevation_m}m`,
@@ -279,9 +401,24 @@ function describeGoal(g: GoalContext, planStartDate?: string): string {
     ].filter(Boolean)
     if (elevation.length) lines.push(`  ${elevation.join(', ')}`)
   }
-  const target = describeTarget(g)
-  if (target) lines.push(`  ${target}`)
+  lines.push(`  ${describeTarget(g, opts.runThreshold)}`)
+  const specificity = raceSpecificity(g)
+  if (specificity) lines.push(`  ${specificity}`)
   return lines.join('\n')
+}
+
+const isTrailGoal = (g: GoalContext) =>
+  g.sport === 'running' && (g.race_type === 'trail' || g.race_type === 'ultra')
+
+/** Connaissances course à pied adaptées aux courses visées : trail et/ou route. */
+function runningSpecializationBlock(goals: GoalContext[]): string {
+  const blocks = [
+    goals.some(isTrailGoal) &&
+      `SPÉCIALISATION TRAIL (intégrer le D+, les côtes, la descente et le terrain demandés par la course) :\n${KNOWLEDGE_BASE_TRAIL}`,
+    goals.some((g) => g.sport === 'running' && !isTrailGoal(g)) &&
+      `SPÉCIALISATION COURSE SUR ROUTE :\n${KNOWLEDGE_BASE_ROAD}`,
+  ].filter(Boolean)
+  return blocks.map((b) => `\n\n---\n\n${b}`).join('')
 }
 
 function sortGoals(goals: GoalContext[]): GoalContext[] {
@@ -331,11 +468,13 @@ function buildAthleteDetailLines(p: AthleteDetails, onDate: string): string[] {
   ].filter((l): l is string => !!l)
 }
 
-const METHODOLOGY_LABELS: Record<string, string> = {
-  polarized: 'Polarisé (80% basse intensité / 20% haute intensité)',
-  pyramidal: 'Pyramidal (70% Z1-Z2 / 20% Z3 / 10% Z4-Z5)',
-  threshold: 'Seuil (focus sur la Zone 3-4)',
-}
+/**
+ * Répartition d'intensité unique, imposée à tous les plans (l'athlète ne choisit
+ * plus de méthodologie). Compté en séances : 30-40 % de séances de qualité ; en
+ * temps, cela reste ~80 % facile car échauffements, récupérations et retours au
+ * calme des séances de qualité sont eux-mêmes faciles.
+ */
+export const INTENSITY_RULE = `30 à 40 % des séances de la semaine sont des séances de qualité (allure spécifique, seuil, VMA/VO2, côtes), toutes les autres en endurance facile ou récupération. En temps passé, cela reste environ 80 % en Z1-Z2 (échauffements, récupérations et retours au calme compris). Bas de fourchette en prep/base et en semaine de récupération (qualité surtout tempo, côtes courtes, éducatifs), haut de fourchette en build/peak ; en taper, séances raccourcies mais quelques rappels d'intensité courts maintenus. Jamais deux séances de qualité deux jours de suite pour un débutant.`
 
 interface MacroContext {
   profile: AthleteDetails & {
@@ -385,7 +524,12 @@ export function buildMacroPrompt(ctx: MacroContext): string {
   const performanceBlock = ctx.performance ? buildPerformanceBlock(ctx.performance) : ''
 
   const goalSection = `OBJECTIF(S) DE COURSE :\n${sortGoals(ctx.goals)
-    .map((g) => describeGoal(g, ctx.start_date))
+    .map((g) =>
+      describeGoal(g, {
+        planStartDate: ctx.start_date,
+        runThreshold: ctx.performance?.run_threshold_pace_sec_per_km,
+      }),
+    )
     .join('\n')}`
 
   const age = ageAt(ctx.profile.birth_date, ctx.start_date)
@@ -402,10 +546,7 @@ export function buildMacroPrompt(ctx: MacroContext): string {
     : `- Le volume cible est la disponibilité hebdomadaire : les semaines de charge les plus hautes doivent en être proches (90-100%)
 - Volume de la semaine 1 = 70% du volume cible de l'athlète (montée progressive)${ctx.recent_activity_summary ? ". L'historique peut être incomplet (séances non enregistrées) : s'il est nettement plus bas, descends jusqu'à 50% du volume cible, jamais en dessous" : ''}`
 
-  const hasRunningGoal = ctx.goals.some((g) => g.sport === 'running')
-  const trailBlock = hasRunningGoal
-    ? `\n\n---\n\nSPÉCIALISATION TRAIL :\n${KNOWLEDGE_BASE_TRAIL}`
-    : ''
+  const trailBlock = runningSpecializationBlock(ctx.goals)
 
   const complementaryBlock = ctx.complementary_disciplines?.length
     ? `\n\nDISCIPLINES COMPLÉMENTAIRES (cross-training) : ${ctx.complementary_disciplines
@@ -433,7 +574,7 @@ ${performanceBlock ? performanceBlock + '\n' : ''}
 ${goalSection}${complementaryBlock}
 
 PROGRAMME :
-- Méthodologie : ${METHODOLOGY_LABELS[ctx.methodology] ?? ctx.methodology}
+- Répartition d'intensité (imposée) : ${INTENSITY_RULE}
 - Début : ${ctx.start_date}
 - Durée totale : ${ctx.total_weeks} semaines
 
@@ -473,8 +614,8 @@ Règles :
 ${volumeRules}
 - La dernière semaine (taper final) doit avoir un volume de 40-50% du pic
 - planned_tss cohérent avec le volume et l'intensité (1h Z2 vélo ≈ 50 TSS, 1h run Z2 ≈ 60 TSS)
-- L'ambition de chaque course (terminer, temps visé, podium) détermine la part de travail à allure spécifique en phases build et peak
-${ctx.profile.level === 'beginner' ? '- Athlète débutant : aucune intensité en Z4-Z5 (z4z5 = 0), quelle que soit la méthodologie\n' : ''}${hasSecondaryGoal ? '- Course secondaire : alléger 3 à 5 jours avant et prévoir 3 à 5 jours faciles après, sans casser la progression vers la course principale\n' : ''}`.trim()
+- L'ambition de chaque course (terminer ou chrono cible) détermine la part de travail à allure spécifique en phases build et peak
+${ctx.profile.level === 'beginner' ? '- Athlète débutant : aucune intensité en Z4-Z5 (z4z5 = 0) ; ses séances de qualité restent en Z3 (tempo, côtes courtes)\n' : ''}${hasSecondaryGoal ? '- Course secondaire : alléger 3 à 5 jours avant et prévoir 3 à 5 jours faciles après, sans casser la progression vers la course principale\n' : ''}`.trim()
 }
 
 // ─── Micro generation (sessions detail) ────────────────────────────────────────
@@ -540,6 +681,10 @@ interface MicroContext {
   prior_weeks?: PriorWeek[]
   plan_overview?: PlanWeekOverview[]
   athlete_zones?: string // pre-formatted zone table from calculateZones()
+  /** Allure seuil course (s/km), pour situer le chrono visé. */
+  run_threshold_pace_sec_per_km?: number | null
+  /** D+ cible de la semaine (m), calculé pour une course principale en trail. */
+  weekly_elevation_target_m?: number | null
   recent_wellness_summary?: string
   schedule_constraints?: string
   strava_stats_block?: string
@@ -618,14 +763,12 @@ export function buildMicroPrompt(ctx: MicroContext): string {
 
   const goalsBlock = goals.length
     ? `\nOBJECTIF(S) DE LA PRÉPARATION (chaque séance doit y préparer spécifiquement l'athlète, selon la phase) :\n${goals
-        .map((g) => describeGoal(g))
+        .map((g) => describeGoal(g, { runThreshold: ctx.run_threshold_pace_sec_per_km }))
         .join(
           '\n',
         )}\n${raceWeekLines.length ? `\nCETTE SEMAINE :\n${raceWeekLines.join('\n')}\n` : ''}`
     : ''
-  const trailBlock = goals.some((g) => g.sport === 'running')
-    ? `\n\nSPÉCIALISATION TRAIL (intégrer le travail de dénivelé, de terrain et de descente demandé par la course) :\n${KNOWLEDGE_BASE_TRAIL}`
-    : ''
+  const trailBlock = runningSpecializationBlock(goals)
 
   const keptBlock = ctx.kept_sessions?.length
     ? `\nSÉANCES DÉJÀ TRAITÉES CETTE SEMAINE (conservées, ne pas les reprogrammer) :\n${ctx.kept_sessions
@@ -695,6 +838,17 @@ export function buildMicroPrompt(ctx: MicroContext): string {
     priorWeeksBlock = `SEMAINES PRÉCÉDEMMENT GÉNÉRÉES (contexte de progression) :\n\n${weekBlocks.join('\n\n')}`
   }
 
+  const hasTrail = goals.some(isTrailGoal)
+  const elevationRules = hasTrail
+    ? `- TRAIL : chaque séance de course porte son D+ dans target_values.elevation_gain_m (0 sur le plat) et le décrit dans structure (côtes, montées, descentes)${ctx.weekly_elevation_target_m ? `\n- D+ CIBLE DE LA SEMAINE : ${ctx.weekly_elevation_target_m} m au total (±15 %), réparti ~50 % sortie longue, ~25-30 % séance de côtes, le reste en footings vallonnés. Additionne les elevation_gain_m avant de répondre` : ''}
+- Au moins une séance de côtes (sauf semaine de récupération ou d'affûtage, où elle devient courte) et un renforcement excentrique (STR-04) dans la semaine si le renforcement est au programme
+- En montée, cibles en FC et RPE, jamais en allure
+`
+    : ''
+  const noZonesRule = ctx.athlete_zones
+    ? `- Pour une discipline sans zone personnalisée ci-dessus : cibles au ressenti (RPE, test de la parole) uniquement, aucune allure, aucun watt ni FC inventés\n`
+    : `- Aucune zone personnalisée connue : cibles au ressenti (RPE, test de la parole) uniquement, aucune allure, aucun watt ni FC inventés.${ctx.week.week_num <= 2 ? " Place un test (TEST-RUN-30, TEST-FTP-20 ou TEST-CSS selon les disciplines) cette semaine, en indiquant dans coaching_note de saisir le résultat dans le profil pour calibrer les zones" : ''}\n`
+
   const zonesBlock = ctx.athlete_zones
     ? `ZONES D'ENTRAÎNEMENT PERSONNALISÉES (utilise ces valeurs pour target_values) :\n${ctx.athlete_zones}`
     : ''
@@ -707,7 +861,8 @@ ${planOverviewBlock ? planOverviewBlock + '\n\n' : ''}${priorWeeksBlock ? priorW
 Cibles de la semaine :
 - Volume${ctx.kept_sessions?.length ? ' restant à planifier' : ''} : ${targetVolume}h
 - TSS : ${ctx.week.planned_tss}
-- Répartition intensité : ${intensityDesc}${ctx.methodology ? `\n- Méthodologie du plan : ${METHODOLOGY_LABELS[ctx.methodology] ?? ctx.methodology}` : ''}
+- Répartition intensité : ${intensityDesc}
+- Règle d'intensité du plan : ${INTENSITY_RULE}
 - Note du coach : ${ctx.week.notes}
 
 Profil athlète : niveau ${ctx.profile.level ?? 'intermédiaire'}, ${ctx.profile.weekly_hours_avg ?? 8}h/semaine disponibles
@@ -738,7 +893,7 @@ Génère TOUTES les séances de cette semaine en JSON avec ce format EXACT :
         "watts": [180, 210],
         "hr": [130, 145],
         "pace_per_km": "5:10-5:45",
-        "pace_per_100m": "2:00-2:10"
+        "pace_per_100m": "2:00-2:10"${hasTrail ? ',\n        "elevation_gain_m": 400' : ''}
       },
       "target_zone": "Z2",
       "expected_rpe": 5,
@@ -752,12 +907,12 @@ Contraintes STRICTES :
 - Au moins 1 jour sans séance dans la semaine. Ne génère jamais de séance "rest" : un jour sans séance est un jour de repos
 - Volume total des séances ≈ ${targetVolume}h, soit ${Math.round(targetVolume * 60)} min (±10%) : additionne les duration_min avant de répondre et ajuste les durées si besoin
 - Respecter la répartition d'intensité : ${intensityDesc}
-- ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : ctx.prior_weeks?.length ? 'Assurer une progression cohérente par rapport aux semaines précédentes (types de séances, durées, intensités)' : 'Commencer progressivement, le volume indiqué tient déjà compte de la montée en charge'}
+${elevationRules}${noZonesRule}- ${ctx.week.is_recovery_week ? 'SEMAINE RÉCUP : séances courtes, intensité basse, aucune séance longue ou intensive' : ctx.prior_weeks?.length ? 'Assurer une progression cohérente par rapport aux semaines précédentes (types de séances, durées, intensités)' : 'Commencer progressivement, le volume indiqué tient déjà compte de la montée en charge'}
 - session_date doit être exactement l'une des dates listées ci-dessus
 - discipline DOIT être exactement l'une de : ${allowedDisciplines.join(', ')}
 - day_part : choisis un créneau libre de la journée en tenant compte de l'emploi du temps personnel
 - session_type DOIT être exactement l'une de : easy, tempo, threshold, vo2, race_pace, technique, long, recovery, test
-${ctx.athlete_zones ? `- target_values DOIT utiliser les zones personnalisées fournies ci-dessus (watts pour vélo, pace_per_km pour course, pace_per_100m pour natation, hr pour toutes les disciplines)` : `- target_values : inclure "hr" quand possible, "watts" pour vélo, "pace_per_km" pour course, "pace_per_100m" pour natation`}
+${ctx.athlete_zones ? `- target_values DOIT reprendre les valeurs des zones personnalisées ci-dessus pour la zone visée (watts pour vélo, pace_per_km pour course, pace_per_100m pour natation, hr quand une FC est fournie) ; n'inclure que les clés pour lesquelles une valeur est fournie` : `- target_values : laisser à null (pas de cible chiffrée sans zones), l'intensité est donnée par target_zone, expected_rpe et la structure`}
 `.trim()
 }
 

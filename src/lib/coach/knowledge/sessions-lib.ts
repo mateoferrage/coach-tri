@@ -32,8 +32,8 @@ FTP-03 — Under/Over : 20 min Z2 + 4×(6 min : 3 min 95% / 3 min 105%) r 5 min 
 VO2-01 — VO2max classique 5×4 : 20 min Z2 + 5×4 min Z5 (110-120 % FTP) r 4 min + 10 min Z1 | RPE 8-9 | Build 2, Peak Sprint/Olympique
 VO2-02 — VO2max longs 3×6 : 20 min Z2 + 3×6 min Z5 r 6 min + 10 min Z1 | RPE 9 | Build 2
 FORCE-01 — Force vélo montées : 20 min Z1 + 4×8 min montée à 50-60 RPM en Z3-bas r 5 min + 10 min Z1 | RPE 6-7 | Base 2-3
-RP-02 — Race pace 70.3 : 20 min Z2 + 2×45 min IF 0,82-0,85 r 10 min + 20 min Z1 | RPE 7 | Peak 70.3
-RP-03 — Race pace Ironman : 30 min Z2 + 2-3 h IF 0,70-0,75 + 30 min Z2 | RPE 5-6 | Peak IM
+RP-02 — Race pace 70.3 : 20 min Z2 + 2×45 min IF 0,75-0,82 r 10 min + 20 min Z1 | RPE 7 | Peak 70.3
+RP-03 — Race pace Ironman : 30 min Z2 + 2-3 h IF 0,68-0,76 + 30 min Z2 | RPE 5-6 | Peak IM
 CADENCE-01 — Travail cadence haute : 15 min Z1 + 5×4 min 100-110 RPM Z2 r 3 min + 15 min Z1 | RPE 3-4 | Base, Prep
 REC-01 — Récupération active : 30-45 min Z1 continu, cadence 90+ RPM | RPE 1-2 | Toutes
 
@@ -52,17 +52,29 @@ HILL-01 — Côtes courtes : 15 min Z1-Z2 + 8-10×60 s côte forte (8-10 %) Z5 r
 RP-04 — Race pace half/olympique run : 15 min Z2 + [20-45 min] RP run + 10 min Z1 | RPE 7 | Peak
 RP-05 — Race pace Ironman run : 15 min Z2 + 30 min RP + 15 min Z3 + 10 min Z1 | RPE 6-7 | Peak IM
 PROG-01 — Run progressif : 10 min Z1 + 15 min Z2 + 15 min Z3 + 10 min Z4 + 5 min Z1 | RPE 4→8 | Build 2
+MP-01 — Allure marathon dans la sortie longue : 20 min Z2 + 3×[4-6 km] allure marathon r 1 km Z2 + 15 min Z2 | RPE 6 | Build 2, Peak marathon
+HM-01 — Allure semi : 15 min Z1-Z2 + 3×[3-5 km] allure semi r 3 min + 10 min Z1 | RPE 7 | Build 2, Peak semi
+
+## TRAIL (discipline run ; target_values.elevation_gain_m = D+ de la séance)
+HILL-02 — Côtes longues : 20 min Z1-Z2 + 4-6×[4-8 min] montée régulière en Z4 (FC) r descente trottinée + 10 min Z1 | RPE 7-8 | Build
+HILL-03 — Montée continue : 15 min Z2 + [20-45 min] montée en Z3 (course ou marche active) + descente contrôlée | RPE 6 | Build 2, Peak
+DOWN-01 — Descentes techniques : 20 min Z2 + 4-8×[2-4 min] descente rapide et contrôlée, remontée en marchant + 10 min Z1 | RPE 6 | Build (≥ 10 j avant course)
+TRAIL-LG-01 — Sortie longue trail : [1h30-5h] Z1-Z2 sur terrain proche de la course, D+ cible de la semaine (~50 %), marche active dans les fortes pentes, nutrition testée | RPE 4-5 | Base, Build, Peak
+TRAIL-LG-02 — Sortie longue spécifique : [3-5h] sur parcours type course, 50-70 % du D+ de course, matériel de course | RPE 5-6 | Peak
+TRAIL-B2B — Week-end enchaîné : samedi sortie longue [3-4h] + dimanche [1h30-2h30] vallonné Z2 | RPE 5 | Build 2, Peak ultra
+TRAIL-TAPIS — Côtes sur tapis : 15 min Z2 + 6-10×[3 min] à 10-15 % en Z4 r 2 min à 1 % + 10 min Z1 | RPE 7 | Sans relief disponible
 
 ## BRICK
 BRICK-01 — Brick court : Vélo [45-75 min] Z2 + transition + run 10-20 min Z2-Z3 | RPE 5-6 | Build 1
 BRICK-02 — Brick seuil : Vélo 90 min dont 2×20 min Z4 + transition + run 20 min Z3-Z4 | RPE 7-8 | Build 2
-BRICK-03 — Brick race pace 70.3 : Vélo 3 h dont 2×45 min IF 0,83 + transition + run 45 min RP 70.3 | RPE 7 | Peak 70.3
+BRICK-03 — Brick race pace 70.3 : Vélo 3 h dont 2×45 min IF 0,78 + transition + run 45 min RP 70.3 | RPE 7 | Peak 70.3
 BRICK-04 — Brick race pace IM : Vélo [4-5 h] IF 0,72 + transition + run 1 h Z2-Z3 | RPE 5-6 | Peak IM
 BRICK-05 — Brick léger récup : Vélo 40 min Z1-Z2 + run 10-15 min Z1 | RPE 2-3 | Semaines de récup
 
 ## RENFORCEMENT
 STR-01 — Force lower body : Squat gobelet 3×12 + Fentes inversées 3×10/jambe + Hip thrust 3×15 + Gainage 3×45 s | 40-50 min | RPE 6 | Prep, Base 1-2
 STR-02 — Gainage et stabilité : Planche frontale 3×45 s + Planche latérale 3×30 s + Dead bug 3×10 + Bird-dog 3×10 | 20-30 min | Toutes
+STR-04 — Excentrique trail : Squat descente 4 s 3×10 + Step-down 3×10/jambe + Fentes avant contrôlées 3×10 + Chaise 3×45 s + Mollets excentriques 3×15 | 30-40 min | RPE 6 | Base, Build trail
 STR-03 — Mobilité et étirements actifs : Hip flexor + Pigeon + Foam roller + Épaules | 20-25 min | RPE 1 | Toutes
 
 ## TESTS

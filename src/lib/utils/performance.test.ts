@@ -56,10 +56,10 @@ describe('deriveRunThresholdPaceSecPerKm', () => {
     expect(pace).toBe(260)
   })
 
-  it('retombe sur Riegel (ancre 10 km) avec un seul record', () => {
+  it('retombe sur Riegel (allure tenable 1 h) avec un seul record', () => {
     const pace = deriveRunThresholdPaceSecPerKm({ run_5k_time_s: 1200 })
-    // Riegel 5k→10k : 1200*2^1.06 = 2502 s → /10 = 250 s/km
-    expect(pace).toBe(250)
+    // Riegel 5 km en 20:00 → 14,10 km en 1 h → 255 s/km (proche du CV 5+10 km : 260)
+    expect(pace).toBe(255)
   })
 
   it('retourne null sans aucun record course', () => {
@@ -80,8 +80,8 @@ describe('deriveSwimCssSecPer100m', () => {
 
   it('retombe sur Riegel avec un seul record nage', () => {
     const css = deriveSwimCssSecPer100m({ swim_400m_time_s: 420 })
-    // ancre = 400 m → pace = 420/4 = 105 s/100m
-    expect(css).toBe(105)
+    // ancre 1 500 m : 420·3,75^1,06 = 1 705 s → 114 s/100m (CSS 400/200 réel : 115)
+    expect(css).toBe(114)
   })
 
   it('retourne null sans aucun record nage', () => {
@@ -90,10 +90,10 @@ describe('deriveSwimCssSecPer100m', () => {
 })
 
 describe('deriveVmaKmh', () => {
-  it('dérive la VMA depuis l’allure seuil (seuil ≈ 90% VMA)', () => {
-    // seuil 260 s/km → 3.846 m/s → /0.9 = 4.274 m/s → 15.39 km/h
+  it('dérive la VMA depuis l’allure seuil (seuil ≈ 87 % VMA)', () => {
+    // seuil 260 s/km → 3.846 m/s → /0.87 = 4.421 m/s → 15.9 km/h
     const vma = deriveVmaKmh(260)
-    expect(vma).toBeCloseTo(15.4, 1)
+    expect(vma).toBeCloseTo(15.9, 1)
   })
 
   it('retourne null pour une allure nulle ou absente', () => {
@@ -112,7 +112,7 @@ describe('derivePhysiologyFromRecords', () => {
     })
     expect(d.run_threshold_pace_sec_per_km).toBe(260)
     expect(d.css_pace_sec_per_100m).toBe(115)
-    expect(d.vma_kmh).toBeCloseTo(15.4, 1)
+    expect(d.vma_kmh).toBeCloseTo(15.9, 1)
   })
 
   it('laisse les dérivés à null quand les records manquent', () => {

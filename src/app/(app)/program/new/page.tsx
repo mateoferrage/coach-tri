@@ -14,7 +14,7 @@ export default async function NewProgramPage() {
   const [goalsRes, profileRes] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, race_name, race_date, race_type, sport, status')
+      .select('*')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('race_date', { ascending: true }),
