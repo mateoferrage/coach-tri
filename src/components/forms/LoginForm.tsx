@@ -41,6 +41,7 @@ export function LoginForm() {
         const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         })
         if (error) throw error
         toast.success('Compte créé ! Vérifie ton e-mail pour confirmer.')
